@@ -79,7 +79,7 @@ verdrahtetes Konzept, sondern eine benannte Menge einzelner Berechtigungen sein:
 | Essensplanung & Rezepte | Vorschläge freigeben, Plan bearbeiten | Plan mitbearbeiten | Essenswünsche einreichen | Kein Zugriff | Vorschläge generieren (Status „Vorschlag") |
 | Wetter/Tagesempfehlungen | Ansehen | Ansehen | Ansehen | Allg. Tagesinfo | Abrufen & Empfehlung generieren |
 | Müllabfuhr | Adresse/Konfig verwalten | Ansehen | Ansehen | Falls freigegeben | Termine ermitteln, Aufgabe vorschlagen |
-| Messenger-Integration | Freigaben erteilen, Kanäle konfigurieren | Anfragen vorbereiten | Eigene Wünsche einreichen | – | Verfügbarkeit prüfen, Antwortentwurf (kein Versand ohne Freigabe) |
+| Messenger-Integration | Freigaben erteilen, Kanäle konfigurieren | Anfragen vorbereiten *(in Klärung, siehe Abschnitt 7)* | Eigene Wünsche einreichen | – | Verfügbarkeit prüfen, Antwortentwurf (kein Versand ohne Freigabe) |
 | Sprachassistent (Tablet) | Konfiguration, Stimmprofile | Nutzung, eigenes Profil | Nutzung, eigenes Profil | – | Ausführung (Erkennung/Vorlesen), keine Entscheidung |
 | Fahrzeitberechnung | Konfiguration | Ansehen | Ansehen | – | Berechnung/Anzeige |
 | Rollen & Berechtigungen | Vollzugriff | – | – | – | – |
@@ -91,9 +91,12 @@ verdrahtetes Konzept, sondern eine benannte Menge einzelner Berechtigungen sein:
    über Module – notwendig für KI-Essensvorschläge, Rezeptzutaten,
    Messenger-Antwortentwürfe und ggf. von Jugendlichen vorgeschlagene
    Familientermine.
-2. **Sichtbarkeits-Flag pro Datensatz** (privat / Familie / für Gast freigegeben) –
-   die Gast- und teilweise Kind-Rechte sind nicht rollenweit, sondern *pro
-   Termin/Aufgabe* gesteuert („freigegebene Termine").
+2. **Freigabe pauschal je Kategorie** (Entscheidung vom 2026-09-22): Gäste
+   sehen ganze Kategorien, die ein Administrator für sie freigeschaltet hat
+   (z. B. „alle Kalendertermine außer als privat markiert"), keine Freigabe
+   pro einzelnem Termin/Aufgabe. Ein „privat"-Flag auf einzelnen Datensätzen
+   bleibt als Ausnahme-Mechanismus bestehen, um einzelne Einträge trotz
+   freigegebener Kategorie zu verbergen.
 3. **Altersbasierte Rollenzuordnung mit Übergang**: Geburtsdatum je Kind
    hinterlegen, System schlägt ab konfigurierbarem Alter (z. B. 13) automatisch
    „Jugendlicher" vor, Eltern können manuell überschreiben.
@@ -122,15 +125,34 @@ ergänzen, ohne die Kernarchitektur zu ändern:
 - Institutionelle Gäste (Schule/Kindergarten) mit Schreibrecht nur für bestimmte
   Termintypen
 
-### 7. Offene Entscheidungen
+### 7. Entscheidungen zum Rollenmodell
 
-- Soll „Jugendlicher" schon Teil des PoC-MVP sein? (Kap. 8 des PoC nennt diese
-  Rolle nicht.)
-- Sind beide Erwachsenen zwingend gleichberechtigt Administrator, oder braucht es
-  eine abgestufte Erwachsenen-Rolle?
-- Wie granular soll die Gast-Freigabe sein (pro Termin, pro Kategorie, pauschal)?
-- Soll der Altersübergang Kind→Jugendlicher automatisiert oder rein manuell
-  erfolgen?
+Grundlage: Abgleich mit der finalen Fassung des Rollenkonzept-Dokuments am
+2026-09-22. Von den vier ursprünglich offenen Fragen sind drei geklärt.
+
+**Getroffene Entscheidungen:**
+
+- **Administratoren gleichberechtigt.** Beide Erwachsenen sind immer
+  gleichberechtigt Administrator, keine abgestufte Erwachsenen-Rolle. Passt
+  zum fertigen Rollenkonzept, das nur eine Administrator-Rolle mit den
+  typischen Nutzern „Eltern, Erziehungsberechtigte" kennt.
+- **Gast-Freigabe pauschal je Kategorie**, nicht pro einzelnem Termin/Aufgabe
+  (Details siehe Abschnitt 5, Punkt 2).
+- **Altersübergang Kind→Jugendlicher automatisiert**: System schlägt ab
+  konfigurierbarem Alter (Richtwert 13, siehe Rollenkonzept) die Rolle
+  „Jugendlicher" vor, Eltern können manuell überschreiben.
+
+**Noch offen:**
+
+- **Soll „Jugendlicher" schon Teil des PoC-MVP sein?** Muss mit dem
+  Projektleiter abgestimmt werden. Klärung angesetzt für Mittwoch,
+  2026-09-23.
+- **Messenger-Berechtigung für Jugendliche.** Die aktuelle Fassung des
+  Rollenkonzepts hat „Messenger-Anfragen vorbereiten" beim Jugendlichen
+  gegenüber einer früheren Fassung gestrichen. Offen, ob das Absicht ist oder
+  ein Versehen beim Überarbeiten war – betrifft die Berechtigungsmatrix
+  (Abschnitt 4), das Use-Case-Diagramm und `StandardRoles.jugendlicher()` im
+  Prototyp.
 
 ## Projektstand und Fortschritt (Stand 2026-09-22)
 
@@ -182,7 +204,10 @@ Figma-MCP-Server eingerichtet:
   Messenger/Sprache (Identität → Rolle), Zustandsdiagramm für den Vorschlags-
   Status, ER-Diagramm der lokalen Datenbank, Deployment-Diagramm, Roadmap/
   MVP-Abgrenzung als Diagramm.
-- Die 4 offenen Entscheidungsfragen aus Abschnitt 7 sind weiterhin ungeklärt.
+- Von den 4 Entscheidungsfragen aus Abschnitt 7 sind 3 geklärt (Stand
+  2026-09-22); offen sind noch „Jugendlicher im MVP" (Klärung mit
+  Projektleiter am 2026-09-23) und die Messenger-Berechtigung für
+  Jugendliche.
 - Technologiewahl für die eigentliche Umsetzung (Web-Framework, Datenbank,
   Backend-Sprache) ist bewusst noch offen; alle C4-Container sind aktuell mit
   „Technologie offen" markiert.
