@@ -173,33 +173,80 @@ unten), unter `C:\Users\jneugart\IdeaProjects\FamilyHub-Rollenkonzept-Prototyp\`
 |---|---|
 | `src/` | Lauffähiger Java-Konzeptprototyp des Rollenmodells: `Module`, `Action`, `Scope`, `Permission`, `Role`, `StandardRoles` (die 5 Standardrollen), `FamilyMember` (inkl. Einzel-Overrides), `ApprovalStatus`/`ApprovableItem` (Freigabe-Workflow) und `PrototypeDemo` als ausführbares Beispiel. Mit `javac *.java && java PrototypeDemo` lauffähig; alle Beispielprüfungen liefern das erwartete Ergebnis. |
 | `architektur/` | Architekturübersicht als SVG/PNG/`.drawio` (Clients → Zugriff & Sicherheit → Anwendungskern → lokale Daten → optionale externe Dienste). |
-| `uml/` | `klassendiagramm.drawio` (Domänenmodell), `usecase-diagramm.drawio` (5 Rollen × Anwendungsfälle inkl. KI-Agent), `c4-kontextdiagramm.drawio` (C4 Level 1), `c4-containerdiagramm.drawio` (Level 2), `c4-komponentendiagramm.drawio` (Level 3, Zoom in die Kernanwendung), `c4-codediagramm.drawio` (Level 4, Zoom in Rollenmodell/Freigabe-Workflow, basiert auf dem Prototyp-Code), `sequenzdiagramm-freigabe.drawio` (Ablauf des wöchentlichen KI-Essensvorschlags inkl. Alt-Zweig „nicht berechtigt"). Jede `.drawio`-Datei hat eine passende `.png`-Vorschau. |
+| `uml/` | `klassendiagramm.drawio` (Domänenmodell), `usecase-diagramm.drawio` (5 Rollen × Anwendungsfälle inkl. KI-Agent), `c4-kontextdiagramm.drawio` (C4 Level 1), `c4-containerdiagramm.drawio` (Level 2), `c4-komponentendiagramm.drawio` (Level 3, Zoom in die Kernanwendung), `c4-codediagramm.drawio` (Level 4, Zoom in Rollenmodell/Freigabe-Workflow, basiert auf dem Prototyp-Code), `uml-softwarearchitektur.drawio` (UML-Komponentendiagramm, echte UML-Notation statt C4), `sequenzdiagramm-freigabe.drawio` (Ablauf des wöchentlichen KI-Essensvorschlags inkl. Alt-Zweig „nicht berechtigt"). Jede `.drawio`-Datei hat eine passende `.png`-Vorschau (Ausnahme: `uml-softwarearchitektur.drawio` auf Wunsch ohne PNG). |
+| `architektur/schichtenmodell.drawio` | Klassisches 5-Schichten-Modell (Präsentation → Zugriff/Sicherheit → Anwendung → Integration/Datenhaltung → externe Dienste), nur `.drawio`, kein PNG. |
+| `praesentation/` | `FamilyHub-AI-Projektstand.pptx` – 7-seitige Statuspräsentation (Titel, Ausgangslage, Rollenmodell, Architektur, Figma-UI-Analyse, Nächste Schritte, Diskussion). Erzeugt per PowerPoint-COM-Automatisierung (siehe Hinweis unten), nicht mit dem üblichen pptxgenjs-Skill. |
+
+Unter `C:\Users\jneugart\IdeaProjects\FamilyHub-UI\` (ebenfalls außerhalb des
+Git-Repos): Kopie des Figma-Make-Exports „FamilyHub AI High Fidelity UI"
+(React 19 + Vite + Tailwind 4 + TypeScript), in die unser Rollenmodell
+integriert wurde (`src/roles/index.ts`, `src/roles/ActorContext.tsx`):
+5-Rollen-Modell statt der ursprünglichen 2 Rollen (Mom/Dad/Child), automatischer
+Altersübergang (Emma, 16, wird dadurch korrekt „Jugendlicher" statt „Child"),
+funktionierender Familien-Umschalter in der Sidebar, Freigabe-Workflow in
+Essensplanung (`MealPlanning.tsx`) und KI-Assistent (`AIAssistant.tsx`).
+`Shopping.tsx` (Einkaufsliste) hat den Freigabe-Workflow noch **nicht** –
+ein Integrationsversuch dort wurde probeweise gemacht und auf Nutzerwunsch
+wieder verworfen, der Code ist also unverändert im Originalzustand.
 
 Alle Diagramme wurden vor Auslieferung gerendert und visuell geprüft (per
 draw.io-Viewer in headless Edge). Die `.drawio`-Dateien wurden inzwischen auch
 erfolgreich in der draw.io-Desktop-App geöffnet (erkennbar an den dabei
 entstehenden `.bkp`-Sicherungsdateien im `architektur/`- und `uml/`-Ordner).
 
-### Figma-Anbindung (in Arbeit)
+### Figma-Anbindung (abgeschlossen, Stand 2026-09-22)
 
 Es existiert ein fertiges High-Fidelity-UI in Figma Make
-(„FamilyHub AI High Fidelity UI"). Damit Claude Code es lesen kann, wurde ein
-Figma-MCP-Server eingerichtet:
-- Plugin-Installation (`figma@claude-plugins-official`) schlug fehl, da kein
-  Plugin-Marketplace konfiguriert ist.
-- Stattdessen wurde der Remote-MCP-Server manuell eingetragen:
+(„FamilyHub AI High Fidelity UI"). Der Zugriff darauf per Claude Code läuft
+jetzt vollständig:
+
+- **Bekannter Anthropic-Bug:** Der reservierte Marketplace-Name
+  `claude-plugins-official` ist über die normale Installation
+  (`claude plugin install figma@claude-plugins-official`) nicht erreichbar
+  (siehe [GitHub Issue #22310](https://github.com/anthropics/claude-code/issues/22310),
+  Stand: offen/„duplicate", kein offizieller Fix).
+- **Workaround:** Marketplace direkt vom GitHub-Repo hinzufügen statt über den
+  kaputten reservierten Namen:
+  `claude plugin marketplace add anthropics/claude-plugins-official`, danach
+  `claude plugin install figma@claude-plugins-official` — das funktioniert.
+- **MCP-Server-Alternative** (falls kein Plugin gewünscht ist):
   `claude mcp add --transport http --scope user figma https://mcp.figma.com/mcp`
-  (Änderung liegt in `C:\Users\jneugart\.claude.json`, nicht im Repo.)
-- Status zuletzt: Server eingetragen, aber **Autorisierung steht noch aus**
-  (`/mcp` zeigt „Needs authentication"). Der Login bei Figma muss vom Nutzer
-  selbst im interaktiven Chat über `/mcp` erledigt werden.
-- Fallback, falls die Make-Datei über MCP nicht lesbar sein sollte: Code-Export
-  aus Figma Make oder PNG/PDF-Export der Screens.
+  (Änderung liegt in `C:\Users\jneugart\.claude.json`, nicht im Repo).
+- **Autorisierung**: Login läuft über `/mcp` im interaktiven Chat (OAuth im
+  Browser) — das kann nur der Nutzer selbst auslösen, nicht Claude automatisiert.
+  Erfolgreich abgeschlossen und per `whoami`-Tool bestätigt (Handle
+  `jakob.neugartner`).
+- **Verifiziert:** `App.tsx` und `data.ts` direkt aus dem lebenden Figma-Make-File
+  abgerufen und mit der lokalen Kopie in `FamilyHub-UI` verglichen — identisch,
+  kein Drift.
+- **Wichtige Einschränkung:** Die schreibenden Figma-MCP-Tools (`use_figma`,
+  `generate_figma_design`) unterstützen laut eigener Doku ausdrücklich nur
+  reguläre Design-Dateien (`/design/`), FigJam und Slides — **Figma-Make-Dateien
+  (`/make/`) sind explizit ausgeschlossen**, sowohl beim Schreiben als auch bei
+  `get_screenshot`/`get_metadata`. Lesen von Make-Dateien geht nur über
+  `get_design_context` (liefert Links auf die Quelldateien). Das Make-File selbst
+  lässt sich also nur über Figma Make direkt bearbeiten, nicht über diese
+  Anbindung.
+
+### Backend-Technologie (in Klärung, Stand 2026-09-22)
+
+- **Bestätigt:** Java bleibt die Backend-Sprache; das bestehende
+  `src/Main.java`-Grundgerüst im Repo soll erhalten bleiben.
+- **Wahrscheinlich, aber nicht final:** Datenbank wird eine NoSQL-Variante
+  (welche genau ist offen).
+- **Empfehlung für das Framework:** Spring Boot (Standardwahl für Java-Backends,
+  guter NoSQL-Support über Spring Data, REST + Dependency Injection eingebaut).
+  Leichtere Alternativen wären Javalin oder Quarkus.
+- **Vorschlag, um die offene DB-Frage nicht zum Blocker zu machen:** Datenzugriff
+  hinter Repository-Interfaces kapseln, zunächst mit einer In-Memory-Implementierung
+  starten und die konkrete NoSQL-Anbindung später austauschen, sobald entschieden.
+- Das Rollenmodell aus `FamilyHub-Rollenkonzept-Prototyp` (Java) ließe sich in
+  ein Spring-Boot-Grundgerüst übernehmen, sobald das freigegeben wird.
 
 ### Offene nächste Schritte
 
-- Figma-Autorisierung abschließen und das UI mit dem Rollenkonzept abgleichen
-  (Rollen-Sichten, Freigabe-Ansicht für KI-Vorschläge, Tablet-Sprachfunktion).
+- Backend-Framework endgültig festlegen (Spring Boot vorgeschlagen, siehe oben)
+  und NoSQL-Datenbank auswählen.
 - Aus der ursprünglich vorgeschlagenen Diagrammliste fehlen noch: Sequenzdiagramm
   Messenger/Sprache (Identität → Rolle), Zustandsdiagramm für den Vorschlags-
   Status, ER-Diagramm der lokalen Datenbank, Deployment-Diagramm, Roadmap/
@@ -208,19 +255,26 @@ Figma-MCP-Server eingerichtet:
   2026-09-22); offen sind noch „Jugendlicher im MVP" (Klärung mit
   Projektleiter am 2026-09-23) und die Messenger-Berechtigung für
   Jugendliche.
-- Technologiewahl für die eigentliche Umsetzung (Web-Framework, Datenbank,
-  Backend-Sprache) ist bewusst noch offen; alle C4-Container sind aktuell mit
-  „Technologie offen" markiert.
+- Lokale Verifikation von `FamilyHub-UI` im Browser steht weiterhin aus (siehe
+  Hinweis zu fehlendem Node.js unten).
 
 ### Wichtige Hinweise für die Fortsetzung
 
-- **Der Prototyp-Ordner (`FamilyHub-Rollenkonzept-Prototyp`) liegt absichtlich
-  außerhalb dieses Git-Repos** und wird nicht gepusht — er dient nur als
-  lokaler Konzeptnachweis, bis über die tatsächliche Projektstruktur und
-  Technologie entschieden ist.
+- **Der Prototyp-Ordner (`FamilyHub-Rollenkonzept-Prototyp`) und der UI-Ordner
+  (`FamilyHub-UI`) liegen absichtlich außerhalb dieses Git-Repos** und werden
+  nicht gepusht — sie dienen nur als lokaler Konzeptnachweis, bis über die
+  tatsächliche Projektstruktur und Technologie entschieden ist.
 - In diesem Repo selbst gibt es eine unveränderte, unfertige lokale Bearbeitung
   in `src/Main.java` (IntelliJ-Vorlage, TIP-Kommentare entfernt) — das ist nicht
   Teil dieser Konzeptarbeit und wurde bewusst nicht angefasst.
+- **Auf dieser Entwicklungsmaschine sind weder Node.js/npm/pnpm noch Python
+  installiert** (nur Git Bash, PowerShell, Java JDK 25, IntelliJ, Microsoft
+  Office). Das bedeutet: `FamilyHub-UI` kann nicht lokal gestartet/verifiziert
+  werden (`pnpm dev`), und Node-basierte Skills (z. B. der pptx-Skill mit
+  pptxgenjs) laufen ins Leere. Workaround für PowerPoint-Erstellung:
+  direkte COM-Automatisierung über die lokal installierte PowerPoint-App
+  (PowerShell). Für echte Weiterentwicklung von `FamilyHub-UI` müsste Node.js
+  auf dieser Maschine nachinstalliert werden.
 - Diese README wird nach Abschluss größerer Arbeitsschritte fortgeschrieben;
   sie ist der einzige Ort, der garantiert zwischen Chat-Sitzungen erhalten
   bleibt und gepusht wird.
