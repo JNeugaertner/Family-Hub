@@ -2,6 +2,7 @@ package de.familyhub.permission;
 
 import static de.familyhub.testsupport.TestUsers.as;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,7 +38,7 @@ class RoleControllerTest {
                 .andExpect(jsonPath("$[?(@.id == 'ki_agent')].assignable").value(contains(false)))
                 .andExpect(jsonPath("$[?(@.id == 'gast')].name").value(contains("Gast")))
                 .andExpect(jsonPath("$[?(@.id == 'kind')].permissions[?(@.module == 'kalender')].scope")
-                        .value(contains("familie")));
+                        .value(containsInAnyOrder("eigen", "familie")));
 
         members.delete(lily);
     }

@@ -1,7 +1,7 @@
 package de.familyhub.security;
 
 import static de.familyhub.testsupport.TestUsers.as;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -109,7 +109,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.id").value(lily.id()))
                 .andExpect(jsonPath("$.effectiveRole").value("kind"))
                 .andExpect(jsonPath("$.permissions[?(@.module == 'kalender' && @.action == 'ansehen')].scope")
-                        .value(contains("familie")))
+                        .value(containsInAnyOrder("eigen", "familie")))
                 .andExpect(jsonPath("$.permissions[?(@.module == 'kalender' && @.action == 'erstellen')]").isEmpty());
     }
 

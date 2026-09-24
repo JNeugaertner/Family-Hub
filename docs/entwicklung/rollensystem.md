@@ -53,8 +53,8 @@ angemeldeten Person von `GET /api/auth/me`.
 | Rolle | Kalender | Familie | Weitere Standardrechte (Auszug) |
 |---|---|---|---|
 | Administrator | alles | verwalten, Rollen und Rechte vergeben | alles |
-| Jugendlicher | ansehen; eigene anlegen, ändern, löschen; für andere vorschlagen | ansehen | Aufgaben der Familie sehen, eigene verwalten; Einkauf bearbeiten; Essen mitplanen; Punkte der Familie sehen |
-| Kind | ansehen | ansehen | eigene Aufgaben abhaken, eigene Punkte sehen, Einkaufs- und Essenswünsche |
+| Jugendlicher | eigene und Familientermine ansehen; eigene anlegen, ändern, löschen; für andere vorschlagen | ansehen | Aufgaben der Familie sehen, eigene verwalten; Einkauf bearbeiten; Essen mitplanen; Punkte der Familie sehen |
+| Kind | eigene und Familientermine ansehen | ansehen | eigene Aufgaben abhaken, eigene Punkte sehen, Einkaufs- und Essenswünsche |
 | Gast | freigegebene Kategorien ansehen | ansehen | freigegebene Aufgaben, Wetter, Müllabfuhr |
 | KI-Agent | ansehen, vorschlagen | ansehen | nur ansehen und vorschlagen, nie selbst anlegen oder freigeben |
 
@@ -78,6 +78,10 @@ praktisch Administrator.
 | Vorschläge freigeben oder ablehnen | ja | nein, nur eigene zurückziehen | nein | nein |
 
 - **Eigene Termine** sind die, die der Person zugeordnet sind.
+- **Eigene Termine ansehen** ist ein eigenes Recht neben „Familienkalender ansehen“.
+  Wird nur der Familienkalender entzogen, sieht die Person weiterhin die Termine,
+  die ihr zugeordnet sind oder die sie angelegt hat. Erst ohne beide Rechte ist
+  der Kalender leer.
 - **Vorschläge** (`status: proposed`) gelten erst nach der Freigabe (`approved`).
   Ablehnen löscht den Vorschlag. Das Dashboard zeigt nur freigegebene Termine.
 - **Private Termine** (`private: true`) sehen nur die zugeordnete Person, wer den

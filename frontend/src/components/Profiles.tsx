@@ -26,6 +26,7 @@ interface Props { onNavigate: (p: any) => void; }
 // Rechte, die auf der Profilseite angezeigt und einzeln vergeben oder entzogen werden können.
 // Jeder Eintrag entspricht genau einem Recht aus den Standardrollen (Backend: StandardRoles).
 const PERMISSION_DISPLAY: (Permission & { label: string; icon: string })[] = [
+  { module: 'kalender', action: 'ansehen', scope: 'eigen', label: 'Eigene Termine ansehen', icon: '👁️' },
   { module: 'kalender', action: 'ansehen', scope: 'familie', label: 'Familienkalender ansehen', icon: '📅' },
   { module: 'kalender', action: 'erstellen', scope: 'eigen', label: 'Eigene Termine anlegen', icon: '➕' },
   { module: 'kalender', action: 'vorschlagen', scope: 'familie', label: 'Termine für andere vorschlagen', icon: '💡' },
@@ -194,6 +195,12 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
   const rolePermissions = roles.find(r => r.id === effectiveRole)?.permissions ?? [];
   const inRole = (p: Permission) => rolePermissions.some(r => permissionKey(r) === permissionKey(p));
   const contains = (list: Permission[], p: Permission) => list.some(x => permissionKey(x) === permissionKey(p));
+  // Rechte, wie sie nach dem Speichern gelten würden
+  const current = [...rolePermissions.filter(p => !contains(revoked, p)), ...extra];
+  // Ein weiter reichendes Recht schließt das engere ein (Familienkalender -> eigene Termine); dann ist
+  // das engere nicht einzeln abschaltbar.
+  const coveredElsewhere = (p: Permission) =>
+    hasPermission(current.filter(x => permissionKey(x) !== permissionKey(p)), p.module, p.action, p.scope);
   const toggled = (list: Permission[], p: Permission) =>
     contains(list, p) ? list.filter(x => permissionKey(x) !== permissionKey(p)) : [...list, p];
 
@@ -308,7 +315,7 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
             <fieldset>
               <legend className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-2">
                 <ShieldLock size={12} /> Rechte
-                <span className="text-[10px] font-normal text-slate-400">„Rolle“ = Standard der Rolle, „einzeln“ = von dir angepasst</span>
+                <span className="text-[10px] font-normal text-slate-400">„Rolle“ = Standard der Rolle, „einzeln“ = von dir angepasst, „enthalten“ = durch ein weiter reichendes Recht abgedeckt</span>
               </legend>
               {effectiveRole !== role && (
                 <p className="text-xs text-slate-500 mb-2">
@@ -318,16 +325,17 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
               <div className="space-y-1.5">
                 {PERMISSION_DISPLAY.map(p => {
                   const fromRole = inRole(p);
-                  const has = fromRole ? !contains(revoked, p) : contains(extra, p);
+                  const covered = coveredElsewhere(p);
+                  const has = covered || (fromRole ? !contains(revoked, p) : contains(extra, p));
                   const changed = fromRole ? contains(revoked, p) : contains(extra, p);
                   return (
-                    <label key={permissionKey(p)}
-                      className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-colors ${has ? 'bg-[#F0FDF4]' : 'hover:bg-slate-50'}`}>
-                      <input type="checkbox" className="w-4 h-4 accent-[#22C55E]" checked={has} onChange={() => toggle(p)} />
+                    <label key={permissionKey(p)} title={covered ? 'In einem weiter reichenden Recht enthalten' : undefined}
+                      className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${covered ? '' : 'cursor-pointer'} ${has ? 'bg-[#F0FDF4]' : 'hover:bg-slate-50'}`}>
+                      <input type="checkbox" className="w-4 h-4 accent-[#22C55E]" checked={has} disabled={covered} onChange={() => toggle(p)} />
                       <span className="text-sm">{p.icon}</span>
                       <span className={`text-sm flex-1 ${has ? 'font-medium text-slate-800' : 'text-slate-500'}`}>{p.label}</span>
-                      <span className={`text-[10px] ${changed ? 'text-[#2563EB] font-semibold' : 'text-slate-400'}`}>
-                        {changed ? 'einzeln' : fromRole ? 'Rolle' : ''}
+                      <span className={`text-[10px] ${changed && !covered ? 'text-[#2563EB] font-semibold' : 'text-slate-400'}`}>
+                        {covered ? 'enthalten' : changed ? 'einzeln' : fromRole ? 'Rolle' : ''}
                       </span>
                     </label>
                   );
