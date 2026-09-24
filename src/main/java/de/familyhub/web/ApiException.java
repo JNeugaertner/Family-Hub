@@ -21,6 +21,14 @@ public class ApiException extends ErrorResponseException {
         return problem;
     }
 
+    public static ApiException unauthorized(String detail) {
+        return new ApiException(HttpStatus.UNAUTHORIZED, "Nicht angemeldet", detail, null);
+    }
+
+    public static ApiException forbidden(String detail) {
+        return new ApiException(HttpStatus.FORBIDDEN, "Keine Berechtigung", detail, null);
+    }
+
     public static ApiException notFound(String detail) {
         return new ApiException(HttpStatus.NOT_FOUND, "Nicht gefunden", detail, null);
     }

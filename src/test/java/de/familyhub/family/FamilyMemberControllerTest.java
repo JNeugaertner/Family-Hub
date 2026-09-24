@@ -1,8 +1,9 @@
 package de.familyhub.family;
 
+import static de.familyhub.testsupport.TestUsers.as;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.matchesPattern;
-import static org.hamcrest.Matchers.not;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -19,11 +21,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
 import de.familyhub.calendar.EventCategory;
+import de.familyhub.permission.Role;
+import de.familyhub.testsupport.TestUsers;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -38,89 +43,164 @@ class FamilyMemberControllerTest {
     @Autowired
     private CalendarEventRepository events;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private FamilyMember sarah;
+
     @BeforeEach
-    void cleanDatabase() {
+    void setUp() {
         events.deleteAll();
         members.deleteAll();
+        sarah = members.save(TestUsers.member("Sarah", Role.ADMINISTRATOR));
+    }
+
+    private static String json(String name, String username, String password, String role) {
+        String passwordJson = password == null ? "null" : "\"" + password + "\"";
+        return """
+                {"name": "%s", "color": "#EC4899", "username": "%s", "password": %s, "role": "%s",
+                 "birthDate": "2018-01-30", "roleFixed": false}
+                """.formatted(name, username, passwordJson, role);
     }
 
     @Test
-    void createReturns201WithLocationAndIgnoresSentId() throws Exception {
-        mvc.perform(post("/api/members").contentType(APPLICATION_JSON).content("""
-                        {"id": "eigene-id", "name": "Sarah", "color": "#2563EB"}
-                        """))
+    void administratorCreatesMemberWithHashedPassword() throws Exception {
+        mvc.perform(post("/api/members").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Lily", "lily", "geheim123", "kind")))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", matchesPattern(".*/api/members/[0-9a-f]{24}")))
-                .andExpect(jsonPath("$.id").value(not("eigene-id")))
-                .andExpect(jsonPath("$.name").value("Sarah"))
-                .andExpect(jsonPath("$.color").value("#2563EB"));
+                .andExpect(jsonPath("$.username").value("lily"))
+                .andExpect(jsonPath("$.role").value("kind"))
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+
+        FamilyMember lily = members.findByUsername("lily").orElseThrow();
+        assertThat(passwordEncoder.matches("geheim123", lily.passwordHash())).isTrue();
     }
 
     @Test
-    void invalidInputReturnsGermanFieldErrors() throws Exception {
-        mvc.perform(post("/api/members").contentType(APPLICATION_JSON).content("""
-                        {"name": "", "color": "blau"}
+    void optionalFieldsMayBeOmitted() throws Exception {
+        mvc.perform(post("/api/members").with(as(sarah)).contentType(APPLICATION_JSON).content("""
+                        {"name": "Oma", "color": "#64748B", "username": "oma", "password": "geheim123", "role": "gast"}
                         """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.roleFixed").value(false))
+                .andExpect(jsonPath("$.birthDate").doesNotExist());
+    }
+
+    @Test
+    void onlyAdministratorsMayManageMembers() throws Exception {
+        FamilyMember emma = members.save(TestUsers.member("Emma", Role.JUGENDLICHER));
+
+        mvc.perform(post("/api/members").with(as(emma)).contentType(APPLICATION_JSON)
+                        .content(json("Lily", "lily", "geheim123", "kind")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.title").value("Keine Berechtigung"));
+        mvc.perform(delete("/api/members/" + sarah.id()).with(as(emma))).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void passwordIsRequiredWhenCreating() throws Exception {
+        mvc.perform(post("/api/members").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Lily", "lily", null, "kind")))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Ungültige Eingaben"))
-                .andExpect(jsonPath("$.errors.name").value("Name darf nicht leer sein"))
-                .andExpect(jsonPath("$.errors.color").value("Farbe muss ein Hex-Wert wie #2563EB sein"));
+                .andExpect(jsonPath("$.errors.password").value("Passwort ist Pflicht"));
     }
 
     @Test
-    void listAndGetReturnStoredMembers() throws Exception {
-        FamilyMember sarah = members.save(new FamilyMember(null, "Sarah", "#2563EB"));
-        members.save(new FamilyMember(null, "Mike", "#14B8A6"));
+    void usernameMustBeUnique() throws Exception {
+        mvc.perform(post("/api/members").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Sarah Zwei", "sarah", "geheim123", "gast")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.username").value("Benutzername ist bereits vergeben"));
+    }
 
-        mvc.perform(get("/api/members"))
+    @Test
+    void kiAgentRoleCannotBeAssigned() throws Exception {
+        mvc.perform(post("/api/members").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Robo", "robo", "geheim123", "ki_agent")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.role").value(containsString("KI-Agent")));
+    }
+
+    @Test
+    void familyLimitsAreEnforced() throws Exception {
+        members.save(TestUsers.member("Mike", Role.ADMINISTRATOR));
+        mvc.perform(post("/api/members").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Opa", "opa", "geheim123", "administrator")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.role").value("Es gibt bereits 2 Administratoren"));
+
+        members.save(TestUsers.member("Emma", Role.JUGENDLICHER));
+        for (String child : new String[] {"Kind1", "Kind2", "Kind3", "Kind4"}) {
+            members.save(TestUsers.member(child, Role.KIND));
+        }
+        mvc.perform(post("/api/members").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Kind Fünf", "kind5", "geheim123", "kind")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.role").value("Es gibt bereits 5 Kinder oder Jugendliche"));
+
+        mvc.perform(post("/api/members").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Oma", "oma", "geheim123", "gast")))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void lastAdministratorCannotBeRemovedOrDemoted() throws Exception {
+        mvc.perform(delete("/api/members/" + sarah.id()).with(as(sarah)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(containsString("mindestens ein Administrator")));
+        mvc.perform(put("/api/members/" + sarah.id()).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Sarah", "sarah", null, "gast")))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void updateKeepsPasswordWhenNoneIsSent() throws Exception {
+        FamilyMember lily = members.save(TestUsers.member("Lily", Role.KIND));
+
+        mvc.perform(put("/api/members/" + lily.id()).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Lily M.", "lily", null, "kind")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
-        mvc.perform(get("/api/members/" + sarah.id()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Sarah"));
+                .andExpect(jsonPath("$.name").value("Lily M."));
+
+        assertThat(members.findById(lily.id()).orElseThrow().passwordHash())
+                .isEqualTo(lily.passwordHash());
     }
 
     @Test
-    void updateChangesMember() throws Exception {
-        FamilyMember sarah = members.save(new FamilyMember(null, "Sarah", "#2563EB"));
+    void privateDetailsAreOnlyVisibleToAdministratorsAndThePersonItself() throws Exception {
+        FamilyMember emma = members.save(TestUsers.member("Emma", Role.KIND, LocalDate.of(2010, 2, 14)));
+        FamilyMember oma = members.save(TestUsers.member("Oma", Role.GAST));
 
-        mvc.perform(put("/api/members/" + sarah.id()).contentType(APPLICATION_JSON).content("""
-                        {"name": "Sarah M.", "color": "#1D4ED8"}
-                        """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(sarah.id()))
-                .andExpect(jsonPath("$.name").value("Sarah M."));
-    }
-
-    @Test
-    void unknownMemberReturns404() throws Exception {
-        mvc.perform(get("/api/members/000000000000000000000000"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.title").value("Nicht gefunden"));
-        mvc.perform(put("/api/members/000000000000000000000000").contentType(APPLICATION_JSON).content("""
-                        {"name": "Niemand", "color": "#000000"}
-                        """))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void deleteRemovesMemberWithoutEvents() throws Exception {
-        FamilyMember mike = members.save(new FamilyMember(null, "Mike", "#14B8A6"));
-
-        mvc.perform(delete("/api/members/" + mike.id())).andExpect(status().isNoContent());
-        mvc.perform(get("/api/members/" + mike.id())).andExpect(status().isNotFound());
+        mvc.perform(get("/api/members/" + emma.id()).with(as(oma)))
+                .andExpect(jsonPath("$.name").value("Emma"))
+                .andExpect(jsonPath("$.username").doesNotExist())
+                .andExpect(jsonPath("$.birthDate").doesNotExist());
+        mvc.perform(get("/api/members/" + emma.id()).with(as(emma)))
+                .andExpect(jsonPath("$.username").value("emma"));
+        mvc.perform(get("/api/members/" + emma.id()).with(as(sarah)))
+                .andExpect(jsonPath("$.birthDate").value("2010-02-14"))
+                .andExpect(jsonPath("$.role").value("kind"))
+                .andExpect(jsonPath("$.effectiveRole").value("jugendlicher"));
     }
 
     @Test
     void deleteIsRefusedWhileMemberHasEvents() throws Exception {
-        FamilyMember lucas = members.save(new FamilyMember(null, "Lucas", "#F97316"));
+        FamilyMember lucas = members.save(TestUsers.member("Lucas", Role.KIND));
         LocalDateTime start = LocalDateTime.of(2026, 9, 25, 10, 0);
         events.save(new CalendarEvent(null, "Basketball", start, start.plusHours(2), lucas.id(),
                 EventCategory.SPORTS, null, null));
 
-        mvc.perform(delete("/api/members/" + lucas.id()))
+        mvc.perform(delete("/api/members/" + lucas.id()).with(as(sarah)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value(containsString("einen Termin")));
-        mvc.perform(get("/api/members/" + lucas.id())).andExpect(status().isOk());
+    }
+
+    @Test
+    void unknownMemberReturns404() throws Exception {
+        mvc.perform(get("/api/members/000000000000000000000000").with(as(sarah)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Nicht gefunden"));
     }
 }

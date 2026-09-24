@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import de.familyhub.calendar.CalendarEvent;
@@ -27,8 +28,10 @@ import de.familyhub.calendar.CalendarEventRepository;
 import de.familyhub.calendar.EventCategory;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.permission.Role;
 
-// Beispielfamilie und -termine aus dem Figma-UI (FamilyHub-UI/src/components/data.ts).
+// Beispielfamilie und -termine aus dem Figma-UI (frontend/src/components/data.ts), dazu eine Oma als Gast.
+// Nur für Entwicklung und Tests: alle Beispielkonten haben dasselbe, öffentlich bekannte Passwort.
 @Component
 @ConditionalOnProperty(name = "familyhub.sample-data.enabled", havingValue = "true", matchIfMissing = true)
 public class SampleDataLoader implements ApplicationRunner {
@@ -38,12 +41,19 @@ public class SampleDataLoader implements ApplicationRunner {
     // Im Figma-UI haben einige Termine keine Endzeit; das Backend verlangt eine.
     static final Duration DEFAULT_DURATION = Duration.ofHours(1);
 
-    private static final List<FamilyMember> MEMBERS = List.of(
-            new FamilyMember(null, "Sarah", "#2563EB"),
-            new FamilyMember(null, "Mike", "#14B8A6"),
-            new FamilyMember(null, "Emma", "#8B5CF6"),
-            new FamilyMember(null, "Lucas", "#F97316"),
-            new FamilyMember(null, "Lily", "#EC4899"));
+    public static final String SAMPLE_PASSWORD = "familyhub";
+
+    private record SampleMember(String name, String color, Role role, String birthDate) {
+    }
+
+    // Emma ist als Kind hinterlegt und gilt durch den Altersübergang ab 13 automatisch als Jugendliche.
+    private static final List<SampleMember> MEMBERS = List.of(
+            new SampleMember("Sarah", "#2563EB", Role.ADMINISTRATOR, null),
+            new SampleMember("Mike", "#14B8A6", Role.ADMINISTRATOR, null),
+            new SampleMember("Emma", "#8B5CF6", Role.KIND, "2010-02-14"),
+            new SampleMember("Lucas", "#F97316", Role.KIND, "2014-05-03"),
+            new SampleMember("Lily", "#EC4899", Role.KIND, "2018-01-30"),
+            new SampleMember("Oma", "#64748B", Role.GAST, null));
 
     private record SampleEvent(String title, String date, String time, String endTime,
             String member, EventCategory category, String location) {
@@ -69,10 +79,13 @@ public class SampleDataLoader implements ApplicationRunner {
 
     private final FamilyMemberRepository memberRepository;
     private final CalendarEventRepository eventRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public SampleDataLoader(FamilyMemberRepository memberRepository, CalendarEventRepository eventRepository) {
+    public SampleDataLoader(FamilyMemberRepository memberRepository, CalendarEventRepository eventRepository,
+            PasswordEncoder passwordEncoder) {
         this.memberRepository = memberRepository;
         this.eventRepository = eventRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -86,11 +99,18 @@ public class SampleDataLoader implements ApplicationRunner {
             return;
         }
 
-        Map<String, String> idByName = memberRepository.saveAll(MEMBERS).stream()
+        String passwordHash = passwordEncoder.encode(SAMPLE_PASSWORD);
+        List<FamilyMember> members = MEMBERS.stream()
+                .map(m -> new FamilyMember(null, m.name(), m.color(), m.name().toLowerCase(), passwordHash, m.role(),
+                        m.birthDate() == null ? null : LocalDate.parse(m.birthDate()), false))
+                .toList();
+        Map<String, String> idByName = memberRepository.saveAll(members).stream()
                 .collect(Collectors.toMap(FamilyMember::name, FamilyMember::id));
         eventRepository.saveAll(EVENTS.stream().map(e -> toEvent(e, idByName)).toList());
 
-        log.info("Beispieldaten angelegt: {} Familienmitglieder, {} Termine.", MEMBERS.size(), EVENTS.size());
+        log.warn("Beispieldaten angelegt: {} Konten (Benutzername = Vorname in Kleinbuchstaben, Passwort \"{}\") "
+                + "und {} Termine. Nur für Entwicklung, für echten Betrieb familyhub.sample-data.enabled=false setzen.",
+                MEMBERS.size(), SAMPLE_PASSWORD, EVENTS.size());
     }
 
     private static CalendarEvent toEvent(SampleEvent e, Map<String, String> idByName) {

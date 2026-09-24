@@ -49,6 +49,19 @@ Beim ersten Start mit leerer Datenbank legt das Backend die Beispielfamilie aus
 dem Figma-UI an. Der erste Testlauf lädt einmalig eine Test-MongoDB herunter
 (ca. 840 MB, einige Minuten).
 
+**Anmeldung:** Die API ist nur nach Login nutzbar. Beispielkonten (nur für die
+Entwicklung, alle mit dem Passwort `familyhub`):
+
+| Benutzername | Rolle |
+|---|---|
+| `sarah`, `mike` | Administrator |
+| `emma` | Jugendliche (als Kind hinterlegt, ab 13 automatisch Jugendliche) |
+| `lucas`, `lily` | Kind |
+| `oma` | Gast |
+
+Ohne Beispieldaten (`familyhub.sample-data.enabled=false`) legt man beim ersten
+Start über `POST /api/auth/setup` den ersten Administrator an.
+
 ## Projektstruktur
 
 ```

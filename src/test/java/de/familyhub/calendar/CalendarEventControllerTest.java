@@ -1,5 +1,6 @@
 package de.familyhub.calendar;
 
+import static de.familyhub.testsupport.TestUsers.as;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -22,6 +23,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.permission.Role;
+import de.familyhub.testsupport.TestUsers;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -38,6 +41,7 @@ class CalendarEventControllerTest {
     @Autowired
     private FamilyMemberRepository members;
 
+    private FamilyMember sarah;
     private FamilyMember lucas;
     private FamilyMember emma;
 
@@ -45,8 +49,9 @@ class CalendarEventControllerTest {
     void setUp() {
         events.deleteAll();
         members.deleteAll();
-        lucas = members.save(new FamilyMember(null, "Lucas", "#F97316"));
-        emma = members.save(new FamilyMember(null, "Emma", "#8B5CF6"));
+        sarah = members.save(TestUsers.member("Sarah", Role.ADMINISTRATOR));
+        lucas = members.save(TestUsers.member("Lucas", Role.KIND));
+        emma = members.save(TestUsers.member("Emma", Role.JUGENDLICHER));
     }
 
     private static String json(String title, String start, String end, String memberId, String category) {
@@ -61,7 +66,7 @@ class CalendarEventControllerTest {
 
     @Test
     void createReturns201WithUiFormat() throws Exception {
-        mvc.perform(post("/api/events").contentType(APPLICATION_JSON)
+        mvc.perform(post("/api/events").with(as(sarah)).contentType(APPLICATION_JSON)
                         .content(json("Basketball", "2026-09-25T10:00", "2026-09-25T12:00", lucas.id(), "sports")))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", containsString("/api/events/")))
@@ -72,7 +77,7 @@ class CalendarEventControllerTest {
 
     @Test
     void createWithUnknownMemberIsRejected() throws Exception {
-        mvc.perform(post("/api/events").contentType(APPLICATION_JSON)
+        mvc.perform(post("/api/events").with(as(sarah)).contentType(APPLICATION_JSON)
                         .content(json("Basketball", "2026-09-25T10:00", "2026-09-25T12:00", "000000000000000000000000", "sports")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.memberId").value("Familienmitglied existiert nicht"));
@@ -80,7 +85,7 @@ class CalendarEventControllerTest {
 
     @Test
     void createWithInvalidFieldsReturnsAllErrors() throws Exception {
-        mvc.perform(post("/api/events").contentType(APPLICATION_JSON)
+        mvc.perform(post("/api/events").with(as(sarah)).contentType(APPLICATION_JSON)
                         .content(json("", "2026-09-25T12:00", "2026-09-25T10:00", lucas.id(), "sports")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.title").value("Titel darf nicht leer sein"))
@@ -89,10 +94,11 @@ class CalendarEventControllerTest {
 
     @Test
     void unknownCategoryIsReportedAsUnreadableRequest() throws Exception {
-        mvc.perform(post("/api/events").contentType(APPLICATION_JSON)
+        mvc.perform(post("/api/events").with(as(sarah)).contentType(APPLICATION_JSON)
                         .content(json("Party", "2026-09-25T10:00", "2026-09-25T12:00", lucas.id(), "party")))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Anfrage nicht lesbar"));
+                .andExpect(jsonPath("$.title").value("Anfrage nicht lesbar"))
+                .andExpect(jsonPath("$.errors.category").value("Ungültiger oder fehlender Wert"));
     }
 
     @Test
@@ -102,11 +108,11 @@ class CalendarEventControllerTest {
         save("Basketball", DAY.withHour(10), DAY.withHour(12), lucas);
         save("Nächster Tag", DAY.plusDays(1).withHour(10), DAY.plusDays(1).withHour(11), lucas);
 
-        mvc.perform(get("/api/events").param("from", "2026-09-25T00:00").param("to", "2026-09-26T00:00"))
+        mvc.perform(get("/api/events").with(as(sarah)).param("from", "2026-09-25T00:00").param("to", "2026-09-26T00:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].title", contains("Nacht vom Vortag", "Basketball", "Training Emma")));
 
-        mvc.perform(get("/api/events").param("from", "2026-09-25T00:00").param("to", "2026-09-26T00:00")
+        mvc.perform(get("/api/events").with(as(sarah)).param("from", "2026-09-25T00:00").param("to", "2026-09-26T00:00")
                         .param("memberId", emma.id()))
                 .andExpect(jsonPath("$[*].title", contains("Training Emma")));
     }
@@ -116,22 +122,22 @@ class CalendarEventControllerTest {
         save("Später", DAY.withHour(18), DAY.withHour(19), lucas);
         save("Früher", DAY.withHour(8), DAY.withHour(9), emma);
 
-        mvc.perform(get("/api/events"))
+        mvc.perform(get("/api/events").with(as(sarah)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].title", contains("Früher", "Später")));
     }
 
     @Test
     void invalidRangeParametersAreRejected() throws Exception {
-        mvc.perform(get("/api/events").param("from", "2026-09-25T00:00"))
+        mvc.perform(get("/api/events").with(as(sarah)).param("from", "2026-09-25T00:00"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.to").value("from und to müssen zusammen angegeben werden"));
 
-        mvc.perform(get("/api/events").param("from", "2026-09-26T00:00").param("to", "2026-09-25T00:00"))
+        mvc.perform(get("/api/events").with(as(sarah)).param("from", "2026-09-26T00:00").param("to", "2026-09-25T00:00"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.to").value("to muss nach from liegen"));
 
-        mvc.perform(get("/api/events").param("from", "25.09.2026").param("to", "2026-09-26T00:00"))
+        mvc.perform(get("/api/events").with(as(sarah)).param("from", "25.09.2026").param("to", "2026-09-26T00:00"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(containsString("from")));
     }
@@ -140,14 +146,14 @@ class CalendarEventControllerTest {
     void updateChangesEventAndUnknownIdReturns404() throws Exception {
         CalendarEvent event = save("Basketball", DAY.withHour(10), DAY.withHour(12), lucas);
 
-        mvc.perform(put("/api/events/" + event.id()).contentType(APPLICATION_JSON)
+        mvc.perform(put("/api/events/" + event.id()).with(as(sarah)).contentType(APPLICATION_JSON)
                         .content(json("Basketball-Finale", "2026-09-25T11:00", "2026-09-25T13:00", emma.id(), "sports")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(event.id()))
                 .andExpect(jsonPath("$.title").value("Basketball-Finale"))
                 .andExpect(jsonPath("$.memberId").value(emma.id()));
 
-        mvc.perform(put("/api/events/000000000000000000000000").contentType(APPLICATION_JSON)
+        mvc.perform(put("/api/events/000000000000000000000000").with(as(sarah)).contentType(APPLICATION_JSON)
                         .content(json("X", "2026-09-25T11:00", "2026-09-25T13:00", emma.id(), "sports")))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Nicht gefunden"));
@@ -157,7 +163,7 @@ class CalendarEventControllerTest {
     void deleteRemovesEvent() throws Exception {
         CalendarEvent event = save("Basketball", DAY.withHour(10), DAY.withHour(12), lucas);
 
-        mvc.perform(delete("/api/events/" + event.id())).andExpect(status().isNoContent());
-        mvc.perform(get("/api/events/" + event.id())).andExpect(status().isNotFound());
+        mvc.perform(delete("/api/events/" + event.id()).with(as(sarah))).andExpect(status().isNoContent());
+        mvc.perform(get("/api/events/" + event.id()).with(as(sarah))).andExpect(status().isNotFound());
     }
 }
