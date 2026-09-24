@@ -209,6 +209,53 @@ class FamilyMemberControllerTest {
     }
 
     @Test
+    void memberManagementAloneGivesNoWayToMoreRights() throws Exception {
+        // Emma darf per Einzelrecht Mitglieder verwalten, aber keine Rollen und Rechte vergeben
+        FamilyMember emma = members.save(new FamilyMember(null, "Emma", "#8B5CF6", "emma", "{noop}x",
+                Role.JUGENDLICHER, null, false,
+                Set.of(Permission.of(Module.FAMILIE, Action.VERWALTEN, Scope.FAMILIE)), Set.of()));
+        FamilyMember lucas = members.save(TestUsers.member("Lucas", Role.KIND, LocalDate.of(2014, 5, 3)));
+        String lucasJson = """
+                {"name": "%s", "color": "#F97316", "username": "%s", "password": %s, "role": "kind",
+                 "birthDate": "%s", "roleFixed": false}
+                """;
+
+        mvc.perform(put("/api/members/" + lucas.id()).with(as(emma)).contentType(APPLICATION_JSON)
+                        .content(lucasJson.formatted("Luca", "lucas", "null", "2014-05-03")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Luca"));
+
+        mvc.perform(put("/api/members/" + lucas.id()).with(as(emma)).contentType(APPLICATION_JSON)
+                        .content(lucasJson.formatted("Luca", "lucas", "null", "2010-05-03")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("Nur Administratoren dürfen Rollen und Rechte vergeben."));
+        mvc.perform(put("/api/members/" + lucas.id()).with(as(emma)).contentType(APPLICATION_JSON)
+                        .content(lucasJson.formatted("Luca", "lucas", "\"uebernommen1\"", "2014-05-03")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value(containsString("Passwort anderer")));
+        mvc.perform(put("/api/members/" + lucas.id()).with(as(emma)).contentType(APPLICATION_JSON)
+                        .content(lucasJson.formatted("Luca", "luca", "null", "2014-05-03")))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/api/members/" + emma.id()).with(as(emma)).contentType(APPLICATION_JSON)
+                        .content(json("Emma", "emma", null, "administrator")))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/api/members/" + sarah.id()).with(as(emma)).contentType(APPLICATION_JSON).content("""
+                        {"name": "Sarah", "color": "#2563EB", "username": "sarah", "role": "administrator"}
+                        """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("Nur Administratoren dürfen Administratoren ändern."));
+        mvc.perform(delete("/api/members/" + sarah.id()).with(as(emma))).andExpect(status().isForbidden());
+        mvc.perform(post("/api/members").with(as(emma)).contentType(APPLICATION_JSON)
+                        .content(json("Lily", "lily", "geheim123", "kind")))
+                .andExpect(status().isForbidden());
+
+        FamilyMember unchanged = members.findById(lucas.id()).orElseThrow();
+        assertThat(unchanged.passwordHash()).isEqualTo(lucas.passwordHash());
+        assertThat(unchanged.birthDate()).isEqualTo(LocalDate.of(2014, 5, 3));
+        assertThat(members.findById(sarah.id())).isPresent();
+    }
+
+    @Test
     void teenagerCannotReadMembersWhenPermissionIsRevoked() throws Exception {
         FamilyMember emma = members.save(new FamilyMember(null, "Emma", "#8B5CF6", "emma", "{noop}x",
                 Role.JUGENDLICHER, null, false, Set.of(),

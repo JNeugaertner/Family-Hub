@@ -7,17 +7,19 @@ Müllabfuhr, Fahrzeiten, Messenger-Eingaben und Sprachfunktionen in einer
 gemeinsamen Oberfläche. Leitprinzip: **Der Agent informiert und bereitet vor,
 die Eltern entscheiden.**
 
-**Status:** Proof of Concept. Aktuell entsteht das Backend für das Kalender-MVP
-(siehe [Entwicklungsplan](docs/entwicklung/kalender-mvp.md)).
+**Status:** Proof of Concept. Umgesetzt sind der Familienkalender
+([Kalender-MVP](docs/entwicklung/kalender-mvp.md)) sowie Anmeldung, Rollen und
+Rechte ([Rollensystem](docs/entwicklung/rollensystem.md)). Die übrigen Bereiche
+der Oberfläche zeigen noch feste Beispieldaten.
 
 ## Tech-Stack
 
 | Bereich | Technologie |
 |---|---|
-| Backend | Java 25, Spring Boot 4.1, Maven Wrapper |
+| Backend | Java 25, Spring Boot 4.1, Spring Security (Sitzungs-Cookie, CSRF), Maven Wrapper |
 | Datenbank | MongoDB 8.0 (lokal) |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS 4 (ursprünglich aus Figma Make) |
-| Tests | JUnit 5, MockMvc |
+| Tests | JUnit 5, MockMvc, eingebettete MongoDB (Flapdoodle) |
 
 ## Schnellstart
 
@@ -80,6 +82,8 @@ den ersten Administrator an.
 
 - [Entwicklungsplan Kalender-MVP](docs/entwicklung/kalender-mvp.md): Ziel, Phasen,
   technische Entscheidungen
+- [Rollensystem](docs/entwicklung/rollensystem.md): Anmeldung, Rechtemodell,
+  Kalender-Regeln je Rolle, API, Ausprobieren
 - [Rollen- und Berechtigungskonzept](docs/konzept/rollenkonzept.md): 5 Rollen,
   Rechte, Freigabe-Workflow, offene Fragen
 - [Rechtekonzept als Diagramm](docs/konzept/rechtekonzept.drawio)

@@ -2,6 +2,7 @@ package de.familyhub.family;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
@@ -74,7 +75,7 @@ public class FamilyMemberController {
     @Operation(summary = "Familienmitglied anlegen", description = "Nur für Administratoren. Passwort ist Pflicht.")
     public ResponseEntity<MemberResponse> create(@Valid @RequestBody MemberRequest request) {
         FamilyMember admin = requireManager();
-        requireRightsManager(admin);
+        requireRightsManager(admin, "Nur Administratoren dürfen neue Familienmitglieder anlegen.");
         checkRoleAssignable(request.role());
         if (request.password() == null) {
             throw ApiException.invalidField("password", "Passwort ist Pflicht");
@@ -100,22 +101,18 @@ public class FamilyMemberController {
                 ? existing.extraPermissions() : request.extraPermissions();
         Set<Permission> revoked = request.revokedPermissions() == null
                 ? existing.revokedPermissions() : request.revokedPermissions();
-        boolean rightsChanged = request.role() != existing.role() || request.isRoleFixed() != existing.roleFixed()
-                || !extra.equals(existing.extraPermissions()) || !revoked.equals(existing.revokedPermissions());
-        if (rightsChanged) {
-            requireRightsManager(admin);
-        }
+        FamilyMember updated = new FamilyMember(id, request.name(), request.color(), request.username(),
+                existing.passwordHash(), request.role(), request.birthDate(), request.isRoleFixed(), extra, revoked);
+        requireAllowedChange(admin, existing, updated, request.password() != null);
         checkRoleAssignable(request.role());
         requireFreeUsername(request.username(), id);
         rules.checkLimits(request.role(), id);
         rules.checkAdministratorRemains(existing, request.role());
 
-        String passwordHash = request.password() == null
-                ? existing.passwordHash()
-                : passwordEncoder.encode(request.password());
-        FamilyMember saved = members.save(new FamilyMember(id, request.name(), request.color(), request.username(),
-                passwordHash, request.role(), request.birthDate(), request.isRoleFixed(), extra, revoked));
-        return responses.of(saved, admin);
+        if (request.password() != null) {
+            updated = updated.withPasswordHash(passwordEncoder.encode(request.password()));
+        }
+        return responses.of(members.save(updated), admin);
     }
 
     @DeleteMapping("/{id}")
@@ -123,8 +120,11 @@ public class FamilyMemberController {
     @Operation(summary = "Familienmitglied löschen",
             description = "Nur für Administratoren und nur, wenn dem Mitglied keine Termine mehr zugeordnet sind.")
     public void delete(@PathVariable String id) {
-        requireManager();
+        FamilyMember admin = requireManager();
         FamilyMember member = find(id);
+        if (member.role() == Role.ADMINISTRATOR) {
+            requireRightsManager(admin, "Nur Administratoren dürfen Administratoren löschen.");
+        }
         rules.checkAdministratorRemains(member, null);
         long eventCount = events.countByMemberId(id);
         if (eventCount > 0) {
@@ -149,9 +149,30 @@ public class FamilyMemberController {
         return current;
     }
 
-    private void requireRightsManager(FamilyMember current) {
-        permissions.require(current, Module.SYSTEM, Action.VERWALTEN, Scope.FAMILIE,
-                "Nur Administratoren dürfen Rollen und Rechte vergeben.");
+    private void requireRightsManager(FamilyMember current, String deniedMessage) {
+        permissions.require(current, Module.SYSTEM, Action.VERWALTEN, Scope.FAMILIE, deniedMessage);
+    }
+
+    // Wer nur "Familienmitglieder verwalten" darf (Einzelrecht), soll sich darüber keine weiteren Rechte
+    // verschaffen können: weder über Rollen und Einzelrechte noch über das Geburtsdatum (automatischer
+    // Wechsel zum Jugendlichen), das Konto eines Administrators oder die Anmeldedaten anderer.
+    private void requireAllowedChange(FamilyMember manager, FamilyMember before, FamilyMember after,
+            boolean newPassword) {
+        boolean ageDecidesRole = after.role() == Role.KIND && !after.roleFixed();
+        boolean rightsChanged = before.role() != after.role() || before.roleFixed() != after.roleFixed()
+                || !before.extraPermissions().equals(after.extraPermissions())
+                || !before.revokedPermissions().equals(after.revokedPermissions())
+                || ageDecidesRole && !Objects.equals(before.birthDate(), after.birthDate());
+        if (rightsChanged) {
+            requireRightsManager(manager, "Nur Administratoren dürfen Rollen und Rechte vergeben.");
+        }
+        if (before.role() == Role.ADMINISTRATOR) {
+            requireRightsManager(manager, "Nur Administratoren dürfen Administratoren ändern.");
+        }
+        boolean loginChanged = newPassword || !Objects.equals(before.username(), after.username());
+        if (loginChanged && !before.id().equals(manager.id())) {
+            requireRightsManager(manager, "Nur Administratoren dürfen Benutzername und Passwort anderer ändern.");
+        }
     }
 
     private static Set<Permission> orEmpty(Set<Permission> permissions) {

@@ -40,7 +40,7 @@ const PERMISSION_DISPLAY: (Permission & { label: string; icon: string })[] = [
   { module: 'system', action: 'verwalten', scope: 'familie', label: 'Rollen & Rechte verwalten', icon: '🔒' },
 ];
 
-const INPUT = 'w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2';
+const INPUT = 'w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-500';
 const inputClass = (hasError: boolean) =>
   `${INPUT} ${hasError ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20' : 'border-slate-200 focus:border-[#2563EB] focus:ring-[#2563EB]/20'}`;
 
@@ -146,8 +146,9 @@ function MemberCard({ member, roles, isSelf, onEdit }: {
 
 // ─── Mitglied anlegen / bearbeiten (nur Administratoren) ─────────────────────
 
-function MemberModal({ member, roles, mayManageRights, onClose, onSaved }: {
-  member?: ApiMember; roles: RoleInfo[]; mayManageRights: boolean; onClose: () => void; onSaved: () => Promise<void>;
+function MemberModal({ member, roles, mayManageRights, isSelf, onClose, onSaved }: {
+  member?: ApiMember; roles: RoleInfo[]; mayManageRights: boolean; isSelf: boolean;
+  onClose: () => void; onSaved: () => Promise<void>;
 }) {
   const isEdit = !!member;
   const [name, setName] = useState(member?.name ?? '');
@@ -164,6 +165,11 @@ function MemberModal({ member, roles, mayManageRights, onClose, onSaved }: {
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Ohne "Rollen & Rechte verwalten" bleiben Anmeldedaten anderer und ein rollenbestimmendes Geburtsdatum
+  // gesperrt, wie im Backend (FamilyMemberController).
+  const loginLocked = !mayManageRights && !isSelf;
+  const birthDateLocked = !mayManageRights && role === 'kind' && !roleFixed;
 
   const rolePermissions = roles.find(r => r.id === role)?.permissions ?? [];
   const inRole = (p: Permission) => rolePermissions.some(r => permissionKey(r) === permissionKey(p));
@@ -231,13 +237,14 @@ function MemberModal({ member, roles, mayManageRights, onClose, onSaved }: {
               <input id="member-name" className={inputClass(!!errors.name)} value={name} onChange={e => setName(e.target.value)} autoFocus />
             </Field>
             <Field id="member-username" label="Benutzername" error={errors.username}>
-              <input id="member-username" className={inputClass(!!errors.username)} value={username} onChange={e => setUsername(e.target.value)} autoComplete="off" />
+              <input id="member-username" className={inputClass(!!errors.username)} value={username} disabled={loginLocked}
+                onChange={e => setUsername(e.target.value)} autoComplete="off" />
             </Field>
           </div>
 
           <Field id="member-password" label={isEdit ? 'Neues Passwort (leer lassen = unverändert)' : 'Passwort (mind. 8 Zeichen)'} error={errors.password}>
             <input id="member-password" type="password" className={inputClass(!!errors.password)} value={password}
-              onChange={e => setPassword(e.target.value)} autoComplete="new-password" />
+              disabled={loginLocked} onChange={e => setPassword(e.target.value)} autoComplete="new-password" />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
@@ -249,7 +256,7 @@ function MemberModal({ member, roles, mayManageRights, onClose, onSaved }: {
             </Field>
             <Field id="member-birthDate" label="Geburtsdatum (optional)" error={errors.birthDate}>
               <input id="member-birthDate" type="date" className={inputClass(!!errors.birthDate)} value={birthDate}
-                onChange={e => setBirthDate(e.target.value)} />
+                disabled={birthDateLocked} onChange={e => setBirthDate(e.target.value)} />
             </Field>
           </div>
 
@@ -488,7 +495,7 @@ export default function Profiles({ onNavigate }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {list.map(m => (
           <MemberCard key={m.id} member={m} roles={roles} isSelf={m.id === me.id}
-            onEdit={mayManage ? () => setEditing({ member: m }) : undefined} />
+            onEdit={mayManage && (mayManageRights || m.role !== 'administrator') ? () => setEditing({ member: m }) : undefined} />
         ))}
       </div>
     </div>
@@ -504,7 +511,7 @@ export default function Profiles({ onNavigate }: Props) {
             <h2 className="text-2xl font-bold">Familie</h2>
             <p className="text-white/70 text-sm">{members.length} Konten · höchstens 2 Administratoren und 5 Kinder</p>
           </div>
-          {mayManage && (
+          {mayManageRights && (
             <button onClick={() => setEditing({})}
               className="flex items-center gap-2 bg-white text-[#1E3A8A] px-4 py-2 rounded-xl text-sm font-semibold hover:bg-white/90">
               <PlusIcon size={16} /> Mitglied hinzufügen
@@ -526,7 +533,7 @@ export default function Profiles({ onNavigate }: Props) {
 
       {editing && (
         <MemberModal member={editing.member} roles={roles} mayManageRights={mayManageRights}
-          onClose={() => setEditing(null)} onSaved={afterSave} />
+          isSelf={editing.member?.id === me.id} onClose={() => setEditing(null)} onSaved={afterSave} />
       )}
     </div>
   );

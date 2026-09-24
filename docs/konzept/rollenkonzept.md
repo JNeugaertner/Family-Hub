@@ -1,7 +1,7 @@
 # Rollen- und Berechtigungskonzept
 
-Fachliche Basis für die spätere Umsetzung von Anmeldung, Rollen und Rechten.
-Noch keine technische Implementierung.
+Fachliche Basis für Anmeldung, Rollen und Rechte. Die technische Umsetzung
+beschreibt [Rollensystem](../entwicklung/rollensystem.md).
 
 **Maßgebliche Übersicht:** [rechtekonzept.drawio](rechtekonzept.drawio). Die Matrix
 dort beruht auf der finalen Fassung des Rollenkonzept-Dokuments (22.09.2026) und
@@ -101,11 +101,19 @@ nur für bestimmte Termintypen.
 - Altersübergang Kind → Jugendlicher automatisch ab Richtwert 13, manuell
   überschreibbar.
 
+**Getroffen bei der Umsetzung (24.09.2026):**
+- Alle 5 Rollen sind umgesetzt, auch Jugendlicher. Der KI-Agent ist als Rolle
+  angelegt, hat aber noch keinen Zugang.
+- User Story A.1 (höchstens 2 Erwachsene, 5 Kinder): Jugendliche zählen als
+  Kinder, Gäste zählen nicht.
+- Kinder sehen alle Familientermine außer fremden privaten Terminen.
+- Terminvorschläge von Jugendlichen gibt ein Administrator frei oder lehnt sie ab.
+
 **Offen:**
-- Ist „Jugendlicher" schon Teil des MVP? Abstimmung mit dem Projektleiter.
+- Mit dem Projektleiter bestätigen, dass „Jugendlicher" Teil des MVP ist
+  (umgesetzt ist die Rolle bereits).
 - Messenger-Berechtigung für Jugendliche: Die finale Fassung des Rollenkonzepts
   hat „Messenger-Anfragen vorbereiten" gestrichen. Absicht oder Versehen?
 - Widersprüche zwischen den Dokumenten: User Story A.2 und die Familienverwaltung
-  API im C4-Diagramm kennen nur Eltern, Kind und Agent. Bei User Story A.1
-  (höchstens 2 Erwachsene, 5 Kinder) ist offen, ob Jugendliche als Kinder zählen
-  und ob Gäste mitzählen.
+  API im C4-Diagramm kennen nur Eltern, Kind und Agent. Umgesetzt sind die 5
+  Rollen dieses Konzepts; die Dokumente sollten angeglichen werden.

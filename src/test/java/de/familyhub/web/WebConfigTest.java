@@ -46,6 +46,16 @@ class WebConfigTest {
                 .andExpect(jsonPath("$.paths['/api/members/{id}']").exists());
     }
 
+    // Spring Security erwartet beim Login Formularfelder; sonst scheitert die Anmeldung in der Swagger UI.
+    @Test
+    void openApiDescribesLoginAsFormSoSwaggerUiCanLogIn() throws Exception {
+        mvc.perform(get("/v3/api-docs"))
+                .andExpect(jsonPath("$.paths['/api/auth/login'].post.tags[0]").value("Anmeldung"))
+                .andExpect(jsonPath("$.paths['/api/auth/login'].post.requestBody.content['application/x-www-form-urlencoded']").exists())
+                .andExpect(jsonPath("$.paths['/api/auth/login'].post.requestBody.content['application/json']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/auth/logout'].post").exists());
+    }
+
     @Test
     void swaggerUiIsAvailable() throws Exception {
         mvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());

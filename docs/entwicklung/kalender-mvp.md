@@ -6,7 +6,8 @@ an das React-UI liefert. Grundlage sind User Story 1 (Kalender) und die C4-Seite
 [c4-modell.drawio](../architektur/c4-modell.drawio).
 
 **Nicht enthalten:** externe APIs (Google Kalender, Messenger, Fahrzeiten,
-Müllabfuhr), Anmeldung, Rollen und Rechte, KI.
+Müllabfuhr), Anmeldung, Rollen und Rechte (kamen danach, siehe
+[Rollensystem](rollensystem.md)), KI.
 
 ## Technische Entscheidungen (23.09.2026)
 
@@ -54,8 +55,9 @@ Datenbank prüfen und kommt deshalb in Phase 4.
   Zeitraum berühren, auch solche, die vorher beginnen oder danach enden. Grundlage
   für Tages-, Wochen- und Monatsansicht.
 - Beispieldaten: Beim Start mit leerer Datenbank werden die 5 Familienmitglieder
-  und 16 Termine aus dem Figma-UI angelegt. Termine ohne Endzeit dauern eine
-  Stunde. Abschaltbar mit `familyhub.sample-data.enabled=false`. Zum Zurücksetzen
+  und 16 Termine aus dem Figma-UI angelegt, mit dem Rollensystem dazu Oma als
+  Gast, ein privater Termin und ein offener Terminvorschlag. Termine ohne Endzeit
+  dauern eine Stunde. Abschaltbar mit `familyhub.sample-data.enabled=false`. Zum Zurücksetzen
   die Datenbank löschen: `mongosh mongodb://127.0.0.1:27017/familyhub --eval "db.dropDatabase()"`.
 - MongoDB speichert Zeiten intern in UTC und rechnet mit der Zeitzone des Servers
   um. Solange Backend und Datenbank auf demselben Rechner laufen, ist das
@@ -66,6 +68,10 @@ Datenbank prüfen und kommt deshalb in Phase 4.
 
 Ausprobieren im Browser: **http://localhost:8080/swagger-ui.html** (Backend und
 MongoDB müssen laufen).
+
+Seit dem Rollensystem brauchen alle Aufrufe eine Anmeldung, und es gibt neue
+Felder und Endpunkte, siehe [Rollensystem](rollensystem.md#rest-schnittstelle).
+Die Tabelle zeigt den Stand des Kalender-MVP.
 
 | Methode und Pfad | Zweck | Antworten |
 |---|---|---|
@@ -112,5 +118,5 @@ aus dem Pfad. CORS erlaubt nur `http://localhost:5173` (änderbar über
 
 ## Danach
 
-Echte Anmeldung, dann Rollen und Rechte gemäß
-[Rollenkonzept](../konzept/rollenkonzept.md).
+Anmeldung, Rollen und Rechte gemäß [Rollenkonzept](../konzept/rollenkonzept.md):
+umgesetzt, siehe [Rollensystem](rollensystem.md).
