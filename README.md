@@ -228,25 +228,70 @@ jetzt vollständig:
   lässt sich also nur über Figma Make direkt bearbeiten, nicht über diese
   Anbindung.
 
-### Backend-Technologie (in Klärung, Stand 2026-09-22)
+### Backend-Technologie (entschieden, Stand 2026-09-23)
 
-- **Bestätigt:** Java bleibt die Backend-Sprache; das bestehende
-  `src/Main.java`-Grundgerüst im Repo soll erhalten bleiben.
-- **Wahrscheinlich, aber nicht final:** Datenbank wird eine NoSQL-Variante
-  (welche genau ist offen).
-- **Empfehlung für das Framework:** Spring Boot (Standardwahl für Java-Backends,
-  guter NoSQL-Support über Spring Data, REST + Dependency Injection eingebaut).
-  Leichtere Alternativen wären Javalin oder Quarkus.
-- **Vorschlag, um die offene DB-Frage nicht zum Blocker zu machen:** Datenzugriff
-  hinter Repository-Interfaces kapseln, zunächst mit einer In-Memory-Implementierung
-  starten und die konkrete NoSQL-Anbindung später austauschen, sobald entschieden.
-- Das Rollenmodell aus `FamilyHub-Rollenkonzept-Prototyp` (Java) ließe sich in
-  ein Spring-Boot-Grundgerüst übernehmen, sobald das freigegeben wird.
+| Thema | Entscheidung |
+|---|---|
+| Sprache | Java 25 |
+| Framework | Spring Boot 4.1 (Spring Web MVC, Bean Validation) |
+| Build | Maven über den Maven Wrapper (`mvnw`), keine Maven-Installation nötig |
+| Struktur | Maven-Standard: `src/main/java/de/familyhub/`, Startklasse `Main.java` |
+| Datenbank | MongoDB, lokal als ZIP ohne Admin-Rechte installiert, Zugriff über Spring Data MongoDB |
+| Tests | JUnit 5 und MockMvc, eingebettete MongoDB (Flapdoodle) für Datenbanktests |
+| Termin-Zuordnung | genau ein Familienmitglied pro Termin, wie im Figma-UI |
+| Noch offen | springdoc-openapi (Swagger UI) ja/nein, Lombok (Empfehlung: weglassen) |
+
+Redis wurde als Hauptdatenbank verworfen: im Kern ein Cache, Abfragen nach
+Zeitraum und Person wären mühsam, und es läuft nicht nativ auf Windows. Später
+denkbar als Cache für externe APIs oder für die Echtzeit-Einkaufsliste.
+
+### Entwicklungsplan: Kalender-MVP (Branch `feature/kalender-mvp`)
+
+Ziel: Backend, das Familienmitglieder und Termine verwaltet und per REST an das
+React-UI liefert (User Story 1, C4-Seite `C3_Component_MVP`: Kalender API,
+Termin API, Familienverwaltung API). **Nicht enthalten:** externe APIs
+(Google Kalender, Messenger, Fahrzeiten, Müllabfuhr), Anmeldung, Rollen und
+Rechte, KI.
+
+| Phase | Inhalt | Status |
+|---|---|---|
+| 1 | Spring-Boot-Grundgerüst mit Maven Wrapper, `GET /api/health` | erledigt (2026-09-23) |
+| 1b | MongoDB als ZIP in einen Benutzerordner installieren, Startskript `scripts/start-mongodb.ps1` | erledigt (2026-09-23) |
+| 2 | Datenmodell `FamilyMember` (id, name, color) und `CalendarEvent` (id, title, start, end, memberId, category, location, description) mit Validierung | offen |
+| 3 | Spring Data MongoDB, Repositories, Beispieldaten aus dem Figma-UI beim ersten Start | offen |
+| 4 | REST: `/api/members` und `/api/events?from=&to=&memberId=` (CRUD), Fehlerantworten, CORS für `localhost:5173` | offen |
+| 5 | optional: Terminüberschneidungen erkennen (`conflict: true`) | offen |
+| 6 | `FamilyHub-UI` an das Backend anbinden (braucht Node.js) | offen |
+
+Starten: `./mvnw spring-boot:run` (Windows: `mvnw.cmd spring-boot:run`), dann
+`http://localhost:8080/api/health`. Tests: `./mvnw test`.
+
+MongoDB starten: `powershell -ExecutionPolicy Bypass -File scripts/start-mongodb.ps1`
+(lauscht nur auf `127.0.0.1:27017`, Daten in `%LOCALAPPDATA%\FamilyHub\mongodb\data`,
+beenden mit Strg+C). Datenbank ansehen: `mongosh mongodb://127.0.0.1:27017`.
+
+### Entwicklungswerkzeuge (installiert am 2026-09-23, ohne Admin-Rechte)
+
+Alle unter `%LOCALAPPDATA%\Programs` und im **Benutzer-PATH** eingetragen (neue
+Terminals bzw. VS Code nach Neustart finden sie automatisch):
+
+| Werkzeug | Version | Ordner |
+|---|---|---|
+| Java JDK (Temurin) | 25.0.2 | war bereits installiert |
+| Maven | 3.9.x | kommt über den Maven Wrapper, keine Installation |
+| MongoDB Server | 8.0.32 | `Programs\mongodb` |
+| mongosh | 2.12.0 | `Programs\mongosh` |
+| Node.js (LTS) | 24.21.0 | `Programs\nodejs` |
+| pnpm | 10.34.3 (Version aus `FamilyHub-UI/.mise.toml`) | global in `Programs\nodejs` |
+
+Prüfsummen von MongoDB und Node.js wurden gegen die offiziellen Werte geprüft.
+`FamilyHub-UI` lässt sich damit installieren und bauen (`pnpm install`,
+`pnpm build`, `tsc --noEmit` ohne Fehler); im Browser wurde es noch nicht angesehen
+(`pnpm dev`, dann `http://localhost:5173`).
 
 ### Offene nächste Schritte
 
-- Backend-Framework endgültig festlegen (Spring Boot vorgeschlagen, siehe oben)
-  und NoSQL-Datenbank auswählen.
+- Kalender-MVP gemäß Entwicklungsplan oben umsetzen.
 - Aus der ursprünglich vorgeschlagenen Diagrammliste fehlen noch: Sequenzdiagramm
   Messenger/Sprache (Identität → Rolle), Zustandsdiagramm für den Vorschlags-
   Status, ER-Diagramm der lokalen Datenbank, Deployment-Diagramm, Roadmap/
@@ -255,8 +300,8 @@ jetzt vollständig:
   2026-09-22); offen sind noch „Jugendlicher im MVP" (Klärung mit
   Projektleiter am 2026-09-23) und die Messenger-Berechtigung für
   Jugendliche.
-- Lokale Verifikation von `FamilyHub-UI` im Browser steht weiterhin aus (siehe
-  Hinweis zu fehlendem Node.js unten).
+- `FamilyHub-UI` einmal im Browser prüfen (`pnpm dev`); Build und Typprüfung
+  laufen bereits fehlerfrei.
 
 ### Wichtige Hinweise für die Fortsetzung
 
@@ -264,17 +309,17 @@ jetzt vollständig:
   (`FamilyHub-UI`) liegen absichtlich außerhalb dieses Git-Repos** und werden
   nicht gepusht — sie dienen nur als lokaler Konzeptnachweis, bis über die
   tatsächliche Projektstruktur und Technologie entschieden ist.
-- In diesem Repo selbst gibt es eine unveränderte, unfertige lokale Bearbeitung
-  in `src/Main.java` (IntelliJ-Vorlage, TIP-Kommentare entfernt) — das ist nicht
-  Teil dieser Konzeptarbeit und wurde bewusst nicht angefasst.
-- **Auf dieser Entwicklungsmaschine sind weder Node.js/npm/pnpm noch Python
-  installiert** (nur Git Bash, PowerShell, Java JDK 25, IntelliJ, Microsoft
-  Office). Das bedeutet: `FamilyHub-UI` kann nicht lokal gestartet/verifiziert
-  werden (`pnpm dev`), und Node-basierte Skills (z. B. der pptx-Skill mit
-  pptxgenjs) laufen ins Leere. Workaround für PowerPoint-Erstellung:
-  direkte COM-Automatisierung über die lokal installierte PowerPoint-App
-  (PowerShell). Für echte Weiterentwicklung von `FamilyHub-UI` müsste Node.js
-  auf dieser Maschine nachinstalliert werden.
+- Auf dem Branch `feature/kalender-mvp` wurde `src/Main.java` nach
+  `src/main/java/de/familyhub/Main.java` verschoben und zur Spring-Boot-Startklasse.
+  Der Branch `feature/backend-grundgeruest-main` enthält eine ältere Variante mit
+  Rollen-Enum; lokale, unkommitierte Stände von `Main.java` liegen im Git-Stash.
+- **Node.js, pnpm, MongoDB und mongosh sind seit 2026-09-23 installiert**
+  (siehe "Entwicklungswerkzeuge"). Python und Docker gibt es weiterhin nicht.
+  Die bestehende PowerPoint-Präsentation wurde damals per COM-Automatisierung
+  über die lokale PowerPoint-App erzeugt, weil Node.js noch fehlte.
+- **PowerShell 5.1 entfernt doppelte Anführungszeichen** in Argumenten an
+  Programme (z. B. `mongosh --eval '...'`). JavaScript für mongosh daher ohne
+  innere `"` schreiben oder als Datei übergeben.
 - Diese README wird nach Abschluss größerer Arbeitsschritte fortgeschrieben;
   sie ist der einzige Ort, der garantiert zwischen Chat-Sitzungen erhalten
   bleibt und gepusht wird.
