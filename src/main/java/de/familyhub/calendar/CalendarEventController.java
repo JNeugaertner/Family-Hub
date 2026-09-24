@@ -20,7 +20,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.security.CurrentMember;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,16 +36,22 @@ public class CalendarEventController {
 
     private final CalendarEventRepository events;
     private final FamilyMemberRepository members;
+    private final CurrentMember currentMember;
+    private final CalendarAccess access;
 
-    public CalendarEventController(CalendarEventRepository events, FamilyMemberRepository members) {
+    public CalendarEventController(CalendarEventRepository events, FamilyMemberRepository members,
+            CurrentMember currentMember, CalendarAccess access) {
         this.events = events;
         this.members = members;
+        this.currentMember = currentMember;
+        this.access = access;
     }
 
     @GetMapping
     @Operation(summary = "Termine abfragen",
             description = "Ohne Parameter alle Termine. Mit from und to alle Termine, die den Zeitraum berühren "
-                    + "(auch über Mitternacht). Immer nach Beginn sortiert.")
+                    + "(auch über Mitternacht). Immer nach Beginn sortiert. Enthält nur Termine, die die "
+                    + "angemeldete Person sehen darf.")
     public List<CalendarEvent> list(
             @Parameter(description = "Beginn des Zeitraums, z. B. 2026-09-21T00:00")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
@@ -55,28 +63,34 @@ public class CalendarEventController {
         if ((from == null) != (to == null)) {
             throw ApiException.invalidField(from == null ? "from" : "to", "from und to müssen zusammen angegeben werden");
         }
-        if (from == null) {
-            return memberId == null
-                    ? events.findAll(Sort.by("start"))
-                    : events.findByMemberIdOrderByStartAsc(memberId);
-        }
-        if (!to.isAfter(from)) {
+        if (from != null && !to.isAfter(from)) {
             throw ApiException.invalidField("to", "to muss nach from liegen");
         }
-        return memberId == null
-                ? events.findOverlapping(from, to)
-                : events.findOverlappingForMember(memberId, from, to);
+        FamilyMember viewer = currentMember.get();
+        List<CalendarEvent> result;
+        if (from == null) {
+            result = memberId == null
+                    ? events.findAll(Sort.by("start"))
+                    : events.findByMemberIdOrderByStartAsc(memberId);
+        } else {
+            result = memberId == null
+                    ? events.findOverlapping(from, to)
+                    : events.findOverlappingForMember(memberId, from, to);
+        }
+        return result.stream().filter(event -> access.canSee(viewer, event)).toList();
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Ein Termin")
     public CalendarEvent get(@PathVariable String id) {
-        return find(id);
+        return findVisible(id, currentMember.get());
     }
 
     @PostMapping
     @Operation(summary = "Termin anlegen", description = "Eine mitgeschickte id wird ignoriert.")
     public ResponseEntity<CalendarEvent> create(@Valid @RequestBody CalendarEvent event) {
+        FamilyMember viewer = currentMember.get();
+        access.requireCreate(viewer, event);
         requireMember(event.memberId());
         CalendarEvent saved = events.save(withId(null, event));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
@@ -86,7 +100,9 @@ public class CalendarEventController {
     @PutMapping("/{id}")
     @Operation(summary = "Termin ändern")
     public CalendarEvent update(@PathVariable String id, @Valid @RequestBody CalendarEvent event) {
-        find(id);
+        FamilyMember viewer = currentMember.get();
+        CalendarEvent existing = findVisible(id, viewer);
+        access.requireUpdate(viewer, existing, event);
         requireMember(event.memberId());
         return events.save(withId(id, event));
     }
@@ -95,12 +111,16 @@ public class CalendarEventController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Termin löschen")
     public void delete(@PathVariable String id) {
-        find(id);
+        FamilyMember viewer = currentMember.get();
+        CalendarEvent existing = findVisible(id, viewer);
+        access.requireDelete(viewer, existing);
         events.deleteById(id);
     }
 
-    private CalendarEvent find(String id) {
+    // Termine, die jemand nicht sehen darf, gelten für ihn als nicht vorhanden.
+    private CalendarEvent findVisible(String id, FamilyMember viewer) {
         return events.findById(id)
+                .filter(event -> access.canSee(viewer, event))
                 .orElseThrow(() -> ApiException.notFound("Termin " + id + " existiert nicht."));
     }
 

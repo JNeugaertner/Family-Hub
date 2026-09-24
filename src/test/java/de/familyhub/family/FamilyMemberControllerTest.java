@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
 import de.familyhub.calendar.EventCategory;
+import de.familyhub.permission.Action;
+import de.familyhub.permission.Module;
+import de.familyhub.permission.Permission;
 import de.familyhub.permission.Role;
+import de.familyhub.permission.Scope;
 import de.familyhub.testsupport.TestUsers;
 
 @SpringBootTest
@@ -183,6 +188,33 @@ class FamilyMemberControllerTest {
                 .andExpect(jsonPath("$.birthDate").value("2010-02-14"))
                 .andExpect(jsonPath("$.role").value("kind"))
                 .andExpect(jsonPath("$.effectiveRole").value("jugendlicher"));
+    }
+
+    @Test
+    void administratorGrantsSinglePermissionsThatOnlyAdministratorsSee() throws Exception {
+        FamilyMember lily = members.save(TestUsers.member("Lily", Role.KIND));
+        FamilyMember emma = members.save(TestUsers.member("Emma", Role.JUGENDLICHER));
+
+        mvc.perform(put("/api/members/" + lily.id()).with(as(sarah)).contentType(APPLICATION_JSON).content("""
+                        {"name": "Lily", "color": "#EC4899", "username": "lily", "role": "kind",
+                         "extraPermissions": [{"module": "einkauf", "action": "bearbeiten", "scope": "familie"}]}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.extraPermissions[0].module").value("einkauf"));
+
+        mvc.perform(get("/api/auth/me").with(as(lily)))
+                .andExpect(jsonPath("$.permissions[?(@.module == 'einkauf' && @.action == 'bearbeiten')]").isNotEmpty());
+        mvc.perform(get("/api/members/" + lily.id()).with(as(emma)))
+                .andExpect(jsonPath("$.extraPermissions").doesNotExist());
+    }
+
+    @Test
+    void teenagerCannotReadMembersWhenPermissionIsRevoked() throws Exception {
+        FamilyMember emma = members.save(new FamilyMember(null, "Emma", "#8B5CF6", "emma", "{noop}x",
+                Role.JUGENDLICHER, null, false, Set.of(),
+                Set.of(Permission.of(Module.FAMILIE, Action.ANSEHEN, Scope.FAMILIE))));
+
+        mvc.perform(get("/api/members").with(as(emma))).andExpect(status().isForbidden());
     }
 
     @Test

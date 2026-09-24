@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
-import de.familyhub.family.MemberResponse;
 import de.familyhub.permission.Role;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,7 +48,7 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Ersteinrichtung: ersten Administrator anlegen",
             description = "Nur möglich, solange noch kein Familienmitglied existiert. Danach normal anmelden.")
-    public MemberResponse setup(@Valid @RequestBody SetupRequest request) {
+    public MeResponse setup(@Valid @RequestBody SetupRequest request) {
         if (members.count() > 0) {
             throw ApiException.conflict("Die Ersteinrichtung ist bereits abgeschlossen. Bitte anmelden.");
         }
@@ -60,7 +59,7 @@ public class AuthController {
 
     @GetMapping("/me")
     @Operation(summary = "Angemeldete Person")
-    public MemberResponse me() {
+    public MeResponse me() {
         return meResponses.of(currentMember.get());
     }
 
@@ -72,8 +71,7 @@ public class AuthController {
         if (!passwordEncoder.matches(request.currentPassword(), me.passwordHash())) {
             throw ApiException.invalidField("currentPassword", "Das aktuelle Passwort ist falsch");
         }
-        members.save(new FamilyMember(me.id(), me.name(), me.color(), me.username(),
-                passwordEncoder.encode(request.newPassword()), me.role(), me.birthDate(), me.roleFixed()));
+        members.save(me.withPasswordHash(passwordEncoder.encode(request.newPassword())));
     }
 
     public record AuthStatus(boolean setupRequired) {

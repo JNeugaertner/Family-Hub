@@ -1,9 +1,12 @@
 package de.familyhub.family;
 
 import java.time.LocalDate;
+import java.util.Set;
 
+import de.familyhub.permission.Permission;
 import de.familyhub.permission.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
@@ -34,7 +37,13 @@ public record MemberRequest(
         LocalDate birthDate,
 
         @Schema(description = "true: kein automatischer Wechsel von Kind zu Jugendlicher ab 13. Standard: false")
-        Boolean roleFixed) {
+        Boolean roleFixed,
+
+        @Schema(description = "Zusätzliche Einzelrechte. Weglassen, um sie beim Ändern unverändert zu lassen")
+        Set<@Valid Permission> extraPermissions,
+
+        @Schema(description = "Entzogene Einzelrechte. Weglassen, um sie beim Ändern unverändert zu lassen")
+        Set<@Valid Permission> revokedPermissions) {
 
     public boolean isRoleFixed() {
         return Boolean.TRUE.equals(roleFixed);

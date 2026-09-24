@@ -35,7 +35,7 @@ class MemberRequestTest {
     }
 
     private static MemberRequest request(String name, String color, String username, String password) {
-        return new MemberRequest(name, color, username, password, Role.KIND, LocalDate.of(2018, 1, 30), false);
+        return new MemberRequest(name, color, username, password, Role.KIND, LocalDate.of(2018, 1, 30), false, null, null);
     }
 
     private Set<String> errors(MemberRequest request) {
@@ -78,7 +78,7 @@ class MemberRequestTest {
     @Test
     void birthDateMustBeInThePast() {
         MemberRequest future = new MemberRequest("Lily", "#EC4899", "lily", null, Role.KIND,
-                LocalDate.now().plusDays(1), false);
+                LocalDate.now().plusDays(1), false, null, null);
         assertThat(errors(future)).containsExactly("Geburtsdatum muss in der Vergangenheit liegen");
     }
 }
