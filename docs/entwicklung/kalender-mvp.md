@@ -19,6 +19,7 @@ Müllabfuhr), Anmeldung, Rollen und Rechte, KI.
 | Datenbank | MongoDB 8.0, lokal; Zugriff über Spring Data MongoDB |
 | Tests | JUnit 5 und MockMvc; eingebettete MongoDB (Flapdoodle) für Datenbanktests |
 | Termin-Zuordnung | genau ein Familienmitglied pro Termin, wie im Figma-UI |
+| Zeitformat | Beginn und Ende als Datum mit Uhrzeit (`2026-09-25T10:00`), nicht getrennt wie im Figma-UI; Ende ist Pflicht und muss nach dem Beginn liegen |
 | Noch offen | springdoc-openapi (Swagger UI) ja/nein; Lombok (Empfehlung: weglassen, Java-Records reichen) |
 
 **Warum nicht Redis als Hauptdatenbank?** Redis ist im Kern ein Cache im
@@ -33,7 +34,7 @@ Echtzeit-Einkaufsliste.
 |---|---|---|
 | 1 | Spring-Boot-Grundgerüst mit Maven Wrapper, `GET /api/health` | erledigt |
 | 1b | lokale MongoDB, Startskript `scripts/start-mongodb.ps1` | erledigt |
-| 2 | Datenmodell `FamilyMember` (id, name, color) und `CalendarEvent` (id, title, start, end, memberId, category, location, description) mit Validierung | offen |
+| 2 | Datenmodell `FamilyMember` (id, name, color) und `CalendarEvent` (id, title, start, end, memberId, category, location, description) mit Validierung | erledigt |
 | 3 | Spring Data MongoDB, Repositories, Beispieldaten aus dem Figma-UI beim ersten Start | offen |
 | 4 | REST: `/api/members` und `/api/events?from=&to=&memberId=` (CRUD), einheitliche Fehlerantworten, CORS für `localhost:5173` | offen |
 | 5 | optional: Terminüberschneidungen erkennen (`conflict: true`) | offen |
@@ -41,6 +42,9 @@ Echtzeit-Einkaufsliste.
 
 Kategorien für Termine entsprechen dem Figma-UI: `school`, `sports`,
 `appointment`, `family`, `work`, `reminder`.
+
+Ob das zugeordnete Familienmitglied wirklich existiert, lässt sich erst mit der
+Datenbank prüfen und kommt deshalb in Phase 4.
 
 ## Danach
 

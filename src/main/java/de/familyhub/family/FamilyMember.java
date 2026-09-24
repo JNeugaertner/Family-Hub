@@ -1,0 +1,18 @@
+package de.familyhub.family;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+public record FamilyMember(
+        String id,
+
+        @NotBlank(message = "Name darf nicht leer sein")
+        @Size(max = 50, message = "Name darf höchstens 50 Zeichen lang sein")
+        String name,
+
+        @NotNull(message = "Farbe ist Pflicht")
+        @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "Farbe muss ein Hex-Wert wie #2563EB sein")
+        String color) {
+}
