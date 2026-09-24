@@ -106,7 +106,7 @@ Neu mit dem Rollensystem:
 | `GET /api/auth/me` | angemeldete Person mit Rolle, tatsächlicher Rolle und allen geltenden Rechten | angemeldet |
 | `PUT /api/auth/password` | eigenes Passwort ändern (`currentPassword`, `newPassword`) | angemeldet; 400 bei falschem aktuellem Passwort |
 | `GET /api/roles` | Rollen mit ihren Standardrechten | angemeldet |
-| `GET /api/settings` | Einstellungen der Familie (`guestCategories`) | angemeldet |
+| `GET /api/settings` | Einstellungen der Familie (`guestCategories`), dazu `teenAge`: ab welchem Alter ein Kind automatisch Jugendlicher wird (nur lesbar, aus `familyhub.roles.teen-age`) | angemeldet |
 | `PUT /api/settings` | Freigaben für Gäste ändern | Administratoren |
 | `POST /api/events/{id}/approve` | Vorschlag freigeben | Administratoren; 409, wenn es kein offener Vorschlag ist |
 | `POST /api/events/{id}/reject` | Vorschlag ablehnen (löscht ihn) | Administratoren |

@@ -22,6 +22,10 @@ public class RoleResolver {
         this.teenAge = teenAge;
     }
 
+    public int teenAge() {
+        return teenAge;
+    }
+
     public Role effectiveRole(FamilyMember member) {
         if (member.role() == Role.KIND && !member.roleFixed() && member.birthDate() != null
                 && Period.between(member.birthDate(), LocalDate.now(clock)).getYears() >= teenAge) {

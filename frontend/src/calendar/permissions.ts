@@ -20,6 +20,8 @@ export function useCalendarPermissions() {
     mayDecide,
     mayEditFamily,
     canAdd: mayCreateOwn || mayCreateFamily || mayPropose,
+    // Darf nichts selbst anlegen, nur Termine für andere vorschlagen
+    onlyProposals: !mayCreateOwn && !mayCreateFamily && mayPropose,
 
     // Für wen darf ich einen Termin eintragen (direkt oder als Vorschlag)?
     canAssignTo: (memberId: string) =>

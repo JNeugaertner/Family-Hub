@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import { PlusIcon, CheckIcon, SettingsIcon } from './Icons';
 import { ApiError } from '../api/client';
 import { useAuth, useMe } from '../auth/AuthContext';
-import { changePassword } from '../auth/api';
+import { changePassword, type Me } from '../auth/api';
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import { CATEGORY_OPTIONS } from '../calendar/categories';
 import type { EventCategory } from './data';
@@ -59,29 +59,45 @@ function errorsOf(err: unknown): { form: string | null; fields: Record<string, s
   return { form: err instanceof Error ? err.message : String(err), fields: {} };
 }
 
+// Alter in ganzen Jahren. Das Datum wird als Kalendertag gelesen, damit keine Zeitzone es verschiebt.
 function ageOf(birthDate: string | null): number | null {
   if (!birthDate) return null;
-  const birth = new Date(birthDate);
+  const [year, month, day] = birthDate.split('-').map(Number);
   const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--;
+  let age = today.getFullYear() - year;
+  if (today.getMonth() + 1 < month || (today.getMonth() + 1 === month && today.getDate() < day)) age--;
   return age;
 }
 
+// Tatsächliche Rolle wie im Backend (RoleResolver): Ein Kind mit Geburtsdatum wird ab teenAge automatisch
+// Jugendlicher, außer die Rolle ist festgehalten. Nach dieser Rolle richten sich die Standardrechte.
+function effectiveRoleOf(role: RoleId, birthDate: string | null, roleFixed: boolean, teenAge: number): RoleId {
+  const age = ageOf(birthDate);
+  return role === 'kind' && !roleFixed && age !== null && age >= teenAge ? 'jugendlicher' : role;
+}
+
 // Geltende Rechte wie im Backend: Rolle + zusätzliche - entzogene; Administratoren haben immer alle.
-function effectivePermissions(member: ApiMember, roles: RoleInfo[]): Permission[] {
+// Die Einzelrechte anderer sehen nur Administratoren; ohne sie ist nur der Standard der Rolle bekannt (exact = false).
+function effectivePermissions(member: ApiMember, roles: RoleInfo[], me: Me): { permissions: Permission[]; exact: boolean } {
+  if (member.id === me.id) return { permissions: me.permissions, exact: true };
   const rolePermissions = roles.find(r => r.id === member.effectiveRole)?.permissions ?? [];
-  if (member.effectiveRole === 'administrator') return rolePermissions;
-  const revoked = new Set((member.revokedPermissions ?? []).map(permissionKey));
-  return [...rolePermissions.filter(p => !revoked.has(permissionKey(p))), ...(member.extraPermissions ?? [])];
+  if (member.effectiveRole === 'administrator') return { permissions: rolePermissions, exact: true };
+  if (!member.extraPermissions || !member.revokedPermissions) return { permissions: rolePermissions, exact: false };
+  const revoked = new Set(member.revokedPermissions.map(permissionKey));
+  return {
+    permissions: [...rolePermissions.filter(p => !revoked.has(permissionKey(p))), ...member.extraPermissions],
+    exact: true,
+  };
 }
 
 // ─── Karte eines Familienmitglieds ────────────────────────────────────────────
 
-function MemberCard({ member, roles, isSelf, onEdit }: {
-  member: ApiMember; roles: RoleInfo[]; isSelf: boolean; onEdit?: () => void;
+function MemberCard({ member, roles, teenAge, onEdit }: {
+  member: ApiMember; roles: RoleInfo[]; teenAge: number; onEdit?: () => void;
 }) {
-  const permissions = effectivePermissions(member, roles);
+  const me = useMe();
+  const isSelf = member.id === me.id;
+  const { permissions, exact } = effectivePermissions(member, roles, me);
   const age = ageOf(member.birthDate);
   const autoRole = member.role !== member.effectiveRole;
 
@@ -116,15 +132,16 @@ function MemberCard({ member, roles, isSelf, onEdit }: {
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: member.color }}>
               {ROLE_NAMES[member.effectiveRole]}
             </span>
-            {autoRole && <span className="text-[11px] text-slate-400">automatisch ab 13</span>}
+            {autoRole && <span className="text-[11px] text-slate-400">automatisch ab {teenAge}</span>}
             {age !== null && <span className="text-xs text-slate-400">{age} Jahre</span>}
             {member.username && <span className="text-xs text-slate-400">@{member.username}</span>}
           </div>
         </div>
 
         <div>
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-            <ShieldLock size={12} /> Rechte
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5"
+            title={exact ? undefined : 'Einzelrechte sehen nur Administratoren'}>
+            <ShieldLock size={12} /> {exact ? 'Rechte' : 'Rechte laut Rolle'}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             {PERMISSION_DISPLAY.slice(0, 8).map(p => {
@@ -146,8 +163,8 @@ function MemberCard({ member, roles, isSelf, onEdit }: {
 
 // ─── Mitglied anlegen / bearbeiten (nur Administratoren) ─────────────────────
 
-function MemberModal({ member, roles, mayManageRights, isSelf, onClose, onSaved }: {
-  member?: ApiMember; roles: RoleInfo[]; mayManageRights: boolean; isSelf: boolean;
+function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose, onSaved }: {
+  member?: ApiMember; roles: RoleInfo[]; teenAge: number; mayManageRights: boolean; isSelf: boolean;
   onClose: () => void; onSaved: () => Promise<void>;
 }) {
   const isEdit = !!member;
@@ -171,7 +188,10 @@ function MemberModal({ member, roles, mayManageRights, isSelf, onClose, onSaved 
   const loginLocked = !mayManageRights && !isSelf;
   const birthDateLocked = !mayManageRights && role === 'kind' && !roleFixed;
 
-  const rolePermissions = roles.find(r => r.id === role)?.permissions ?? [];
+  // Maßgeblich sind die Standardrechte der tatsächlichen Rolle: Ein als Kind angelegtes Mitglied ab
+  // teenAge Jahren hat die Rechte eines Jugendlichen, und nur diese lassen sich ihm entziehen.
+  const effectiveRole = effectiveRoleOf(role, birthDate || null, roleFixed, teenAge);
+  const rolePermissions = roles.find(r => r.id === effectiveRole)?.permissions ?? [];
   const inRole = (p: Permission) => rolePermissions.some(r => permissionKey(r) === permissionKey(p));
   const contains = (list: Permission[], p: Permission) => list.some(x => permissionKey(x) === permissionKey(p));
   const toggled = (list: Permission[], p: Permission) =>
@@ -266,7 +286,7 @@ function MemberModal({ member, roles, mayManageRights, isSelf, onClose, onSaved 
                 onChange={e => setRoleFixed(e.target.checked)} />
               <span>
                 Rolle nicht automatisch anpassen
-                <span className="block text-xs text-slate-400">Sonst wird ein Kind mit Geburtsdatum ab 13 Jahren automatisch Jugendlicher.</span>
+                <span className="block text-xs text-slate-400">Sonst wird ein Kind mit Geburtsdatum ab {teenAge} Jahren automatisch Jugendlicher.</span>
               </span>
             </label>
           )}
@@ -290,6 +310,11 @@ function MemberModal({ member, roles, mayManageRights, isSelf, onClose, onSaved 
                 <ShieldLock size={12} /> Rechte
                 <span className="text-[10px] font-normal text-slate-400">„Rolle“ = Standard der Rolle, „einzeln“ = von dir angepasst</span>
               </legend>
+              {effectiveRole !== role && (
+                <p className="text-xs text-slate-500 mb-2">
+                  Es gelten die Rechte von „{ROLE_NAMES[effectiveRole]}“ (automatisch ab {teenAge} Jahren).
+                </p>
+              )}
               <div className="space-y-1.5">
                 {PERMISSION_DISPLAY.map(p => {
                   const fromRole = inRole(p);
@@ -459,14 +484,16 @@ export default function Profiles({ onNavigate }: Props) {
 
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [roles, setRoles] = useState<RoleInfo[]>([]);
+  const [teenAge, setTeenAge] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ member?: ApiMember } | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [m, r] = await Promise.all([listMembers(), listRoles()]);
+      const [m, r, s] = await Promise.all([listMembers(), listRoles(), getSettings()]);
       setMembers(m);
       setRoles(r);
+      setTeenAge(s.teenAge);
       setError(null);
     } catch (err) {
       setError(errorsOf(err).form);
@@ -486,7 +513,7 @@ export default function Profiles({ onNavigate }: Props) {
     guests: members.filter(m => m.role === 'gast'),
   }), [members]);
 
-  const section = (title: ReactNode, list: ApiMember[], limit?: number) => list.length > 0 && (
+  const section = (title: ReactNode, list: ApiMember[], limit?: number) => list.length > 0 && teenAge !== null && (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">{title}</h3>
@@ -494,7 +521,7 @@ export default function Profiles({ onNavigate }: Props) {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {list.map(m => (
-          <MemberCard key={m.id} member={m} roles={roles} isSelf={m.id === me.id}
+          <MemberCard key={m.id} member={m} roles={roles} teenAge={teenAge}
             onEdit={mayManage && (mayManageRights || m.role !== 'administrator') ? () => setEditing({ member: m }) : undefined} />
         ))}
       </div>
@@ -531,8 +558,8 @@ export default function Profiles({ onNavigate }: Props) {
         <PasswordCard />
       </div>
 
-      {editing && (
-        <MemberModal member={editing.member} roles={roles} mayManageRights={mayManageRights}
+      {editing && teenAge !== null && (
+        <MemberModal member={editing.member} roles={roles} teenAge={teenAge} mayManageRights={mayManageRights}
           isSelf={editing.member?.id === me.id} onClose={() => setEditing(null)} onSaved={afterSave} />
       )}
     </div>

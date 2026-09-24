@@ -39,6 +39,8 @@ export interface RoleInfo {
 
 export interface Settings {
   guestCategories: EventCategory[];
+  // Alter, ab dem ein Kind automatisch Jugendlicher wird (nur lesbar, aus der Backend-Konfiguration)
+  teenAge: number;
 }
 
 export const listMembers = () => request<ApiMember[]>('/api/members');
@@ -55,5 +57,5 @@ export const listRoles = () => request<RoleInfo[]>('/api/roles');
 
 export const getSettings = () => request<Settings>('/api/settings');
 
-export const updateSettings = (settings: Settings) =>
+export const updateSettings = (settings: Pick<Settings, 'guestCategories'>) =>
   request<Settings>('/api/settings', { method: 'PUT', body: json(settings) });
