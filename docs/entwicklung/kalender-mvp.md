@@ -20,7 +20,8 @@ Müllabfuhr), Anmeldung, Rollen und Rechte, KI.
 | Tests | JUnit 5 und MockMvc; eingebettete MongoDB (Flapdoodle) für Datenbanktests |
 | Termin-Zuordnung | genau ein Familienmitglied pro Termin, wie im Figma-UI |
 | Zeitformat | Beginn und Ende als Datum mit Uhrzeit (`2026-09-25T10:00`), nicht getrennt wie im Figma-UI; Ende ist Pflicht und muss nach dem Beginn liegen |
-| Noch offen | springdoc-openapi (Swagger UI) ja/nein; Lombok (Empfehlung: weglassen, Java-Records reichen) |
+| API-Doku | Swagger UI über springdoc-openapi 3.1 |
+| Noch offen | Lombok (Empfehlung: weglassen, Java-Records reichen) |
 
 **Warum nicht Redis als Hauptdatenbank?** Redis ist im Kern ein Cache im
 Arbeitsspeicher. Abfragen wie „alle Termine von Lucas in dieser Woche" müssten
@@ -36,7 +37,7 @@ Echtzeit-Einkaufsliste.
 | 1b | lokale MongoDB, Startskript `scripts/start-mongodb.ps1` | erledigt |
 | 2 | Datenmodell `FamilyMember` (id, name, color) und `CalendarEvent` (id, title, start, end, memberId, category, location, description) mit Validierung | erledigt |
 | 3 | Spring Data MongoDB, Repositories, Beispieldaten aus dem Figma-UI beim ersten Start | erledigt |
-| 4 | REST: `/api/members` und `/api/events?from=&to=&memberId=` (CRUD), einheitliche Fehlerantworten, CORS für `localhost:5173` | offen |
+| 4 | REST: `/api/members` und `/api/events?from=&to=&memberId=` (CRUD), einheitliche Fehlerantworten, CORS für `localhost:5173`, Swagger UI | erledigt |
 | 5 | optional: Terminüberschneidungen erkennen (`conflict: true`) | offen |
 | 6 | Frontend an das Backend anbinden | offen |
 
@@ -60,6 +61,45 @@ Datenbank prüfen und kommt deshalb in Phase 4.
   um. Solange Backend und Datenbank auf demselben Rechner laufen, ist das
   unsichtbar. Für einen späteren Betrieb über Zeitzonen hinweg muss das neu
   bewertet werden.
+
+## REST-Schnittstelle (Phase 4)
+
+Ausprobieren im Browser: **http://localhost:8080/swagger-ui.html** (Backend und
+MongoDB müssen laufen).
+
+| Methode und Pfad | Zweck | Antworten |
+|---|---|---|
+| `GET /api/members` | alle Familienmitglieder | 200 |
+| `GET /api/members/{id}` | ein Mitglied | 200, 404 |
+| `POST /api/members` | Mitglied anlegen | 201 mit `Location`-Header, 400 |
+| `PUT /api/members/{id}` | Mitglied ändern | 200, 400, 404 |
+| `DELETE /api/members/{id}` | Mitglied löschen | 204, 404, 409 wenn noch Termine zugeordnet sind |
+| `GET /api/events` | alle Termine, nach Beginn sortiert | 200 |
+| `GET /api/events?from=…&to=…` | Termine, die den Zeitraum berühren (`to` exklusiv) | 200, 400 |
+| `GET /api/events?memberId=…` | zusätzlich nach Person filtern, auch mit `from`/`to` kombinierbar | 200 |
+| `GET /api/events/{id}` | ein Termin | 200, 404 |
+| `POST /api/events` | Termin anlegen | 201, 400 (auch bei unbekanntem Mitglied) |
+| `PUT /api/events/{id}` | Termin ändern | 200, 400, 404 |
+| `DELETE /api/events/{id}` | Termin löschen | 204, 404 |
+
+**Fehlerformat** (RFC 9457, `application/problem+json`), Feldfehler unter `errors`:
+
+```json
+{
+  "status": 400,
+  "title": "Ungültige Eingaben",
+  "detail": "Mindestens ein Feld ist ungültig, Details unter \"errors\".",
+  "instance": "/api/events",
+  "errors": {
+    "endAfterStart": "Ende muss nach dem Beginn liegen",
+    "title": "Titel darf nicht leer sein"
+  }
+}
+```
+
+Eine mitgeschickte `id` wird beim Anlegen ignoriert; beim Ändern gilt die `id`
+aus dem Pfad. CORS erlaubt nur `http://localhost:5173` (änderbar über
+`familyhub.cors.allowed-origins`).
 
 ## Tests
 

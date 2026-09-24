@@ -32,6 +32,7 @@ powershell -ExecutionPolicy Bypass -File scripts/start-mongodb.ps1
 # 2. Backend starten (Windows: mvnw.cmd statt ./mvnw)
 ./mvnw spring-boot:run
 # Prüfen: http://localhost:8080/api/health
+# API im Browser ausprobieren: http://localhost:8080/swagger-ui.html
 
 # 3. Tests ausführen (braucht keine laufende MongoDB)
 ./mvnw test
