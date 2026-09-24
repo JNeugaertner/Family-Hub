@@ -16,14 +16,15 @@ die Eltern entscheiden.**
 |---|---|
 | Backend | Java 25, Spring Boot 4.1, Maven Wrapper |
 | Datenbank | MongoDB 8.0 (lokal) |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4 (aus Figma Make, noch nicht im Repo) |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4 (ursprünglich aus Figma Make) |
 | Tests | JUnit 5, MockMvc |
 
 ## Schnellstart
 
-**Voraussetzungen:** JDK 25 und MongoDB 8.0. Maven wird nicht benötigt, der
-Maven Wrapper lädt es beim ersten Aufruf selbst. Unter Windows kann MongoDB ohne
-Admin-Rechte als ZIP nach `%LOCALAPPDATA%\Programs\mongodb` entpackt werden.
+**Voraussetzungen:** JDK 25, MongoDB 8.0 und für die Oberfläche Node.js 24 mit
+pnpm 10. Maven wird nicht benötigt, der Maven Wrapper lädt es beim ersten Aufruf
+selbst. Unter Windows kann MongoDB ohne Admin-Rechte als ZIP nach
+`%LOCALAPPDATA%\Programs\mongodb` entpackt werden.
 
 ```bash
 # 1. MongoDB starten (lauscht nur auf 127.0.0.1:27017, beenden mit Strg+C)
@@ -34,7 +35,13 @@ powershell -ExecutionPolicy Bypass -File scripts/start-mongodb.ps1
 # Prüfen: http://localhost:8080/api/health
 # API im Browser ausprobieren: http://localhost:8080/swagger-ui.html
 
-# 3. Tests ausführen (braucht keine laufende MongoDB)
+# 3. Oberfläche starten (eigenes Terminal)
+cd frontend
+pnpm install
+pnpm dev
+# Öffnen: http://localhost:5173
+
+# 4. Backend-Tests ausführen (braucht keine laufende MongoDB)
 ./mvnw test
 ```
 
@@ -46,7 +53,8 @@ dem Figma-UI an. Der erste Testlauf lädt einmalig eine Test-MongoDB herunter
 
 ```
 ├── src/main/java/de/familyhub/   Backend (Spring Boot)
-├── src/test/java/de/familyhub/   Tests
+├── src/test/java/de/familyhub/   Backend-Tests
+├── frontend/                     Oberfläche (React, siehe frontend/README.md)
 ├── scripts/                      Hilfsskripte (z. B. MongoDB starten)
 └── docs/
     ├── architektur/              C4-Modell, Schichtenmodell, Übersichten

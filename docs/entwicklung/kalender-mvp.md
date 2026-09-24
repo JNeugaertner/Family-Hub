@@ -39,7 +39,7 @@ Echtzeit-Einkaufsliste.
 | 3 | Spring Data MongoDB, Repositories, Beispieldaten aus dem Figma-UI beim ersten Start | erledigt |
 | 4 | REST: `/api/members` und `/api/events?from=&to=&memberId=` (CRUD), einheitliche Fehlerantworten, CORS für `localhost:5173`, Swagger UI | erledigt |
 | 5 | optional: Terminüberschneidungen erkennen (`conflict: true`) | offen |
-| 6 | Frontend an das Backend anbinden | offen |
+| 6 | Frontend nach `frontend/` ins Repo, Kalender und Dashboard lesen aus dem Backend, Formular zum Anlegen, Ändern und Löschen von Terminen | erledigt |
 
 Kategorien für Termine entsprechen dem Figma-UI: `school`, `sports`,
 `appointment`, `family`, `work`, `reminder`.
