@@ -1,14 +1,10 @@
-import { RoleId, deriveRoleId } from '../roles';
-
+// Feste Beispieldaten für die Seiten, die noch nicht ans Backend angeschlossen sind (Aufgaben, Punkte,
+// Einkauf, Essen, Nachrichten). Kalender, Dashboard-Termine und Profile kommen aus dem Backend.
 export interface FamilyMember {
   id: number;
   name: string;
   /** Anzeige-Label aus dem urspruenglichen Figma-Export (Mom/Dad/Child). */
   role: 'Mom' | 'Dad' | 'Child';
-  /** Massgeblich fuer Berechtigungen: Rolle aus unserem Rollenmodell (siehe src/roles). */
-  roleId: RoleId;
-  /** Grundlage fuer den automatisierten Altersuebergang Kind -> Jugendlicher. */
-  birthDate?: string;
   initials: string;
   color: string;
   bg: string;
@@ -18,17 +14,19 @@ export interface FamilyMember {
 }
 
 export const FAMILY_MEMBERS: FamilyMember[] = [
-  { id: 1, name: 'Sarah', role: 'Mom', roleId: 'administrator', initials: 'SA', color: '#2563EB', bg: '#EFF6FF', age: 42, points: 0 },
-  { id: 2, name: 'Mike', role: 'Dad', roleId: 'administrator', initials: 'MI', color: '#14B8A6', bg: '#F0FDFA', age: 44, points: 0 },
-  // Emma ist 16 -> ab Altersgrenze 13 automatisch 'jugendlicher' statt 'kind' (Entscheidung vom 2026-09-22)
-  { id: 3, name: 'Emma', role: 'Child', roleId: deriveRoleId('2010-02-14'), birthDate: '2010-02-14', initials: 'EM', color: '#8B5CF6', bg: '#F5F3FF', age: 16, points: 420 },
-  { id: 4, name: 'Lucas', role: 'Child', roleId: deriveRoleId('2014-05-03'), birthDate: '2014-05-03', initials: 'LU', color: '#F97316', bg: '#FFF7ED', age: 12, points: 285 },
-  { id: 5, name: 'Lily', role: 'Child', roleId: deriveRoleId('2018-01-30'), birthDate: '2018-01-30', initials: 'LI', color: '#EC4899', bg: '#FDF2F8', age: 8, points: 190 },
+  { id: 1, name: 'Sarah', role: 'Mom', initials: 'SA', color: '#2563EB', bg: '#EFF6FF', age: 42, points: 0 },
+  { id: 2, name: 'Mike', role: 'Dad', initials: 'MI', color: '#14B8A6', bg: '#F0FDFA', age: 44, points: 0 },
+  { id: 3, name: 'Emma', role: 'Child', initials: 'EM', color: '#8B5CF6', bg: '#F5F3FF', age: 16, points: 420 },
+  { id: 4, name: 'Lucas', role: 'Child', initials: 'LU', color: '#F97316', bg: '#FFF7ED', age: 12, points: 285 },
+  { id: 5, name: 'Lily', role: 'Child', initials: 'LI', color: '#EC4899', bg: '#FDF2F8', age: 8, points: 190 },
 ];
 
 export type EventCategory = 'school' | 'sports' | 'appointment' | 'family' | 'work' | 'reminder';
 
 export type TransportMode = 'car' | 'transit' | 'bike' | 'walk';
+
+// approved: gültiger Termin; proposed: Vorschlag, wartet auf Freigabe durch einen Administrator
+export type EventStatus = 'approved' | 'proposed';
 
 // Termine kommen aus dem Backend (siehe src/calendar). date/time/endTime sind aus start/end abgeleitet,
 // damit die Kalenderansichten weiter nach Tag und Uhrzeit gruppieren können.
@@ -44,6 +42,9 @@ export interface CalendarEvent {
   category: EventCategory;
   location?: string;
   description?: string;
+  private: boolean;
+  status: EventStatus;
+  createdBy?: string;
   travelTime?: number;
   transportMode?: TransportMode;
   conflict?: boolean;

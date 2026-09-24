@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { MEALS } from './data';
 import { PlusIcon, ShoppingCartIcon, SparklesIcon, ChevronLeftIcon, ChevronRightIcon, CheckIcon, XIcon } from './Icons';
-import { useActor } from '../roles/ActorContext';
-import { Suggestion, createSuggestion, canDecide, decide } from '../roles';
+import { useAuth, useMe } from '../auth/AuthContext';
+import { Suggestion, createSuggestion, decide } from '../roles';
 
 interface Props { onNavigate: (p: any) => void; }
 
@@ -118,7 +118,9 @@ export default function MealPlanning({ onNavigate }: Props) {
   const [editingCell, setEditingCell] = useState<{ day: string; type: MealType } | null>(null);
   const [meals, setMeals] = useState(MEALS);
   const [weekOffset, setWeekOffset] = useState(0);
-  const { currentActor, can } = useActor();
+  const me = useMe();
+  const { can } = useAuth();
+  const mayDecide = can('essen', 'freigeben', 'familie');
 
   // Freigabe-Workflow (README Abschnitt 5.1): "Use" legt einen Vorschlag an.
   // Wer essen/freigeben/familie hat (Administrator), wendet ihn sofort an;
@@ -131,22 +133,21 @@ export default function MealPlanning({ onNavigate }: Props) {
   };
 
   const useRecipe = (recipeName: string) => {
-    const actor = { name: currentActor.name, roleId: currentActor.roleId };
     const payload: RecipeSuggestionPayload = { recipeName, day: todayDay, type: selectedType };
-    const suggestion = createSuggestion('essen', payload, currentActor.name);
-    if (canDecide(actor, suggestion)) {
+    const suggestion = createSuggestion('essen', payload, me.name);
+    if (mayDecide) {
       applyRecipe(payload);
-      setPendingSuggestions(ss => [...ss, decide(suggestion, actor, true)]);
+      setPendingSuggestions(ss => [...ss, decide(suggestion, me.name, true)]);
     } else {
       setPendingSuggestions(ss => [...ss, suggestion]);
     }
   };
 
   const decideSuggestion = (id: number, approve: boolean) => {
-    const actor = { name: currentActor.name, roleId: currentActor.roleId };
+    if (!mayDecide) return;
     setPendingSuggestions(ss => ss.map(s => {
       if (s.id !== id || s.status !== 'vorschlag') return s;
-      const decided = decide(s, actor, approve);
+      const decided = decide(s, me.name, approve);
       if (approve) applyRecipe(decided.payload);
       return decided;
     }));

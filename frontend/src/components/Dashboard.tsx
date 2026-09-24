@@ -40,7 +40,7 @@ function MiniCalendar({ onNavigate }: { onNavigate: (p: Page) => void }) {
 
   const getEvents = (d: number) => {
     const s = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    return calendarEvents.filter(e => e.date === s);
+    return calendarEvents.filter(e => e.date === s && e.status === 'approved');
   };
 
   return (
@@ -166,7 +166,7 @@ function departureStr(ev: CalendarEvent): string | null {
 function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
   const { events, memberById } = useCalendarData();
   const todayEvents = events
-    .filter(e => e.date === '2026-09-21')
+    .filter(e => e.date === '2026-09-21' && e.status === 'approved')
     .sort((a, b) => a.time.localeCompare(b.time));
 
   return (

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MicIcon, SendIcon, SparklesIcon, XIcon, CheckIcon } from './Icons';
-import { useActor } from '../roles/ActorContext';
-import { Suggestion, createSuggestion, canDecide, decide } from '../roles';
+import { useAuth, useMe } from '../auth/AuthContext';
+import { Suggestion, createSuggestion, decide } from '../roles';
 
 interface Props { onNavigate: (p: any) => void; }
 
@@ -103,7 +103,9 @@ export default function AIAssistant({ onNavigate }: Props) {
   const [listening, setListening] = useState(false);
   const [typing, setTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const { currentActor, can } = useActor();
+  const me = useMe();
+  const { can } = useAuth();
+  const mayAwardPoints = can('punkte', 'freigeben', 'familie');
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -139,13 +141,12 @@ export default function AIAssistant({ onNavigate }: Props) {
     setTimeout(() => {
       setTyping(false);
       if (isAwardPoints) {
-        const actor = { name: currentActor.name, roleId: currentActor.roleId };
         const suggestion = createSuggestion<PointsAward>(
           'punkte',
           { memberName: 'Lucas', points: 5, reason: 'Math-Hausaufgabe rechtzeitig fertig' },
           'KI-Agent',
         );
-        const resolved = canDecide(actor, suggestion) ? decide(suggestion, actor, true) : suggestion;
+        const resolved = mayAwardPoints ? decide(suggestion, me.name, true) : suggestion;
         const aiMsg: Message = {
           id: Date.now() + 1,
           role: 'assistant',
@@ -169,10 +170,10 @@ export default function AIAssistant({ onNavigate }: Props) {
   };
 
   const decideApproval = (messageId: number, approve: boolean) => {
-    const actor = { name: currentActor.name, roleId: currentActor.roleId };
+    if (!mayAwardPoints) return;
     setMessages(ms => ms.map(m => {
       if (m.id !== messageId || !m.approval || m.approval.status !== 'vorschlag') return m;
-      return { ...m, approval: decide(m.approval, actor, approve) };
+      return { ...m, approval: decide(m.approval, me.name, approve) };
     }));
   };
 
@@ -248,9 +249,9 @@ export default function AIAssistant({ onNavigate }: Props) {
               ) : (
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                  style={{ backgroundColor: currentActor.color }}
+                  style={{ backgroundColor: me.color }}
                 >
-                  {currentActor.initials[0]}
+                  {me.name.charAt(0).toUpperCase()}
                 </div>
               )}
 

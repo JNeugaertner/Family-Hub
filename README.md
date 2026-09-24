@@ -60,7 +60,8 @@ Entwicklung, alle mit dem Passwort `familyhub`):
 | `oma` | Gast |
 
 Ohne Beispieldaten (`familyhub.sample-data.enabled=false`) legt man beim ersten
-Start über `POST /api/auth/setup` den ersten Administrator an.
+Start in der Oberfläche („Familie einrichten“) oder über `POST /api/auth/setup`
+den ersten Administrator an.
 
 ## Projektstruktur
 

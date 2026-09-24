@@ -8,6 +8,7 @@ import {
   AlertTriangleIcon, ClockIcon, MapPinIcon,
 } from './Icons';
 import { useCalendarData } from '../calendar/CalendarDataContext';
+import { useCalendarPermissions } from '../calendar/permissions';
 import EventFormModal from './EventFormModal';
 
 // Das Figma-UI rechnet mit einem festen "Heute"; die Beispieldaten im Backend liegen in dieser Woche.
@@ -75,6 +76,15 @@ function timeToMins(time: string): number {
 
 // ─── compact event pill (month grid) ─────────────────────────────────────────
 
+// Vorschläge (warten auf Freigabe) und private Termine sollen auf einen Blick erkennbar sein.
+const eventMarker = (event: CalendarEvent) =>
+  `${event.status === 'proposed' ? '⏳ ' : ''}${event.private ? '🔒 ' : ''}`;
+
+const proposalStyle = (event: CalendarEvent, color: string) =>
+  event.status === 'proposed'
+    ? { backgroundColor: `${color}33`, color, border: `1px dashed ${color}` }
+    : { backgroundColor: color };
+
 function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent; compact?: boolean; onSelect: SelectEvent }) {
   const { memberById } = useCalendarData();
   const member = memberById(event.memberId);
@@ -83,14 +93,14 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
   if (compact) {
     return (
       <div
-        className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md truncate text-white flex items-center gap-0.5 cursor-pointer hover:opacity-80 ${event.travelConflict ? 'ring-1 ring-[#EF4444]' : ''}`}
-        style={{ backgroundColor: color }}
-        title={event.title}
+        className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md truncate flex items-center gap-0.5 cursor-pointer hover:opacity-80 ${event.status === 'proposed' ? '' : 'text-white'} ${event.travelConflict ? 'ring-1 ring-[#EF4444]' : ''}`}
+        style={proposalStyle(event, color)}
+        title={`${eventMarker(event)}${event.title}${event.status === 'proposed' ? ' (Vorschlag)' : ''}`}
         onClick={e => { e.stopPropagation(); onSelect(event); }}
       >
         {(event.conflict || event.travelConflict) && <span>⚠</span>}
         {event.transportMode && <span>{TRANSPORT_ICONS[event.transportMode]}</span>}
-        {event.title}
+        {eventMarker(event)}{event.title}
       </div>
     );
   }
@@ -104,6 +114,12 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold text-slate-800">{event.title}</span>
+          {event.status === 'proposed' && (
+            <span className="text-[10px] bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A] px-1.5 py-0.5 rounded-full font-medium">⏳ Vorschlag</span>
+          )}
+          {event.private && (
+            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium">🔒 Privat</span>
+          )}
           {(event.conflict || event.travelConflict) && (
             <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
               <AlertTriangleIcon size={10} />
@@ -333,15 +349,17 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
                       <div
                         key={ev.id}
                         className={`text-[10px] font-medium px-1.5 py-1 rounded-lg cursor-pointer hover:opacity-80 transition-opacity ${hasTravelConflict ? 'ring-1 ring-[#EF4444]' : ''}`}
-                        style={{
-                          backgroundColor: hasTravelConflict ? '#FEF2F2' : (member?.color || '#94A3B8'),
-                          color: hasTravelConflict ? '#DC2626' : 'white',
-                          borderLeft: hasTravelConflict ? '2px solid #EF4444' : undefined,
-                        }}
-                        title={`${ev.title} at ${ev.time}`}
+                        style={hasTravelConflict ? {
+                          backgroundColor: '#FEF2F2',
+                          color: '#DC2626',
+                          borderLeft: '2px solid #EF4444',
+                        } : ev.status === 'proposed'
+                          ? proposalStyle(ev, member?.color || '#94A3B8')
+                          : { backgroundColor: member?.color || '#94A3B8', color: 'white' }}
+                        title={`${eventMarker(ev)}${ev.title} at ${ev.time}`}
                         onClick={() => onSelect(ev)}
                       >
-                        <div className="truncate font-semibold">{ev.title}</div>
+                        <div className="truncate font-semibold">{eventMarker(ev)}{ev.title}</div>
                         <div className="opacity-80 text-[9px]">{ev.time}{ev.endTime ? `–${ev.endTime}` : ''}</div>
                         {hasTravel && (
                           <div className={`text-[9px] font-bold mt-0.5 ${hasTravelConflict ? 'text-[#EF4444]' : 'text-white/90'}`}>
@@ -413,9 +431,22 @@ export default function CalendarPage({ onNavigate }: Props) {
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null);
 
-  const { status, error, members, events, reload } = useCalendarData();
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+
+  const { status, error, members, events, reload, memberById, approveEvent, rejectEvent } = useCalendarData();
+  const permissions = useCalendarPermissions();
   const visibleEvents = selectedMember ? events.filter(e => e.memberId === selectedMember) : events;
+  const proposals = events.filter(e => e.status === 'proposed');
   const openEditor = (event?: CalendarEvent) => setEditor({ event });
+
+  const decide = async (action: (id: string) => Promise<void>, id: string) => {
+    setDecisionError(null);
+    try {
+      await action(id);
+    } catch (err) {
+      setDecisionError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   const prev = () => {
     if (view === 'month') {
@@ -467,14 +498,16 @@ export default function CalendarPage({ onNavigate }: Props) {
           ))}
         </div>
 
-        <button
-          onClick={() => openEditor()}
-          disabled={status !== 'ready'}
-          className="ml-auto flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors shadow-sm disabled:opacity-50"
-        >
-          <PlusIcon size={16} />
-          <span className="hidden sm:inline">Termin hinzufügen</span>
-        </button>
+        {permissions.canAdd && (
+          <button
+            onClick={() => openEditor()}
+            disabled={status !== 'ready'}
+            className="ml-auto flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors shadow-sm disabled:opacity-50"
+          >
+            <PlusIcon size={16} />
+            <span className="hidden sm:inline">Termin hinzufügen</span>
+          </button>
+        )}
       </div>
 
       {status === 'loading' && (
@@ -486,6 +519,44 @@ export default function CalendarPage({ onNavigate }: Props) {
           <span className="text-sm text-[#DC2626] flex-1">{error}</span>
           <button onClick={reload} className="text-sm font-semibold text-[#DC2626] hover:underline">Erneut versuchen</button>
         </div>
+      )}
+
+      {/* Freigabe-Workflow: Administratoren entscheiden, Jugendliche sehen ihre offenen Vorschläge */}
+      {proposals.length > 0 && (
+        <section aria-label="Offene Vorschläge" className="mb-5 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-3">
+          <h3 className="text-sm font-semibold text-[#92400E] mb-2">
+            ⏳ {permissions.mayDecide ? 'Offene Vorschläge' : 'Deine Vorschläge – warten auf Freigabe'} ({proposals.length})
+          </h3>
+          {decisionError && <p role="alert" className="text-sm text-[#DC2626] mb-2">{decisionError}</p>}
+          <ul className="space-y-2">
+            {proposals.map(p => {
+              const proposer = p.createdBy ? memberById(p.createdBy)?.name : undefined;
+              return (
+                <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-white rounded-lg px-3 py-2 border border-[#FDE68A]">
+                  <button onClick={() => openEditor(p)} className="text-sm font-semibold text-slate-800 hover:underline text-left">
+                    {p.title}
+                  </button>
+                  <span className="text-xs text-slate-500">
+                    {p.date.split('-').reverse().join('.')} {p.time}–{p.endTime} · für {memberById(p.memberId)?.name}
+                    {proposer && p.createdBy !== permissions.me.id ? ` · vorgeschlagen von ${proposer}` : ''}
+                  </span>
+                  {permissions.mayDecide && (
+                    <span className="ml-auto flex gap-2">
+                      <button onClick={() => decide(rejectEvent, p.id)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50">
+                        Ablehnen
+                      </button>
+                      <button onClick={() => decide(approveEvent, p.id)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#22C55E] text-white hover:bg-[#16A34A]">
+                        Freigeben
+                      </button>
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       {/* Family member filters */}

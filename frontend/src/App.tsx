@@ -13,8 +13,10 @@ import {
   ShoppingCartIcon, UtensilsIcon, SparklesIcon, MessageIcon,
   UsersIcon, BellIcon, MenuIcon, XIcon, SettingsIcon, MicIcon,
 } from './components/Icons';
-import { NOTIFICATIONS, FAMILY_MEMBERS } from './components/data';
-import { useActor } from './roles/ActorContext';
+import { NOTIFICATIONS } from './components/data';
+import { useAuth, useMe } from './auth/AuthContext';
+import { useCalendarData } from './calendar/CalendarDataContext';
+import { ROLE_NAMES } from './roles';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
 
@@ -46,7 +48,10 @@ export default function App() {
   const [page, setPage] = useState<Page>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const { currentActor, setCurrentActorId, roleName } = useActor();
+  const me = useMe();
+  const { roleName, logout } = useAuth();
+  const { members } = useCalendarData();
+  const initial = me.name.charAt(0).toUpperCase();
 
   const unreadCount = NOTIFICATIONS.filter(n => !n.read).length;
 
@@ -106,29 +111,26 @@ export default function App() {
           </button>
         </div>
 
-        {/* Family member quick switch */}
+        {/* Family members */}
         <div className="px-4 pt-4 pb-3">
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">Johnson Family</div>
-          <div className="flex gap-1.5">
-            {FAMILY_MEMBERS.map(m => {
-              const active = m.id === currentActor.id;
+          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">Familie</div>
+          <div className="flex gap-1.5 flex-wrap">
+            {members.map(m => {
+              const self = m.id === me.id;
               return (
-                <button
+                <div
                   key={m.id}
-                  title={`${m.name} – ${active ? 'aktuell aktiv' : 'als diese Person ansehen'}`}
-                  onClick={() => setCurrentActorId(m.id)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ring-2 transition-all ${active ? 'ring-[#2563EB] scale-110' : 'ring-white hover:scale-110'}`}
+                  title={`${m.name} · ${ROLE_NAMES[m.effectiveRole]}${self ? ' (du)' : ''}`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ring-2 ${self ? 'ring-[#2563EB] scale-110' : 'ring-white'}`}
                   style={{ backgroundColor: m.color }}
-                  aria-label={`Als ${m.name} ansehen`}
-                  aria-pressed={active}
                 >
                   {m.initials[0]}
-                </button>
+                </div>
               );
             })}
           </div>
           <p className="text-[10px] text-slate-400 mt-2 px-1">
-            Angemeldet als <span className="font-semibold text-slate-500">{currentActor.name}</span> · Rolle: {roleName}
+            Angemeldet als <span className="font-semibold text-slate-500">{me.name}</span> · Rolle: {roleName}
           </p>
         </div>
 
@@ -177,14 +179,20 @@ export default function App() {
           <div className="flex items-center gap-2 px-3 py-2 mt-1 rounded-xl bg-slate-50">
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-              style={{ backgroundColor: currentActor.color }}
+              style={{ backgroundColor: me.color }}
             >
-              {currentActor.initials[0]}
+              {initial}
             </div>
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-slate-800 truncate">{currentActor.name} Johnson</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-slate-800 truncate">{me.name}</div>
               <div className="text-[10px] text-slate-400">{roleName}</div>
             </div>
+            <button
+              onClick={logout}
+              className="text-[11px] font-semibold text-slate-500 hover:text-[#DC2626] px-2 py-1 rounded-lg hover:bg-white transition-colors"
+            >
+              Abmelden
+            </button>
           </div>
         </div>
       </aside>
@@ -258,11 +266,11 @@ export default function App() {
             {/* Avatar */}
             <button
               className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold ring-2 ring-[#EFF6FF] hover:ring-[#2563EB] transition-all"
-              style={{ backgroundColor: currentActor.color }}
+              style={{ backgroundColor: me.color }}
               aria-label="My profile"
               onClick={() => navigate('profiles')}
             >
-              {currentActor.initials[0]}
+              {initial}
             </button>
           </div>
         </header>

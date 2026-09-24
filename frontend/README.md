@@ -14,14 +14,17 @@ pnpm install
 pnpm dev
 ```
 
-Danach **http://localhost:5173** öffnen.
+Danach **http://localhost:5173** öffnen und mit einem Beispielkonto anmelden
+(z. B. `sarah`, Passwort `familyhub`; alle Konten stehen im README im
+Hauptordner und als Hinweis auf der Anmeldeseite). Ist die Datenbank leer und
+sind die Beispieldaten abgeschaltet, zeigt die Seite stattdessen „Familie
+einrichten“ für den ersten Administrator.
 
-Das Backend wird unter `http://localhost:8080` erwartet. Eine andere Adresse
-lässt sich in einer Datei `frontend/.env.local` setzen:
-
-```
-VITE_API_URL=http://localhost:9090
-```
+Der Dev-Server leitet alle Aufrufe unter `/api` an das Backend auf
+`http://localhost:8080` weiter (`vite.config.ts`). So laufen Oberfläche und API
+unter derselben Adresse, und Anmelde- und CSRF-Cookie funktionieren ohne
+Cross-Origin-Einstellungen. Läuft das Backend auf einem anderen Port, das
+Proxy-Ziel in `vite.config.ts` anpassen.
 
 Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 `pnpm exec tsc --noEmit` (Typprüfung).
@@ -30,21 +33,42 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 
 | Bereich | Datenquelle |
 |---|---|
+| Anmelden, Abmelden, Familie einrichten | Backend: `/api/auth/...` (Sitzungs-Cookie) |
 | Kalender (Monat, Woche, Tag), Personenfilter | Backend: `/api/members`, `/api/events` |
-| Termine anlegen, ändern, löschen | Backend, Formular `src/components/EventFormModal.tsx` |
-| Dashboard: Mini-Kalender und „Heute“ | Backend |
-| Aufgaben, Punkte, Einkauf, Essen, Nachrichten, Profile, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` |
+| Termine anlegen, ändern, löschen, Vorschläge freigeben oder ablehnen | Backend, Formular `src/components/EventFormModal.tsx` |
+| Dashboard: Mini-Kalender und „Heute“ (nur freigegebene Termine) | Backend |
+| Profile: Mitglieder, Rollen, Einzelrechte, Freigaben für Gäste, eigenes Passwort | Backend: `/api/members`, `/api/roles`, `/api/settings`, `/api/auth/password` |
+| Aufgaben, Punkte, Einkauf, Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
 daher im Kalender nicht angezeigt. Das UI rechnet weiterhin mit einem festen
 „Heute“ (21.09.2026), passend zu den Beispieldaten.
 
+## Rollen in der Oberfläche
+
+Welche Rechte jemand hat, liefert das Backend nach der Anmeldung
+(`GET /api/auth/me`). Die Oberfläche blendet damit nur Schaltflächen aus oder
+zeigt Formulare schreibgeschützt; geprüft wird jede Aktion im Backend.
+
+| Rolle | Kalender | Profile |
+|---|---|---|
+| Administrator | alles, auch private Termine; gibt Vorschläge frei | Mitglieder, Rollen, Einzelrechte und Gäste-Freigaben verwalten |
+| Jugendliche | eigene Termine direkt, für andere als Vorschlag | ansehen, eigenes Passwort |
+| Kind | nur ansehen | ansehen, eigenes Passwort |
+| Gast | nur freigegebene Kategorien ansehen | ansehen, eigenes Passwort |
+
+Private Termine sehen nur die Person selbst, wer sie angelegt hat, und
+Administratoren. Offene Vorschläge sehen nur die vorschlagende Person und
+Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
+
 ## Aufbau
 
-- `src/calendar/api.ts`: Aufrufe an das Backend, Fehler als `ApiError` mit den Feldfehlern des Backends
-- `src/calendar/CalendarDataContext.tsx`: lädt Mitglieder und Termine einmal und stellt sie Kalender und Dashboard bereit
+- `src/api/client.ts`: gemeinsamer Aufruf ans Backend (Cookies, CSRF-Header, Fehler als `ApiError` mit Feldfehlern)
+- `src/auth/`: Anmeldung (`AuthContext` mit `useAuth()`/`useMe()`), Anmelde- und Einrichtungsseite
+- `src/calendar/`: Termin-API, `CalendarDataContext` (lädt Mitglieder und Termine für Kalender und Dashboard), `permissions.ts` (was die angemeldete Person im Kalender darf)
+- `src/family/`: API für Mitglieder, Rollen und Einstellungen, Farbpalette
+- `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
 - `src/components/`: die Seiten (Dashboard, Calendar, Tasks, Rewards, Shopping, MealPlanning, AIAssistant, Messenger, Profiles)
-- `src/roles/`: Rollen- und Berechtigungsmodell (Prototyp, noch nicht mit dem Backend verbunden)
 
 Styling mit Tailwind CSS v4 über `@tailwindcss/vite`, keine separate
 Tailwind-Konfiguration.

@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { CalendarEvent } from '../components/data';
+import { listMembers, type ApiMember } from '../family/api';
+import type { RoleId } from '../roles';
 import * as api from './api';
 
 export interface CalendarMember {
@@ -7,6 +9,7 @@ export interface CalendarMember {
   name: string;
   color: string;
   initials: string;
+  effectiveRole: RoleId;
 }
 
 type Status = 'loading' | 'ready' | 'error';
@@ -15,17 +18,20 @@ interface CalendarData {
   status: Status;
   error: string | null;
   members: CalendarMember[];
+  // Nur die Termine, die die angemeldete Person sehen darf (filtert das Backend)
   events: CalendarEvent[];
   memberById: (id: string) => CalendarMember | undefined;
   reload: () => Promise<void>;
   saveEvent: (input: api.EventInput, id?: string) => Promise<void>;
   removeEvent: (id: string) => Promise<void>;
+  approveEvent: (id: string) => Promise<void>;
+  rejectEvent: (id: string) => Promise<void>;
 }
 
 const CalendarDataContext = createContext<CalendarData | null>(null);
 
-function toMember(m: api.ApiMember): CalendarMember {
-  return { ...m, initials: m.name.slice(0, 2).toUpperCase() };
+function toMember(m: ApiMember): CalendarMember {
+  return { id: m.id, name: m.name, color: m.color, initials: m.name.slice(0, 2).toUpperCase(), effectiveRole: m.effectiveRole };
 }
 
 // Backend liefert "2026-09-25T10:00:00"; die Ansichten gruppieren nach Datum und HH:mm.
@@ -42,6 +48,9 @@ function toEvent(e: api.ApiEvent): CalendarEvent {
     category: e.category,
     location: e.location ?? undefined,
     description: e.description ?? undefined,
+    private: e.private,
+    status: e.status,
+    createdBy: e.createdBy ?? undefined,
   };
 }
 
@@ -53,7 +62,7 @@ export function CalendarDataProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     try {
-      const [m, e] = await Promise.all([api.listMembers(), api.listEvents()]);
+      const [m, e] = await Promise.all([listMembers(), api.listEvents()]);
       setMembers(m.map(toMember));
       setEvents(e.map(toEvent));
       setError(null);
@@ -66,22 +75,21 @@ export function CalendarDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { reload(); }, [reload]);
 
-  const saveEvent = useCallback(async (input: api.EventInput, id?: string) => {
-    if (id) await api.updateEvent(id, input);
-    else await api.createEvent(input);
-    await reload();
-  }, [reload]);
-
-  const removeEvent = useCallback(async (id: string) => {
-    await api.deleteEvent(id);
-    await reload();
-  }, [reload]);
+  const afterChange = useCallback(<A extends unknown[]>(action: (...args: A) => Promise<unknown>) =>
+    async (...args: A) => {
+      await action(...args);
+      await reload();
+    }, [reload]);
 
   const value = useMemo<CalendarData>(() => ({
     status, error, members, events,
     memberById: (id: string) => members.find(m => m.id === id),
-    reload, saveEvent, removeEvent,
-  }), [status, error, members, events, reload, saveEvent, removeEvent]);
+    reload,
+    saveEvent: afterChange((input: api.EventInput, id?: string) => id ? api.updateEvent(id, input) : api.createEvent(input)),
+    removeEvent: afterChange(api.deleteEvent),
+    approveEvent: afterChange(api.approveEvent),
+    rejectEvent: afterChange(api.rejectEvent),
+  }), [status, error, members, events, reload, afterChange]);
 
   return <CalendarDataContext.Provider value={value}>{children}</CalendarDataContext.Provider>;
 }
