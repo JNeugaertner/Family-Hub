@@ -36,8 +36,11 @@ public final class StandardRoles {
                 .flatMap(module -> Arrays.stream(Action.values()).map(action -> of(module, action, Scope.FAMILIE)))
                 .collect(Collectors.toUnmodifiableSet()));
 
+        // Eigene Termine ansehen ist ein eigenes Recht neben dem Familienkalender: Wird der Familienkalender
+        // entzogen, bleiben die eigenen Termine sichtbar.
         PERMISSIONS.put(Role.JUGENDLICHER, Set.of(
                 of(FAMILIE, ANSEHEN, Scope.FAMILIE),
+                of(KALENDER, ANSEHEN, Scope.EIGEN),
                 of(KALENDER, ANSEHEN, Scope.FAMILIE),
                 of(KALENDER, ERSTELLEN, Scope.EIGEN),
                 of(KALENDER, BEARBEITEN, Scope.EIGEN),
@@ -63,6 +66,7 @@ public final class StandardRoles {
 
         PERMISSIONS.put(Role.KIND, Set.of(
                 of(FAMILIE, ANSEHEN, Scope.FAMILIE),
+                of(KALENDER, ANSEHEN, Scope.EIGEN),
                 of(KALENDER, ANSEHEN, Scope.FAMILIE),
                 of(AUFGABEN, ANSEHEN, Scope.EIGEN),
                 of(AUFGABEN, BEARBEITEN, Scope.EIGEN),

@@ -153,9 +153,20 @@ class CalendarEventRoleTest {
     }
 
     @Test
-    void revokedPermissionHidesTheCalendar() throws Exception {
-        FamilyMember lucasWithoutCalendar = members.save(withPermissions(lucas, Set.of(),
-                Set.of(Permission.of(Module.KALENDER, Action.ANSEHEN, Scope.FAMILIE))));
+    void withoutFamilyCalendarOnlyOwnEventsRemainVisible() throws Exception {
+        Permission familyCalendar = Permission.of(Module.KALENDER, Action.ANSEHEN, Scope.FAMILIE);
+        FamilyMember lucasOwnOnly = members.save(withPermissions(lucas, Set.of(), Set.of(familyCalendar)));
+
+        mvc.perform(get("/api/events").with(as(lucasOwnOnly)))
+                .andExpect(jsonPath("$[*].title", contains("Basketball")));
+        mvc.perform(get("/api/events/" + emmaEvent.id()).with(as(lucasOwnOnly))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void revokingBothCalendarRightsHidesTheCalendar() throws Exception {
+        FamilyMember lucasWithoutCalendar = members.save(withPermissions(lucas, Set.of(), Set.of(
+                Permission.of(Module.KALENDER, Action.ANSEHEN, Scope.FAMILIE),
+                Permission.of(Module.KALENDER, Action.ANSEHEN, Scope.EIGEN))));
 
         mvc.perform(get("/api/events").with(as(lucasWithoutCalendar))).andExpect(jsonPath("$", empty()));
     }
