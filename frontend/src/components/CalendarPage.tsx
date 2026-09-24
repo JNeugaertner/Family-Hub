@@ -505,7 +505,7 @@ export default function CalendarPage({ onNavigate }: Props) {
             className="ml-auto flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors shadow-sm disabled:opacity-50"
           >
             <PlusIcon size={16} />
-            <span className="hidden sm:inline">Termin hinzufügen</span>
+            <span className="hidden sm:inline">{permissions.onlyProposals ? 'Termin vorschlagen' : 'Termin hinzufügen'}</span>
           </button>
         )}
       </div>

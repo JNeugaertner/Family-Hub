@@ -57,6 +57,17 @@ class SettingsControllerTest {
                 .andExpect(jsonPath("$.guestCategories", empty()));
     }
 
+    // Die Oberfläche braucht das Alter, um beim Bearbeiten die Rechte der tatsächlichen Rolle zu zeigen.
+    @Test
+    void settingsContainTheAgeAtWhichChildrenBecomeTeenagers() throws Exception {
+        mvc.perform(get("/api/settings").with(as(emma)))
+                .andExpect(jsonPath("$.teenAge").value(13));
+        mvc.perform(put("/api/settings").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content("{\"guestCategories\": [], \"teenAge\": 10}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teenAge").value(13));
+    }
+
     @Test
     void administratorReleasesCategoriesForGuests() throws Exception {
         mvc.perform(put("/api/settings").with(as(sarah)).contentType(APPLICATION_JSON)

@@ -12,6 +12,7 @@ import de.familyhub.calendar.EventCategory;
 import de.familyhub.permission.Action;
 import de.familyhub.permission.Module;
 import de.familyhub.permission.Permissions;
+import de.familyhub.permission.RoleResolver;
 import de.familyhub.permission.Scope;
 import de.familyhub.security.CurrentMember;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,27 +29,33 @@ public class SettingsController {
     private final FamilySettingsRepository settings;
     private final CurrentMember currentMember;
     private final Permissions permissions;
+    private final RoleResolver roleResolver;
 
     public SettingsController(FamilySettingsRepository settings, CurrentMember currentMember,
-            Permissions permissions) {
+            Permissions permissions, RoleResolver roleResolver) {
         this.settings = settings;
         this.currentMember = currentMember;
         this.permissions = permissions;
+        this.roleResolver = roleResolver;
     }
 
     @GetMapping
     @Operation(summary = "Einstellungen der Familie")
     public SettingsResponse get() {
         currentMember.get();
-        return SettingsResponse.of(settings.current());
+        return response(settings.current());
     }
 
     @PutMapping
-    @Operation(summary = "Einstellungen ändern", description = "Nur für Administratoren.")
+    @Operation(summary = "Einstellungen ändern", description = "Nur für Administratoren. teenAge ist nicht änderbar.")
     public SettingsResponse update(@Valid @RequestBody SettingsRequest request) {
         permissions.require(currentMember.get(), Module.SYSTEM, Action.VERWALTEN, Scope.FAMILIE,
                 "Nur Administratoren dürfen die Einstellungen ändern.");
-        return SettingsResponse.of(settings.save(new FamilySettings(FamilySettings.ID, request.guestCategories())));
+        return response(settings.save(new FamilySettings(FamilySettings.ID, request.guestCategories())));
+    }
+
+    private SettingsResponse response(FamilySettings current) {
+        return new SettingsResponse(current.guestCategories(), roleResolver.teenAge());
     }
 
     public record SettingsRequest(
@@ -57,10 +64,10 @@ public class SettingsController {
             Set<EventCategory> guestCategories) {
     }
 
-    public record SettingsResponse(Set<EventCategory> guestCategories) {
-
-        static SettingsResponse of(FamilySettings settings) {
-            return new SettingsResponse(settings.guestCategories());
-        }
+    public record SettingsResponse(
+            Set<EventCategory> guestCategories,
+            @Schema(description = "Alter, ab dem ein Kind automatisch Jugendlicher wird "
+                    + "(Konfiguration familyhub.roles.teen-age, nur lesbar)")
+            int teenAge) {
     }
 }
