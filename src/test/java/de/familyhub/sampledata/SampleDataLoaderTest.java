@@ -15,9 +15,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
+import de.familyhub.calendar.EventCategory;
+import de.familyhub.calendar.EventStatus;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
 import de.familyhub.permission.Role;
+import de.familyhub.settings.FamilySettingsRepository;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 
@@ -30,6 +33,9 @@ class SampleDataLoaderTest {
     @Autowired
     private CalendarEventRepository eventRepository;
 
+    @Autowired
+    private FamilySettingsRepository settingsRepository;
+
     private static final PasswordEncoder PASSWORD_ENCODER = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 
     private SampleDataLoader loader;
@@ -38,7 +44,8 @@ class SampleDataLoaderTest {
     void setUp() {
         memberRepository.deleteAll();
         eventRepository.deleteAll();
-        loader = new SampleDataLoader(memberRepository, eventRepository, PASSWORD_ENCODER);
+        settingsRepository.deleteAll();
+        loader = new SampleDataLoader(memberRepository, eventRepository, settingsRepository, PASSWORD_ENCODER);
     }
 
     @Test
@@ -48,7 +55,7 @@ class SampleDataLoaderTest {
         assertThat(memberRepository.findAll())
                 .extracting(FamilyMember::name)
                 .containsExactlyInAnyOrder("Sarah", "Mike", "Emma", "Lucas", "Lily", "Oma");
-        assertThat(eventRepository.count()).isEqualTo(16);
+        assertThat(eventRepository.count()).isEqualTo(17);
     }
 
     @Test
@@ -94,12 +101,29 @@ class SampleDataLoaderTest {
     }
 
     @Test
+    void containsProposalPrivateEventAndGuestCategoriesForTryingOutRoles() {
+        loader.load();
+
+        String emmaId = memberRepository.findByUsername("emma").orElseThrow().id();
+        List<CalendarEvent> events = eventRepository.findAll();
+        assertThat(events).filteredOn(CalendarEvent::isProposal)
+                .singleElement()
+                .satisfies(e -> assertThat(e.createdBy()).isEqualTo(emmaId));
+        assertThat(events).filteredOn(CalendarEvent::privateEvent)
+                .extracting(CalendarEvent::title)
+                .containsExactly("Book club");
+        assertThat(events).filteredOn(e -> e.status() == EventStatus.APPROVED).hasSize(16);
+        assertThat(settingsRepository.current().guestCategories())
+                .containsExactlyInAnyOrder(EventCategory.FAMILY, EventCategory.SCHOOL);
+    }
+
+    @Test
     void secondLoadDoesNotDuplicateOrOverwriteData() {
         loader.load();
         loader.load();
 
         assertThat(memberRepository.count()).isEqualTo(6);
-        assertThat(eventRepository.count()).isEqualTo(16);
+        assertThat(eventRepository.count()).isEqualTo(17);
     }
 
     @Test

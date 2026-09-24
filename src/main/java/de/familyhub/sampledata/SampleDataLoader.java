@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -26,9 +27,12 @@ import org.springframework.stereotype.Component;
 import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
 import de.familyhub.calendar.EventCategory;
+import de.familyhub.calendar.EventStatus;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
 import de.familyhub.permission.Role;
+import de.familyhub.settings.FamilySettings;
+import de.familyhub.settings.FamilySettingsRepository;
 
 // Beispielfamilie und -termine aus dem Figma-UI (frontend/src/components/data.ts), dazu eine Oma als Gast.
 // Nur für Entwicklung und Tests: alle Beispielkonten haben dasselbe, öffentlich bekannte Passwort.
@@ -55,8 +59,14 @@ public class SampleDataLoader implements ApplicationRunner {
             new SampleMember("Lily", "#EC4899", Role.KIND, "2018-01-30"),
             new SampleMember("Oma", "#64748B", Role.GAST, null));
 
+    // privateEvent: nur Beteiligte und Administratoren sehen den Termin; proposedBy: offener Vorschlag dieser Person
     private record SampleEvent(String title, String date, String time, String endTime,
-            String member, EventCategory category, String location) {
+            String member, EventCategory category, String location, boolean privateEvent, String proposedBy) {
+
+        SampleEvent(String title, String date, String time, String endTime, String member, EventCategory category,
+                String location) {
+            this(title, date, time, endTime, member, category, location, false, null);
+        }
     }
 
     private static final List<SampleEvent> EVENTS = List.of(
@@ -71,20 +81,27 @@ public class SampleDataLoader implements ApplicationRunner {
             new SampleEvent("Doctor checkup", "2026-09-28", "10:00", "11:00", "Lily", APPOINTMENT, null),
             new SampleEvent("Work presentation", "2026-09-29", "14:00", null, "Mike", WORK, null),
             new SampleEvent("Gymnastics", "2026-09-24", "14:30", "15:30", "Lily", SPORTS, null),
-            new SampleEvent("Book club", "2026-09-27", "19:00", null, "Sarah", FAMILY, null),
+            new SampleEvent("Book club", "2026-09-27", "19:00", null, "Sarah", FAMILY, null, true, null),
             new SampleEvent("🗑️ Gelber Sack", "2026-09-22", "07:00", null, "Mike", REMINDER, null),
             new SampleEvent("Movie night", "2026-09-25", "20:00", null, "Sarah", FAMILY, null),
             new SampleEvent("Grocery run", "2026-09-23", "09:00", null, "Mike", FAMILY, null),
-            new SampleEvent("Park cycle tour", "2026-09-27", "10:00", "12:00", "Sarah", FAMILY, null));
+            new SampleEvent("Park cycle tour", "2026-09-27", "10:00", "12:00", "Sarah", FAMILY, null),
+            new SampleEvent("Kinoabend mit Lucas", "2026-09-26", "19:00", "21:00", "Lucas", FAMILY, "Cinestar", false,
+                    "Emma"));
+
+    // Termine dieser Kategorien sehen Gäste (sofern nicht privat)
+    static final Set<EventCategory> GUEST_CATEGORIES = Set.of(FAMILY, SCHOOL);
 
     private final FamilyMemberRepository memberRepository;
     private final CalendarEventRepository eventRepository;
+    private final FamilySettingsRepository settingsRepository;
     private final PasswordEncoder passwordEncoder;
 
     public SampleDataLoader(FamilyMemberRepository memberRepository, CalendarEventRepository eventRepository,
-            PasswordEncoder passwordEncoder) {
+            FamilySettingsRepository settingsRepository, PasswordEncoder passwordEncoder) {
         this.memberRepository = memberRepository;
         this.eventRepository = eventRepository;
+        this.settingsRepository = settingsRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -107,6 +124,7 @@ public class SampleDataLoader implements ApplicationRunner {
         Map<String, String> idByName = memberRepository.saveAll(members).stream()
                 .collect(Collectors.toMap(FamilyMember::name, FamilyMember::id));
         eventRepository.saveAll(EVENTS.stream().map(e -> toEvent(e, idByName)).toList());
+        settingsRepository.save(new FamilySettings(FamilySettings.ID, GUEST_CATEGORIES));
 
         log.warn("Beispieldaten angelegt: {} Konten (Benutzername = Vorname in Kleinbuchstaben, Passwort \"{}\") "
                 + "und {} Termine. Nur für Entwicklung, für echten Betrieb familyhub.sample-data.enabled=false setzen.",
@@ -119,7 +137,9 @@ public class SampleDataLoader implements ApplicationRunner {
         LocalDateTime end = e.endTime() == null
                 ? start.plus(DEFAULT_DURATION)
                 : date.atTime(LocalTime.parse(e.endTime()));
-        return new CalendarEvent(null, e.title(), start, end, idByName.get(e.member()),
-                e.category(), e.location(), null);
+        boolean proposal = e.proposedBy() != null;
+        return new CalendarEvent(null, e.title(), start, end, idByName.get(e.member()), e.category(), e.location(),
+                null, e.privateEvent(), proposal ? EventStatus.PROPOSED : EventStatus.APPROVED,
+                idByName.get(proposal ? e.proposedBy() : "Sarah"));
     }
 }

@@ -1,6 +1,7 @@
 package de.familyhub.calendar;
 
 import static de.familyhub.testsupport.TestUsers.as;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -28,9 +29,11 @@ import de.familyhub.permission.Module;
 import de.familyhub.permission.Permission;
 import de.familyhub.permission.Role;
 import de.familyhub.permission.Scope;
+import de.familyhub.settings.FamilySettings;
+import de.familyhub.settings.FamilySettingsRepository;
 import de.familyhub.testsupport.TestUsers;
 
-// Rechte am Kalender je Rolle (Rollenkonzept, Entscheidungen vom 24.09.2026).
+// Rechte am Kalender je Rolle inkl. Freigabe-Workflow (Rollenkonzept, Entscheidungen vom 24.09.2026).
 @SpringBootTest
 @AutoConfigureMockMvc
 class CalendarEventRoleTest {
@@ -46,6 +49,9 @@ class CalendarEventRoleTest {
     @Autowired
     private FamilyMemberRepository members;
 
+    @Autowired
+    private FamilySettingsRepository settings;
+
     private FamilyMember sarah;
     private FamilyMember emma;
     private FamilyMember lucas;
@@ -57,6 +63,7 @@ class CalendarEventRoleTest {
     void setUp() {
         events.deleteAll();
         members.deleteAll();
+        settings.deleteAll();
         sarah = members.save(TestUsers.member("Sarah", Role.ADMINISTRATOR));
         emma = members.save(TestUsers.member("Emma", Role.JUGENDLICHER));
         lucas = members.save(TestUsers.member("Lucas", Role.KIND));
@@ -151,6 +158,101 @@ class CalendarEventRoleTest {
                 Set.of(Permission.of(Module.KALENDER, Action.ANSEHEN, Scope.FAMILIE))));
 
         mvc.perform(get("/api/events").with(as(lucasWithoutCalendar))).andExpect(jsonPath("$", empty()));
+    }
+
+    @Test
+    void teenagerProposesEventsForOthersThatOnlyProposerAndAdministratorsSee() throws Exception {
+        mvc.perform(post("/api/events").with(as(emma)).contentType(APPLICATION_JSON).content(json("Kinoabend", lucas, 19)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("proposed"))
+                .andExpect(jsonPath("$.createdBy").value(emma.id()));
+
+        mvc.perform(get("/api/events").with(as(lucas)))
+                .andExpect(jsonPath("$[?(@.title == 'Kinoabend')]").isEmpty());
+        mvc.perform(get("/api/events").param("status", "proposed").with(as(sarah)))
+                .andExpect(jsonPath("$[*].title", contains("Kinoabend")));
+        mvc.perform(get("/api/events").param("status", "proposed").with(as(emma)))
+                .andExpect(jsonPath("$[*].title", contains("Kinoabend")));
+    }
+
+    @Test
+    void childCannotProposeEvents() throws Exception {
+        mvc.perform(post("/api/events").with(as(lucas)).contentType(APPLICATION_JSON).content(json("Kino", emma, 15)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void administratorApprovesProposal() throws Exception {
+        CalendarEvent proposal = saveEvent("Kinoabend", lucas, EventCategory.FAMILY, false, EventStatus.PROPOSED, emma);
+
+        mvc.perform(post("/api/events/" + proposal.id() + "/approve").with(as(emma)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("Nur Administratoren dürfen Vorschläge freigeben oder ablehnen."));
+        mvc.perform(post("/api/events/" + proposal.id() + "/approve").with(as(sarah)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("approved"))
+                .andExpect(jsonPath("$.createdBy").value(emma.id()));
+
+        mvc.perform(get("/api/events/" + proposal.id()).with(as(lucas))).andExpect(status().isOk());
+        mvc.perform(post("/api/events/" + proposal.id() + "/approve").with(as(sarah)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void administratorRejectsProposalWhichIsDiscarded() throws Exception {
+        CalendarEvent proposal = saveEvent("Party", lucas, EventCategory.FAMILY, false, EventStatus.PROPOSED, emma);
+
+        mvc.perform(post("/api/events/" + proposal.id() + "/reject").with(as(sarah))).andExpect(status().isNoContent());
+        mvc.perform(get("/api/events/" + proposal.id()).with(as(sarah))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void teenagerEditsAndWithdrawsOwnProposal() throws Exception {
+        CalendarEvent proposal = saveEvent("Kinoabend", lucas, EventCategory.FAMILY, false, EventStatus.PROPOSED, emma);
+
+        mvc.perform(put("/api/events/" + proposal.id()).with(as(emma)).contentType(APPLICATION_JSON)
+                        .content(json("Kinoabend (später)", lucas, 20)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("proposed"));
+        mvc.perform(delete("/api/events/" + proposal.id()).with(as(emma))).andExpect(status().isNoContent());
+    }
+
+    @Test
+    void privateEventsAreOnlyVisibleToThoseInvolvedAndAdministrators() throws Exception {
+        CalendarEvent diary = saveEvent("Tagebuch", emma, EventCategory.FAMILY, true, EventStatus.APPROVED, emma);
+
+        mvc.perform(get("/api/events/" + diary.id()).with(as(emma))).andExpect(status().isOk());
+        mvc.perform(get("/api/events/" + diary.id()).with(as(sarah))).andExpect(status().isOk());
+        mvc.perform(get("/api/events/" + diary.id()).with(as(lucas))).andExpect(status().isNotFound());
+        mvc.perform(get("/api/events").with(as(lucas)))
+                .andExpect(jsonPath("$[?(@.title == 'Tagebuch')]").isEmpty());
+    }
+
+    @Test
+    void teenagerCanMarkOwnEventPrivate() throws Exception {
+        mvc.perform(post("/api/events").with(as(emma)).contentType(APPLICATION_JSON).content("""
+                        {"title": "Arzt", "start": "2026-09-26T09:00", "end": "2026-09-26T10:00",
+                         "memberId": "%s", "category": "appointment", "private": true}
+                        """.formatted(emma.id())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.private").value(true));
+    }
+
+    @Test
+    void guestSeesOnlyReleasedCategoriesAndNothingPrivateOrProposed() throws Exception {
+        settings.save(new FamilySettings(FamilySettings.ID, Set.of(EventCategory.FAMILY)));
+        saveEvent("Schulfest", lucas, EventCategory.SCHOOL, false, EventStatus.APPROVED, sarah);
+        saveEvent("Geheim", sarah, EventCategory.FAMILY, true, EventStatus.APPROVED, sarah);
+        saveEvent("Vorschlag", lucas, EventCategory.FAMILY, false, EventStatus.PROPOSED, emma);
+
+        mvc.perform(get("/api/events").with(as(oma)))
+                .andExpect(jsonPath("$[*].title", containsInAnyOrder("Basketball", "Training", "Elternabend")));
+    }
+
+    private CalendarEvent saveEvent(String title, FamilyMember member, EventCategory category, boolean privateEvent,
+            EventStatus status, FamilyMember creator) {
+        return events.save(new CalendarEvent(null, title, DAY.withHour(12), DAY.withHour(13), member.id(), category,
+                null, null, privateEvent, status, creator.id()));
     }
 
     private static FamilyMember withPermissions(FamilyMember m, Set<Permission> extra, Set<Permission> revoked) {

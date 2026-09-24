@@ -3,6 +3,7 @@ package de.familyhub.calendar;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.function.Predicate;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -58,7 +59,9 @@ public class CalendarEventController {
             @Parameter(description = "Ende des Zeitraums (exklusiv), z. B. 2026-09-28T00:00")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @Parameter(description = "Nur Termine dieses Familienmitglieds")
-            @RequestParam(required = false) String memberId) {
+            @RequestParam(required = false) String memberId,
+            @Parameter(description = "Nur Termine mit diesem Status, z. B. proposed für offene Vorschläge")
+            @RequestParam(required = false) EventStatus status) {
 
         if ((from == null) != (to == null)) {
             throw ApiException.invalidField(from == null ? "from" : "to", "from und to müssen zusammen angegeben werden");
@@ -66,7 +69,6 @@ public class CalendarEventController {
         if (from != null && !to.isAfter(from)) {
             throw ApiException.invalidField("to", "to muss nach from liegen");
         }
-        FamilyMember viewer = currentMember.get();
         List<CalendarEvent> result;
         if (from == null) {
             result = memberId == null
@@ -77,7 +79,11 @@ public class CalendarEventController {
                     ? events.findOverlapping(from, to)
                     : events.findOverlappingForMember(memberId, from, to);
         }
-        return result.stream().filter(event -> access.canSee(viewer, event)).toList();
+        Predicate<CalendarEvent> visible = access.visibilityFor(currentMember.get());
+        return result.stream()
+                .filter(visible)
+                .filter(event -> status == null || event.status() == status)
+                .toList();
     }
 
     @GetMapping("/{id}")
@@ -87,34 +93,62 @@ public class CalendarEventController {
     }
 
     @PostMapping
-    @Operation(summary = "Termin anlegen", description = "Eine mitgeschickte id wird ignoriert.")
+    @Operation(summary = "Termin anlegen", description = "Eine mitgeschickte id, status und createdBy werden ignoriert. "
+            + "Wer für andere nur Vorschläge machen darf (Jugendliche), legt einen Vorschlag an (status proposed).")
     public ResponseEntity<CalendarEvent> create(@Valid @RequestBody CalendarEvent event) {
         FamilyMember viewer = currentMember.get();
-        access.requireCreate(viewer, event);
+        EventStatus status = access.statusForNewEvent(viewer, event);
         requireMember(event.memberId());
-        CalendarEvent saved = events.save(withId(null, event));
+        CalendarEvent saved = events.save(copy(null, event, status, viewer.id()));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(saved);
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Termin ändern")
+    @Operation(summary = "Termin ändern", description = "Status und createdBy bleiben unverändert.")
     public CalendarEvent update(@PathVariable String id, @Valid @RequestBody CalendarEvent event) {
         FamilyMember viewer = currentMember.get();
         CalendarEvent existing = findVisible(id, viewer);
         access.requireUpdate(viewer, existing, event);
         requireMember(event.memberId());
-        return events.save(withId(id, event));
+        return events.save(copy(id, event, existing.status(), existing.createdBy()));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Termin löschen")
+    @Operation(summary = "Termin löschen oder eigenen Vorschlag zurückziehen")
     public void delete(@PathVariable String id) {
         FamilyMember viewer = currentMember.get();
         CalendarEvent existing = findVisible(id, viewer);
         access.requireDelete(viewer, existing);
         events.deleteById(id);
+    }
+
+    @PostMapping("/{id}/approve")
+    @Operation(summary = "Vorschlag freigeben", description = "Nur für Administratoren. Aus dem Vorschlag wird ein Termin.")
+    public CalendarEvent approve(@PathVariable String id) {
+        FamilyMember viewer = currentMember.get();
+        access.requireDecision(viewer);
+        CalendarEvent proposal = findOpenProposal(id, viewer);
+        return events.save(copy(id, proposal, EventStatus.APPROVED, proposal.createdBy()));
+    }
+
+    @PostMapping("/{id}/reject")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Vorschlag ablehnen", description = "Nur für Administratoren. Der Vorschlag wird verworfen.")
+    public void reject(@PathVariable String id) {
+        FamilyMember viewer = currentMember.get();
+        access.requireDecision(viewer);
+        findOpenProposal(id, viewer);
+        events.deleteById(id);
+    }
+
+    private CalendarEvent findOpenProposal(String id, FamilyMember viewer) {
+        CalendarEvent event = findVisible(id, viewer);
+        if (!event.isProposal()) {
+            throw ApiException.conflict("Der Termin ist kein offener Vorschlag.");
+        }
+        return event;
     }
 
     // Termine, die jemand nicht sehen darf, gelten für ihn als nicht vorhanden.
@@ -130,7 +164,8 @@ public class CalendarEventController {
         }
     }
 
-    private static CalendarEvent withId(String id, CalendarEvent e) {
-        return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberId(), e.category(), e.location(), e.description());
+    private static CalendarEvent copy(String id, CalendarEvent e, EventStatus status, String createdBy) {
+        return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberId(), e.category(), e.location(),
+                e.description(), e.privateEvent(), status, createdBy);
     }
 }
