@@ -16,6 +16,7 @@
 
 	<properties>
 		<java.version>25</java.version>
+		<flapdoodle.spring.version>4.33.0</flapdoodle.spring.version>
 	</properties>
 
 	<dependencies>
@@ -26,6 +27,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-mongodb</artifactId>
 		</dependency>
 
 		<dependency>
@@ -45,6 +50,17 @@
 			<artifactId>spring-boot-starter-validation-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-mongodb-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>de.flapdoodle.embed</groupId>
+			<artifactId>de.flapdoodle.embed.mongo.spring4x</artifactId>
+			<version>${flapdoodle.spring.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -55,5 +71,21 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- Firmennetze pruefen HTTPS mit eigenen Zertifikaten, die nur im Windows-Zertifikatsspeicher liegen.
+		     Ohne diese Einstellung scheitert in den Tests der Download der eingebetteten MongoDB. -->
+		<profile>
+			<id>windows-truststore</id>
+			<activation>
+				<os>
+					<family>windows</family>
+				</os>
+			</activation>
+			<properties>
+				<argLine>-Djavax.net.ssl.trustStoreType=Windows-ROOT</argLine>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>

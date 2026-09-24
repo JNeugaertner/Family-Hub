@@ -2,6 +2,9 @@ package de.familyhub.calendar;
 
 import java.time.LocalDateTime;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.validation.constraints.AssertTrue;
@@ -9,8 +12,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+@Document("events")
 public record CalendarEvent(
-        String id,
+        @Id String id,
 
         @NotBlank(message = "Titel darf nicht leer sein")
         @Size(max = 100, message = "Titel darf höchstens 100 Zeichen lang sein")

@@ -33,9 +33,13 @@ powershell -ExecutionPolicy Bypass -File scripts/start-mongodb.ps1
 ./mvnw spring-boot:run
 # Prüfen: http://localhost:8080/api/health
 
-# 3. Tests ausführen
+# 3. Tests ausführen (braucht keine laufende MongoDB)
 ./mvnw test
 ```
+
+Beim ersten Start mit leerer Datenbank legt das Backend die Beispielfamilie aus
+dem Figma-UI an. Der erste Testlauf lädt einmalig eine Test-MongoDB herunter
+(ca. 840 MB, einige Minuten).
 
 ## Projektstruktur
 
