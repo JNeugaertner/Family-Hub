@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,8 +35,13 @@ import de.familyhub.calendar.EventStatus;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
 import de.familyhub.permission.Role;
+import de.familyhub.points.PointEntry;
+import de.familyhub.points.PointEntryRepository;
 import de.familyhub.settings.FamilySettings;
 import de.familyhub.settings.FamilySettingsRepository;
+import de.familyhub.task.Task;
+import de.familyhub.task.TaskRepository;
+import de.familyhub.task.TaskStatus;
 
 // Beispielfamilie und -termine aus dem Figma-UI (frontend/src/components/data.ts), dazu eine Oma als Gast.
 // Nur für Entwicklung und Tests: alle Beispielkonten haben dasselbe, öffentlich bekannte Passwort.
@@ -100,14 +106,19 @@ public class SampleDataLoader implements ApplicationRunner {
     private final FamilyMemberRepository memberRepository;
     private final CalendarEventRepository eventRepository;
     private final FamilySettingsRepository settingsRepository;
+    private final TaskRepository taskRepository;
+    private final PointEntryRepository pointRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
     public SampleDataLoader(FamilyMemberRepository memberRepository, CalendarEventRepository eventRepository,
-            FamilySettingsRepository settingsRepository, PasswordEncoder passwordEncoder, Clock clock) {
+            FamilySettingsRepository settingsRepository, TaskRepository taskRepository,
+            PointEntryRepository pointRepository, PasswordEncoder passwordEncoder, Clock clock) {
         this.memberRepository = memberRepository;
         this.eventRepository = eventRepository;
         this.settingsRepository = settingsRepository;
+        this.taskRepository = taskRepository;
+        this.pointRepository = pointRepository;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
     }
@@ -119,7 +130,8 @@ public class SampleDataLoader implements ApplicationRunner {
 
     public void load() {
         if (memberRepository.count() > 0) {
-            log.info("Beispieldaten übersprungen: Die Datenbank enthält bereits Familienmitglieder.");
+            log.info("Beispielfamilie übersprungen: Die Datenbank enthält bereits Familienmitglieder.");
+            loadTasksAndPoints();
             return;
         }
 
@@ -137,6 +149,46 @@ public class SampleDataLoader implements ApplicationRunner {
         log.warn("Beispieldaten angelegt: {} Konten (Benutzername = Vorname in Kleinbuchstaben, Passwort \"{}\") "
                 + "und {} Termine. Nur für Entwicklung, für echten Betrieb familyhub.sample-data.enabled=false setzen.",
                 MEMBERS.size(), SAMPLE_PASSWORD, EVENTS.size());
+        loadTasksAndPoints();
+    }
+
+    // Auch für bestehende Datenbanken (Aufgaben und Punkte kamen später dazu): Beispielaufgaben und -punkte, solange
+    // es weder Aufgaben noch Punkte gibt. Zuordnung über die Benutzernamen der Beispielfamilie; wer fehlt, bekommt
+    // nichts. Weil Punkte nicht gelöscht werden können, kommen die Beispiele nicht nach jedem Neustart wieder.
+    private void loadTasksAndPoints() {
+        if (taskRepository.count() > 0 || pointRepository.count() > 0) {
+            return;
+        }
+        Map<String, String> idByUsername = memberRepository.findAll().stream()
+                .filter(m -> m.username() != null)
+                .collect(Collectors.toMap(FamilyMember::username, FamilyMember::id));
+        String creator = idByUsername.get("sarah");
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        List<Task> tasks = taskRepository.saveAll(SampleTasks.TASKS.stream()
+                .filter(t -> idByUsername.containsKey(t.username()))
+                .map(t -> new Task(null, t.title(), t.description(), idByUsername.get(t.username()),
+                        now.toLocalDate().plusDays(t.day()), t.priority(), t.category(), t.points(), t.status(),
+                        creator, t.status() == TaskStatus.CONFIRMED ? now.minusHours(3) : null,
+                        t.status() == TaskStatus.CONFIRMED ? creator : null))
+                .toList());
+
+        List<PointEntry> points = new ArrayList<>();
+        SampleTasks.POINTS.stream()
+                .filter(p -> idByUsername.containsKey(p.username()))
+                .map(p -> new PointEntry(null, idByUsername.get(p.username()), p.amount(), p.reason(), null,
+                        now.minusDays(p.daysAgo()), creator))
+                .forEach(points::add);
+        tasks.stream()
+                .filter(t -> t.status() == TaskStatus.CONFIRMED)
+                .map(t -> new PointEntry(null, t.assigneeId(), t.points(), "Aufgabe erledigt: " + t.title(), t.id(),
+                        t.confirmedAt(), creator))
+                .forEach(points::add);
+        pointRepository.saveAll(points);
+
+        if (!tasks.isEmpty()) {
+            log.info("Beispielaufgaben angelegt: {} Aufgaben und {} Punkte-Buchungen.", tasks.size(), points.size());
+        }
     }
 
     private static CalendarEvent toEvent(SampleEvent e, LocalDate monday, Map<String, String> idByName) {
