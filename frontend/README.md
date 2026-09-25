@@ -41,8 +41,9 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Aufgaben, Punkte, Einkauf, Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
-daher im Kalender nicht angezeigt. Das UI rechnet weiterhin mit einem festen
-„Heute“ (21.09.2026), passend zu den Beispieldaten.
+daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem
+heutigen Datum; die Beispieltermine legt das Backend relativ zur aktuellen Woche
+an. Aufgaben und Belohnungen haben noch feste Beispieldaten.
 
 ## Rollen in der Oberfläche
 

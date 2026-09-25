@@ -5,6 +5,7 @@ import {
   type CalendarEvent,
 } from './data';
 import { useCalendarData } from '../calendar/CalendarDataContext';
+import { startOfToday, toDateKey } from '../calendar/dates';
 import {
   CalendarIcon, CheckSquareIcon, ShoppingCartIcon, UtensilsIcon,
   StarIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon,
@@ -25,8 +26,8 @@ const TRANSPORT_ICONS: Record<string, string> = {
 
 function MiniCalendar({ onNavigate }: { onNavigate: (p: Page) => void }) {
   const { events: calendarEvents, memberById } = useCalendarData();
-  const today    = new Date(2026, 8, 21);
-  const [viewDate, setViewDate] = useState(new Date(2026, 8, 1));
+  const today    = startOfToday();
+  const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const year     = viewDate.getFullYear();
   const month    = viewDate.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
@@ -166,7 +167,7 @@ function departureStr(ev: CalendarEvent): string | null {
 function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
   const { events, memberById } = useCalendarData();
   const todayEvents = events
-    .filter(e => e.date === '2026-09-21' && e.status === 'approved')
+    .filter(e => e.date === toDateKey(startOfToday()) && e.status === 'approved')
     .sort((a, b) => a.time.localeCompare(b.time));
 
   return (

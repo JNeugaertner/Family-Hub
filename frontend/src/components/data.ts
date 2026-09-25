@@ -1,5 +1,7 @@
 // Feste Beispieldaten für die Seiten, die noch nicht ans Backend angeschlossen sind (Aufgaben, Punkte,
 // Einkauf, Essen, Nachrichten). Kalender, Dashboard-Termine und Profile kommen aus dem Backend.
+import { addDays, mondayOf, startOfToday, toDateKey } from '../calendar/dates';
+
 export interface FamilyMember {
   id: number;
   name: string;
@@ -178,11 +180,14 @@ export interface GarbagePickup {
   reminderDayBefore: boolean;
 }
 
+// Noch ohne Backend: Abholtermine relativ zur aktuellen Woche (0 = Montag), passend zu den Beispielterminen
+const thisWeek = (day: number) => toDateKey(addDays(mondayOf(startOfToday()), day));
+
 export const GARBAGE_PICKUPS: GarbagePickup[] = [
-  { id: 1, type: 'Gelber Sack',  date: '2026-09-22', color: '#CA8A04', bgColor: '#FEF9C3', icon: '🟡', reminderDayBefore: true },
-  { id: 2, type: 'Papier',       date: '2026-09-24', color: '#2563EB', bgColor: '#EFF6FF', icon: '🔵', reminderDayBefore: true },
-  { id: 3, type: 'Biomüll',      date: '2026-09-28', color: '#16A34A', bgColor: '#F0FDF4', icon: '🟢', reminderDayBefore: true },
-  { id: 4, type: 'Restmüll',     date: '2026-10-05', color: '#6B7280', bgColor: '#F9FAFB', icon: '⚫', reminderDayBefore: true },
+  { id: 1, type: 'Gelber Sack',  date: thisWeek(1),  color: '#CA8A04', bgColor: '#FEF9C3', icon: '🟡', reminderDayBefore: true },
+  { id: 2, type: 'Papier',       date: thisWeek(3),  color: '#2563EB', bgColor: '#EFF6FF', icon: '🔵', reminderDayBefore: true },
+  { id: 3, type: 'Biomüll',      date: thisWeek(7),  color: '#16A34A', bgColor: '#F0FDF4', icon: '🟢', reminderDayBefore: true },
+  { id: 4, type: 'Restmüll',     date: thisWeek(14), color: '#6B7280', bgColor: '#F9FAFB', icon: '⚫', reminderDayBefore: true },
 ];
 
 export interface ClothingRecommendation {
