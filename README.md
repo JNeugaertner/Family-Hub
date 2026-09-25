@@ -7,10 +7,9 @@ Müllabfuhr, Fahrzeiten, Messenger-Eingaben und Sprachfunktionen in einer
 gemeinsamen Oberfläche. Leitprinzip: **Der Agent informiert und bereitet vor,
 die Eltern entscheiden.**
 
-**Status:** Proof of Concept. Umgesetzt sind der Familienkalender
-([Kalender-MVP](docs/entwicklung/kalender-mvp.md)) sowie Anmeldung, Rollen und
-Rechte ([Rollensystem](docs/entwicklung/rollensystem.md)). Die übrigen Bereiche
-der Oberfläche zeigen noch feste Beispieldaten.
+**Status:** Proof of Concept. Umgesetzt sind der Familienkalender sowie
+Anmeldung, Rollen und Rechte. Die übrigen Bereiche der Oberfläche zeigen noch
+feste Beispieldaten.
 
 ## Tech-Stack
 
@@ -71,37 +70,26 @@ den ersten Administrator an.
 ├── src/main/java/de/familyhub/   Backend (Spring Boot)
 ├── src/test/java/de/familyhub/   Backend-Tests
 ├── frontend/                     Oberfläche (React, siehe frontend/README.md)
-├── scripts/                      Hilfsskripte (z. B. MongoDB starten)
-└── docs/
-    ├── architektur/              C4-Modell, Schichtenmodell, Übersichten
-    ├── konzept/                  Rollen- und Rechtekonzept mit Diagrammen
-    └── entwicklung/              Entwicklungspläne und technische Entscheidungen
+└── scripts/                      Hilfsskripte (z. B. MongoDB starten)
 ```
 
 ## Dokumentation
 
-- [Entwicklungsplan Kalender-MVP](docs/entwicklung/kalender-mvp.md): Ziel, Phasen,
-  technische Entscheidungen
-- [Rollensystem](docs/entwicklung/rollensystem.md): Anmeldung, Rechtemodell,
-  Kalender-Regeln je Rolle, API, Ausprobieren
-- [Rollen- und Berechtigungskonzept](docs/konzept/rollenkonzept.md): 5 Rollen,
-  Rechte, Freigabe-Workflow, offene Fragen
-- [Rechtekonzept als Diagramm](docs/konzept/rechtekonzept.drawio)
-- [C4-Modell](docs/architektur/c4-modell.drawio): Systemkontext, Container,
-  Komponenten, MVP-Komponenten
+Die REST-Schnittstelle ist bei laufendem Backend in der Swagger UI beschrieben
+und lässt sich dort ausprobieren: **http://localhost:8080/swagger-ui.html**
+(zuerst unter „Anmeldung“ einloggen).
 
-Die `.drawio`-Dateien lassen sich mit der draw.io-Desktop-App, auf
-[app.diagrams.net](https://app.diagrams.net) oder mit der VS-Code-Erweiterung
-„Draw.io Integration" öffnen. User Stories, Personas und das Figma-UI liegen im
-Team-Ordner.
+Konzepte, Diagramme, User Stories, Personas und das Figma-UI liegen im
+Team-Ordner, nicht im Repository.
 
 ## Zusammenarbeit
 
 - **Nicht direkt auf `main` committen.** Für jede Aufgabe einen Branch anlegen
-  (`feature/...`, `fix/...`, `docs/...`) und per Pull Request mergen.
+  (`feature/...`, `fix/...`) und per Pull Request mergen.
 - **Commit-Nachrichten auf Deutsch**, erste Zeile als kurze Zusammenfassung im
   Imperativ, z. B. „Termin-API um Zeitraumfilter ergänzen". Bei Bedarf darunter
   eine Leerzeile und das Warum.
 - **IDE-Dateien** (`.idea/`, `*.iml`, `.vscode/`) werden nicht eingecheckt.
   IntelliJ importiert das Projekt über die `pom.xml`.
-- Diagramme als `.drawio` unter `docs/` ablegen, nicht als Einzelbilder.
+- Im Repository liegt nur, was das Programm braucht. Konzepte und Diagramme
+  gehören in den Team-Ordner.
