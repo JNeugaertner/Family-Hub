@@ -163,11 +163,13 @@ function Field({ id, label, error, children }: { id: string; label: string; erro
   );
 }
 
-function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, todayKey, onClose }: {
+// readOnly: nur ansehen (z. B. bestätigte Aufgaben), Löschen bleibt möglich, wenn erlaubt
+function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly, todayKey, onClose }: {
   task?: ApiTask;
   assignable: CalendarMember[];
   mayAssignPoints: boolean;
   mayDelete: boolean;
+  readOnly: boolean;
   todayKey: string;
   onClose: () => void;
 }) {
@@ -224,9 +226,15 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, todayKey,
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <form onSubmit={submit} noValidate role="dialog" aria-modal="true" aria-labelledby="task-form-title"
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-        <h2 id="task-form-title" className="font-bold text-slate-800 text-lg mb-5">{task ? 'Aufgabe bearbeiten' : 'Neue Aufgabe'}</h2>
-        <div className="space-y-4">
-          {formError && <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{formError}</div>}
+        <h2 id="task-form-title" className="font-bold text-slate-800 text-lg mb-5">
+          {readOnly ? 'Aufgabe' : task ? 'Aufgabe bearbeiten' : 'Neue Aufgabe'}
+        </h2>
+        {formError && <div role="alert" className="mb-4 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{formError}</div>}
+        {readOnly && task?.status === 'confirmed' && (
+          <p className="mb-4 text-xs text-slate-500">Bestätigt und abgeschlossen. Die Punkte bleiben auch nach dem Löschen in der Historie.</p>
+        )}
+        <fieldset disabled={readOnly} className="space-y-4 min-w-0">
+          <legend className="sr-only">Angaben zur Aufgabe</legend>
           <Field id="task-title" label="Titel" error={errors.title}>
             <input id="task-title" className={inputClass(!!errors.title)} placeholder="Was ist zu tun?"
               value={title} onChange={e => setTitle(e.target.value)} autoFocus />
@@ -271,7 +279,7 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, todayKey,
                 value={points} onChange={e => setPoints(Number(e.target.value))} />
             </Field>
           )}
-        </div>
+        </fieldset>
         <div className="flex flex-wrap gap-3 mt-6">
           {task && mayDelete && (
             <button type="button" onClick={remove} disabled={busy}
@@ -281,12 +289,14 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, todayKey,
           )}
           <button type="button" onClick={onClose} disabled={busy}
             className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50">
-            Abbrechen
+            {readOnly ? 'Schließen' : 'Abbrechen'}
           </button>
-          <button type="submit" disabled={busy}
-            className="flex-1 py-2.5 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
-            {busy ? 'Speichern…' : 'Speichern'}
-          </button>
+          {!readOnly && (
+            <button type="submit" disabled={busy}
+              className="flex-1 py-2.5 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
+              {busy ? 'Speichern…' : 'Speichern'}
+            </button>
+          )}
         </div>
       </form>
     </div>
@@ -469,7 +479,7 @@ export default function Tasks({ onNavigate }: Props) {
                     member={memberById(task.assigneeId)}
                     todayKey={todayKey}
                     onTick={perms.canTick(task) ? s => act(() => changeStatus(task.id, s)) : undefined}
-                    onEdit={perms.canEdit(task) ? () => setEditor({ task }) : undefined}
+                    onEdit={perms.canEdit(task) || perms.canDelete(task) ? () => setEditor({ task }) : undefined}
                     onConfirm={perms.mayConfirm ? () => confirm(task) : undefined}
                     onReopen={perms.mayConfirm ? () => act(() => reopenTask(task.id)) : undefined}
                   />
@@ -500,6 +510,7 @@ export default function Tasks({ onNavigate }: Props) {
           assignable={assignableFor(editor.task)}
           mayAssignPoints={perms.mayConfirm}
           mayDelete={editor.task ? perms.canDelete(editor.task) : false}
+          readOnly={!!editor.task && !perms.canEdit(editor.task)}
           todayKey={todayKey}
           onClose={() => setEditor(null)}
         />

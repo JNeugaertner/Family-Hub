@@ -38,12 +38,22 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Termine anlegen, ändern, löschen, Vorschläge freigeben oder ablehnen | Backend, Formular `src/components/EventFormModal.tsx` |
 | Dashboard: Mini-Kalender und „Heute“ (nur freigegebene Termine) | Backend |
 | Profile: Mitglieder, Rollen, Einzelrechte, Freigaben für Gäste, eigenes Passwort | Backend: `/api/members`, `/api/roles`, `/api/settings`, `/api/auth/password` |
-| Aufgaben, Punkte, Einkauf, Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` |
+| Aufgaben: anlegen, abhaken, bestätigen oder zurückgeben; Dashboard „Dringende Aufgaben“ | Backend: `/api/tasks` |
+| Punkte: Punktestände, Rangliste, Historie, Belohnungsanimation; Dashboard „Familienpunkte“ | Backend: `/api/points` |
+| Belohnungsshop, Erfolge, Einkauf, Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
 daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem
-heutigen Datum; die Beispieltermine legt das Backend relativ zur aktuellen Woche
-an. Aufgaben und Belohnungen haben noch feste Beispieldaten.
+heutigen Datum; Beispieltermine und -aufgaben legt das Backend relativ zum
+heutigen Datum an.
+
+**Aufgaben und Punkte:** Eltern (Administratoren) legen Aufgaben mit Punkten an.
+Das Kind hakt ab, die Aufgabe wartet dann auf Bestätigung. Erst wenn ein
+Administrator bestätigt, werden die Punkte gutgeschrieben, genau einmal. Beim
+nächsten Anmelden sieht das Kind eine kurze Animation für neue Punkte.
+Jugendliche legen sich eigene Aufgaben ohne Punkte an; Aufgaben, die ihnen die
+Eltern zuweisen, können sie nur abhaken. Kinder sehen nur ihre eigenen Aufgaben
+und Punkte, Gäste keine.
 
 ## Rollen in der Oberfläche
 
@@ -68,6 +78,8 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/auth/`: Anmeldung (`AuthContext` mit `useAuth()`/`useMe()`), Anmelde- und Einrichtungsseite
 - `src/calendar/`: Termin-API, `CalendarDataContext` (lädt Mitglieder und Termine für Kalender und Dashboard), `permissions.ts` (was die angemeldete Person im Kalender darf)
 - `src/family/`: API für Mitglieder, Rollen und Einstellungen, Farbpalette
+- `src/tasks/`: Aufgaben-API, `TaskDataContext` (lädt Aufgaben und Punktestände), `permissions.ts` (was die angemeldete Person bei Aufgaben darf)
+- `src/points/`: Punkte-API, Punktestände je Kind, Belohnungsanimation und Hinweis auf neue Punkte
 - `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
 - `src/components/`: die Seiten (Dashboard, Calendar, Tasks, Rewards, Shopping, MealPlanning, AIAssistant, Messenger, Profiles)
 

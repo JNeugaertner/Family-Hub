@@ -7,9 +7,10 @@ Müllabfuhr, Fahrzeiten, Messenger-Eingaben und Sprachfunktionen in einer
 gemeinsamen Oberfläche. Leitprinzip: **Der Agent informiert und bereitet vor,
 die Eltern entscheiden.**
 
-**Status:** Proof of Concept. Umgesetzt sind der Familienkalender sowie
-Anmeldung, Rollen und Rechte. Die übrigen Bereiche der Oberfläche zeigen noch
-feste Beispieldaten.
+**Status:** Proof of Concept. Umgesetzt sind der Familienkalender, Anmeldung,
+Rollen und Rechte sowie Aufgaben mit Punktesystem (Punkte nach Bestätigung
+durch die Eltern). Die übrigen Bereiche der Oberfläche zeigen noch feste
+Beispieldaten.
 
 ## Tech-Stack
 

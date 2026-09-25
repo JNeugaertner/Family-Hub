@@ -170,7 +170,9 @@ export default function App() {
                 )}
                 {id === 'tasks' && taskBadge > 0 && (
                   <span className="ml-auto w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center"
-                    title={mayConfirmTasks ? 'Aufgaben warten auf Bestätigung' : 'Offene Aufgaben'}>{taskBadge}</span>
+                    title={mayConfirmTasks ? 'Aufgaben warten auf Bestätigung' : 'Offene Aufgaben'}>
+                    {taskBadge}<span className="sr-only">{mayConfirmTasks ? ' warten auf Bestätigung' : ' offen'}</span>
+                  </span>
                 )}
               </button>
             );
