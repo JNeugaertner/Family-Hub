@@ -27,6 +27,7 @@ import de.familyhub.permission.Permissions;
 import de.familyhub.permission.Role;
 import de.familyhub.permission.Scope;
 import de.familyhub.security.CurrentMember;
+import de.familyhub.task.TaskRepository;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,6 +40,7 @@ public class FamilyMemberController {
 
     private final FamilyMemberRepository members;
     private final CalendarEventRepository events;
+    private final TaskRepository tasks;
     private final CurrentMember currentMember;
     private final MemberResponses responses;
     private final FamilyRules rules;
@@ -46,10 +48,11 @@ public class FamilyMemberController {
     private final Permissions permissions;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
-            CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
+            TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
             PasswordEncoder passwordEncoder, Permissions permissions) {
         this.members = members;
         this.events = events;
+        this.tasks = tasks;
         this.currentMember = currentMember;
         this.responses = responses;
         this.rules = rules;
@@ -131,6 +134,12 @@ public class FamilyMemberController {
             String termine = eventCount == 1 ? "einen Termin" : eventCount + " Termine";
             throw ApiException.conflict("Das Familienmitglied hat noch " + termine
                     + ". Bitte zuerst die Termine löschen oder einem anderen Mitglied zuordnen.");
+        }
+        long taskCount = tasks.countByAssigneeId(id);
+        if (taskCount > 0) {
+            String aufgaben = taskCount == 1 ? "eine Aufgabe" : taskCount + " Aufgaben";
+            throw ApiException.conflict("Dem Familienmitglied ist noch " + aufgaben
+                    + " zugewiesen. Bitte zuerst die Aufgaben löschen oder einem anderen Mitglied zuweisen.");
         }
         members.deleteById(id);
     }
