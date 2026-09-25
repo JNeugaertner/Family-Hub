@@ -17,6 +17,7 @@ import { NOTIFICATIONS } from './components/data';
 import { useAuth, useMe } from './auth/AuthContext';
 import { useCalendarData } from './calendar/CalendarDataContext';
 import { formatLongDate, startOfToday } from './calendar/dates';
+import { useTaskData } from './tasks/TaskDataContext';
 import { ROLE_NAMES } from './roles';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
@@ -50,8 +51,14 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const me = useMe();
-  const { roleName, logout } = useAuth();
+  const { roleName, logout, can } = useAuth();
   const { members } = useCalendarData();
+  const { tasks } = useTaskData();
+  // Zähler an "Tasks": für Administratoren die wartenden Bestätigungen, sonst die eigenen offenen Aufgaben
+  const mayConfirmTasks = can('punkte', 'freigeben', 'familie');
+  const taskBadge = mayConfirmTasks
+    ? tasks.filter(t => t.status === 'done' && t.points > 0).length
+    : tasks.filter(t => t.assigneeId === me.id && t.status !== 'done' && t.status !== 'confirmed').length;
   const initial = me.name.charAt(0).toUpperCase();
 
   const unreadCount = NOTIFICATIONS.filter(n => !n.read).length;
@@ -160,8 +167,9 @@ export default function App() {
                 {id === 'messenger' && (
                   <span className="ml-auto w-5 h-5 rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center">3</span>
                 )}
-                {id === 'tasks' && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center">5</span>
+                {id === 'tasks' && taskBadge > 0 && (
+                  <span className="ml-auto w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center"
+                    title={mayConfirmTasks ? 'Aufgaben warten auf Bestätigung' : 'Offene Aufgaben'}>{taskBadge}</span>
                 )}
               </button>
             );

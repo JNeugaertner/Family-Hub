@@ -106,3 +106,30 @@ body {
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
+
+/* Belohnungsanimation: gutgeschriebene Punkte (User Story 4.2) */
+@keyframes points-pop {
+  0% { opacity: 0; transform: translate(-50%, 16px) scale(0.8); }
+  15% { opacity: 1; transform: translate(-50%, 0) scale(1.08); }
+  25% { transform: translate(-50%, 0) scale(1); }
+  85% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -12px) scale(0.95); }
+}
+
+.points-pop {
+  animation: points-pop 2.8s ease-out forwards;
+}
+
+@keyframes star-burst {
+  0% { opacity: 1; transform: translate(0, 0) scale(0.6); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.2); }
+}
+
+.star-burst {
+  animation: star-burst 1.1s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .points-pop { animation: none; transform: translateX(-50%); }
+  .star-burst { display: none; }
+}

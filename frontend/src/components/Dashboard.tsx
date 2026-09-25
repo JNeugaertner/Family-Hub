@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import {
-  FAMILY_MEMBERS, INITIAL_TASKS, INITIAL_SHOPPING,
+  FAMILY_MEMBERS, INITIAL_SHOPPING,
   MEALS, WEATHER, CLOTHING_RECOMMENDATIONS, getWeatherCondition,
   type CalendarEvent,
 } from './data';
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import { startOfToday, toDateKey } from '../calendar/dates';
+import { useTaskData } from '../tasks/TaskDataContext';
 import {
   CalendarIcon, CheckSquareIcon, ShoppingCartIcon, UtensilsIcon,
   StarIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon,
@@ -232,7 +233,9 @@ function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
 // ─── quick tasks ──────────────────────────────────────────────────────────────
 
 function QuickTasks({ onNavigate }: { onNavigate: (p: Page) => void }) {
-  const urgent = INITIAL_TASKS.filter(t => t.status !== 'done' && t.priority === 'high').slice(0, 4);
+  const { tasks } = useTaskData();
+  const { memberById } = useCalendarData();
+  const urgent = tasks.filter(t => t.status !== 'done' && t.status !== 'confirmed' && t.priority === 'high').slice(0, 4);
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-4">
@@ -243,9 +246,10 @@ function QuickTasks({ onNavigate }: { onNavigate: (p: Page) => void }) {
         <button onClick={() => onNavigate('tasks')} className="text-xs text-[#2563EB] font-medium hover:underline">Kanban →</button>
       </div>
       <div className="space-y-2">
+        {urgent.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Keine dringenden Aufgaben 🎉</p>}
         {urgent.map(t => {
-          const member = FAMILY_MEMBERS.find(m => m.id === t.assigneeId);
-          const c = { todo: '#F97316', inprogress: '#2563EB', done: '#22C55E' }[t.status];
+          const member = memberById(t.assigneeId);
+          const c = t.status === 'inprogress' ? '#2563EB' : '#F97316';
           return (
             <div key={t.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c }} />
