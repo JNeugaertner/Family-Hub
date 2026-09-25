@@ -18,6 +18,7 @@ import { useAuth, useMe } from './auth/AuthContext';
 import { useCalendarData } from './calendar/CalendarDataContext';
 import { formatLongDate, startOfToday } from './calendar/dates';
 import { useTaskData } from './tasks/TaskDataContext';
+import NewPointsNotice from './points/NewPointsNotice';
 import { ROLE_NAMES } from './roles';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
@@ -288,6 +289,7 @@ export default function App() {
         <main className="flex-1 overflow-y-auto">
           <PageComponent onNavigate={navigate} />
         </main>
+        <NewPointsNotice />
 
         {/* Mobile bottom nav */}
         <nav className="lg:hidden flex-shrink-0 bg-white border-t border-slate-100 px-2 py-1 safe-area-bottom">

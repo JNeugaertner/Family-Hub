@@ -1,6 +1,10 @@
-import { useState } from 'react';
-import { FAMILY_MEMBERS, ACHIEVEMENTS } from './data';
+import { useEffect, useState } from 'react';
+import { ACHIEVEMENTS } from './data';
 import { StarIcon, TrophyIcon, PlusIcon, CheckIcon, XIcon } from './Icons';
+import { useAuth } from '../auth/AuthContext';
+import { listHistory, type PointEntry } from '../points/api';
+import { formatAgo, usePointHolders, type PointHolder } from '../points/usePointHolders';
+import { useTaskData } from '../tasks/TaskDataContext';
 
 interface Props { onNavigate: (p: any) => void; }
 
@@ -16,10 +20,11 @@ interface Reward {
   category: string;
 }
 
+// Belohnungen und Einlösungen sind noch Beispieldaten (Belohnungsshop folgt später); zugeordnet über den Namen.
 interface Redemption {
   id: number;
   rewardId: number;
-  childId: number;
+  childName: string;
   redeemedAt: string;
   approved: boolean;
 }
@@ -40,16 +45,16 @@ const INITIAL_REWARDS: Reward[] = [
 ];
 
 const INITIAL_REDEMPTIONS: Redemption[] = [
-  { id: 1, rewardId: 1, childId: 3, redeemedAt: '2026-09-15', approved: true  },
-  { id: 2, rewardId: 3, childId: 4, redeemedAt: '2026-09-10', approved: true  },
-  { id: 3, rewardId: 2, childId: 5, redeemedAt: '2026-09-18', approved: true  },
-  { id: 4, rewardId: 6, childId: 3, redeemedAt: '2026-09-20', approved: false },
+  { id: 1, rewardId: 1, childName: 'Emma',  redeemedAt: '2026-09-15', approved: true  },
+  { id: 2, rewardId: 3, childName: 'Lucas', redeemedAt: '2026-09-10', approved: true  },
+  { id: 3, rewardId: 2, childName: 'Lily',  redeemedAt: '2026-09-18', approved: true  },
+  { id: 4, rewardId: 6, childName: 'Emma',  redeemedAt: '2026-09-20', approved: false },
 ];
 
-const CHILD_ACHIEVEMENTS: Record<number, number[]> = {
-  3: [1, 2, 5],
-  4: [1, 5],
-  5: [2],
+const CHILD_ACHIEVEMENTS: Record<string, number[]> = {
+  Emma: [1, 2, 5],
+  Lucas: [1, 5],
+  Lily: [2],
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -86,11 +91,15 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
 
 // ─── overview tab ─────────────────────────────────────────────────────────────
 
-function OverviewTab({ rewards }: { rewards: Reward[] }) {
-  const children    = FAMILY_MEMBERS.filter(m => m.role === 'Child');
+function OverviewTab({ rewards, kids: children, history, confirmedTasks }: {
+  rewards: Reward[];
+  kids: PointHolder[];
+  history: PointEntry[];
+  confirmedTasks: number;
+}) {
   const totalPoints = children.reduce((s, c) => s + c.points, 0);
-  const topKid      = [...children].sort((a, b) => b.points - a.points)[0];
-  const maxPoints   = topKid.points;
+  const topKid      = children[0];
+  const maxPoints   = Math.max(1, topKid.points);
 
   return (
     <div className="space-y-6">
@@ -99,7 +108,7 @@ function OverviewTab({ rewards }: { rewards: Reward[] }) {
         {[
           { label: 'Punkte gesamt', value: totalPoints, icon: '⭐', color: '#F59E0B', bg: '#FFFBEB' },
           { label: 'Beste(r)',      value: topKid.name, icon: '🥇', color: '#F97316', bg: '#FFF7ED' },
-          { label: 'Aufgaben erledigt', value: 24,      icon: '✅', color: '#22C55E', bg: '#F0FDF4' },
+          { label: 'Aufgaben bestätigt', value: confirmedTasks, icon: '✅', color: '#22C55E', bg: '#F0FDF4' },
           { label: 'Eingelöst',    value: INITIAL_REDEMPTIONS.filter(r => r.approved).length, icon: '🎁', color: '#8B5CF6', bg: '#F5F3FF' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl border border-slate-100 px-4 py-4">
@@ -112,14 +121,14 @@ function OverviewTab({ rewards }: { rewards: Reward[] }) {
         ))}
       </div>
 
-      {/* Leaderboard */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+      {/* Leaderboard (nur mit Familienrecht; Kinder sehen nur den eigenen Stand) */}
+      {children.length > 1 && <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
         <h3 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
           <TrophyIcon size={16} className="text-[#F59E0B]" />
           Rangliste
         </h3>
         <div className="space-y-3">
-          {[...children].sort((a, b) => b.points - a.points).map((c, i) => {
+          {children.map((c, i) => {
             const medals = ['🥇','🥈','🥉'];
             const nextReward = [...rewards].filter(r => r.active && r.cost > c.points).sort((a, b) => a.cost - b.cost)[0];
             return (
@@ -146,12 +155,12 @@ function OverviewTab({ rewards }: { rewards: Reward[] }) {
             );
           })}
         </div>
-      </div>
+      </div>}
 
       {/* Child cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {children.map(c => {
-          const achievedIds = CHILD_ACHIEVEMENTS[c.id] || [];
+          const recent = history.filter(e => e.memberId === c.id).slice(0, 3);
           const nextLevel   = c.points >= 400 ? 500 : c.points >= 200 ? 400 : 200;
           const prevLevel   = c.points >= 400 ? 400 : c.points >= 200 ? 200 : 0;
           const levelName   = c.points >= 400 ? 'Gold' : c.points >= 200 ? 'Silber' : 'Bronze';
@@ -197,18 +206,16 @@ function OverviewTab({ rewards }: { rewards: Reward[] }) {
                   </div>
                 </div>
               </div>
-              {/* recent */}
+              {/* recent (Punkte-Historie) */}
               <div className="px-4 pb-4 pt-2">
                 <div className="text-xs font-semibold text-slate-500 mb-2">Letzte Aktivitäten</div>
-                {[
-                  { action: 'Hausaufgaben erledigt', pts: '+25', t: 'vor 1 Std.' },
-                  { action: 'Zimmer aufgeräumt',    pts: '+20', t: 'Gestern'    },
-                ].map((a, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs py-1">
-                    <span className="text-slate-600">{a.action}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#22C55E] font-bold">{a.pts}</span>
-                      <span className="text-slate-400">{a.t}</span>
+                {recent.length === 0 && <div className="text-xs text-slate-400 py-1">Noch keine Punkte</div>}
+                {recent.map(a => (
+                  <div key={a.id} className="flex items-center justify-between gap-2 text-xs py-1">
+                    <span className="text-slate-600 truncate">{a.reason}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[#22C55E] font-bold">{a.amount > 0 ? '+' : ''}{a.amount}</span>
+                      <span className="text-slate-400">{formatAgo(a.createdAt)}</span>
                     </div>
                   </div>
                 ))}
@@ -227,24 +234,29 @@ function ShopTab({
   rewards,
   redemptions,
   onRedeem,
+  kids: children,
 }: {
   rewards: Reward[];
   redemptions: Redemption[];
-  onRedeem: (rewardId: number, childId: number) => void;
+  onRedeem: (rewardId: number, childName: string) => void;
+  kids: PointHolder[];
 }) {
-  const children   = FAMILY_MEMBERS.filter(m => m.role === 'Child');
   const [viewer, setViewer] = useState(children[0].id);
-  const child      = FAMILY_MEMBERS.find(m => m.id === viewer)!;
+  const child      = children.find(m => m.id === viewer) ?? children[0];
   const categories = Array.from(new Set(rewards.filter(r => r.active).map(r => r.category)));
 
-  const myRedemptions = redemptions.filter(r => r.childId === viewer);
+  const myRedemptions = redemptions.filter(r => r.childName === child.name);
   const alreadyClaimed = new Set(myRedemptions.filter(r => r.approved).map(r => r.rewardId));
   const pendingSet     = new Set(myRedemptions.filter(r => !r.approved).map(r => r.rewardId));
 
   return (
     <div className="space-y-6">
-      {/* Child switcher */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+      <div className="bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E40AF] text-xs rounded-xl px-3 py-2">
+        Vorschau: Die Punktestände sind echt, das Einlösen wird aber noch nicht gespeichert und zieht keine Punkte ab.
+      </div>
+
+      {/* Child switcher (nur wenn mehrere Punktestände sichtbar sind) */}
+      {children.length > 1 && <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
         <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Ansicht für:</div>
         <div className="flex flex-wrap gap-2">
           {children.map(c => (
@@ -264,7 +276,7 @@ function ShopTab({
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* Balance banner */}
       <div
@@ -351,7 +363,7 @@ function ShopTab({
                         </div>
                       ) : (
                         <button
-                          onClick={() => canAfford && onRedeem(r.id, child.id)}
+                          onClick={() => canAfford && onRedeem(r.id, child.name)}
                           disabled={!canAfford}
                           className={`w-full py-2 rounded-xl text-xs font-bold transition-all ${
                             canAfford
@@ -402,12 +414,11 @@ function ShopTab({
 
 // ─── achievements tab ─────────────────────────────────────────────────────────
 
-function AchievementsTab() {
-  const children = FAMILY_MEMBERS.filter(m => m.role === 'Child');
+function AchievementsTab({ kids: children }: { kids: PointHolder[] }) {
   return (
     <div className="space-y-6">
       {children.map(c => {
-        const earned = CHILD_ACHIEVEMENTS[c.id] || [];
+        const earned = CHILD_ACHIEVEMENTS[c.name] || [];
         return (
           <div key={c.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
             <div className="flex items-center gap-3 mb-4">
@@ -686,19 +697,33 @@ function ManageTab({ rewards, onSave, onDelete, onToggle }: {
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 export default function Rewards({ onNavigate }: Props) {
+  const { can } = useAuth();
+  const { tasks, balances } = useTaskData();
+  const children = usePointHolders();
+  const mayViewPoints = can('punkte', 'ansehen', 'eigen');
+  const mayManage = can('punkte', 'verwalten', 'familie');
   const [tab, setTab]               = useState<Tab>('overview');
   const [rewards, setRewards]       = useState<Reward[]>(INITIAL_REWARDS);
   const [redemptions, setRedemptions] = useState<Redemption[]>(INITIAL_REDEMPTIONS);
+  const [history, setHistory]       = useState<PointEntry[]>([]);
 
-  const handleRedeem = (rewardId: number, childId: number) => {
+  // Historie neu laden, sobald sich Punktestände ändern (z. B. nach einer Bestätigung)
+  useEffect(() => {
+    if (!mayViewPoints) return;
+    let cancelled = false;
+    listHistory().then(h => { if (!cancelled) setHistory(h); }).catch(() => { if (!cancelled) setHistory([]); });
+    return () => { cancelled = true; };
+  }, [mayViewPoints, balances]);
+
+  const handleRedeem = (rewardId: number, childName: string) => {
     const rew = rewards.find(r => r.id === rewardId);
     if (!rew) return;
-    // deduct points would happen server-side; here we just log redemption
+    // Vorschau: Einlösen wird noch nicht gespeichert (Belohnungsshop folgt später)
     setRedemptions(rs => [...rs, {
       id: Date.now(),
       rewardId,
-      childId,
-      redeemedAt: '2026-09-21',
+      childName,
+      redeemedAt: new Date().toISOString().slice(0, 10),
       approved: false,
     }]);
   };
@@ -714,14 +739,25 @@ export default function Rewards({ onNavigate }: Props) {
   const handleDelete = (id: number) => setRewards(rs => rs.filter(r => r.id !== id));
   const handleToggle = (id: number) => setRewards(rs => rs.map(r => r.id === id ? { ...r, active: !r.active } : r));
 
-  // pending redemptions needing parent approval
-  const pendingCount = redemptions.filter(r => !r.approved).length;
+  // pending redemptions needing parent approval (Beispieldaten, nur für Administratoren)
+  const pendingCount = mayManage ? redemptions.filter(r => !r.approved).length : 0;
+
+  if (!mayViewPoints || children.length === 0) {
+    return (
+      <div className="p-4 lg:p-6 max-w-[1400px] mx-auto">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-slate-400">
+          <div className="text-4xl mb-3">⭐</div>
+          {mayViewPoints ? 'Noch keine Punktestände vorhanden.' : 'Punkte und Belohnungen sind für dich nicht freigegeben.'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 max-w-[1400px] mx-auto">
       {/* Tab bar */}
       <div className="flex flex-wrap gap-1.5 mb-6 bg-white border border-slate-100 rounded-2xl p-1.5 shadow-sm">
-        {TABS.map(t => (
+        {TABS.filter(t => t.id !== 'manage' || mayManage).map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
@@ -756,10 +792,11 @@ export default function Rewards({ onNavigate }: Props) {
       )}
 
       {/* Tab content */}
-      {tab === 'overview'     && <OverviewTab rewards={rewards} />}
-      {tab === 'shop'         && <ShopTab rewards={rewards} redemptions={redemptions} onRedeem={handleRedeem} />}
-      {tab === 'achievements' && <AchievementsTab />}
-      {tab === 'manage'       && <ManageTab rewards={rewards} onSave={handleSave} onDelete={handleDelete} onToggle={handleToggle} />}
+      {tab === 'overview'     && <OverviewTab rewards={rewards} kids={children} history={history}
+        confirmedTasks={tasks.filter(t => t.status === 'confirmed').length} />}
+      {tab === 'shop'         && <ShopTab rewards={rewards} redemptions={redemptions} onRedeem={handleRedeem} kids={children} />}
+      {tab === 'achievements' && <AchievementsTab kids={children} />}
+      {tab === 'manage' && mayManage && <ManageTab rewards={rewards} onSave={handleSave} onDelete={handleDelete} onToggle={handleToggle} />}
     </div>
   );
 }

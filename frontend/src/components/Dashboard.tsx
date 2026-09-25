@@ -7,6 +7,7 @@ import {
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import { startOfToday, toDateKey } from '../calendar/dates';
 import { useTaskData } from '../tasks/TaskDataContext';
+import { usePointHolders } from '../points/usePointHolders';
 import {
   CalendarIcon, CheckSquareIcon, ShoppingCartIcon, UtensilsIcon,
   StarIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon,
@@ -342,8 +343,9 @@ function ShoppingWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
 // ─── points widget ────────────────────────────────────────────────────────────
 
 function PointsWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
-  const children  = FAMILY_MEMBERS.filter(m => m.role === 'Child');
-  const maxPoints = Math.max(...children.map(c => c.points));
+  const children  = usePointHolders();
+  const maxPoints = Math.max(1, ...children.map(c => c.points));
+  if (children.length === 0) return null;
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-4">
