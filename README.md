@@ -84,8 +84,14 @@ Team-Ordner, nicht im Repository.
 
 ## Zusammenarbeit
 
-- **Nicht direkt auf `main` committen.** Für jede Aufgabe einen Branch anlegen
-  (`feature/...`, `fix/...`) und per Pull Request mergen.
+- **Branches:**
+  - `main` enthält nur geprüfte, lauffähige Stände. Jede Version bekommt einen
+    Tag (`v0.1.0`, …); `release/v0.1.0` sichert den ersten Stand zusätzlich.
+  - `develop` ist die Basis für die Weiterentwicklung. Neue Features auf
+    `feature/...`, Fehlerbehebungen auf `fix/...` von `develop` abzweigen und
+    per Pull Request in `develop` mergen.
+  - Ist `develop` getestet und stabil, wird `develop` in `main` gemergt und ein
+    neuer Tag gesetzt. Nie direkt auf `main` oder `release/...` committen.
 - **Commit-Nachrichten auf Deutsch**, erste Zeile als kurze Zusammenfassung im
   Imperativ, z. B. „Termin-API um Zeitraumfilter ergänzen". Bei Bedarf darunter
   eine Leerzeile und das Warum.
