@@ -1,6 +1,8 @@
 package de.familyhub.task;
 
 import java.net.URI;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -22,6 +24,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.points.PointsService;
 import de.familyhub.security.CurrentMember;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,13 +42,17 @@ public class TaskController {
     private final FamilyMemberRepository members;
     private final CurrentMember currentMember;
     private final TaskAccess access;
+    private final PointsService points;
+    private final Clock clock;
 
     public TaskController(TaskRepository tasks, FamilyMemberRepository members, CurrentMember currentMember,
-            TaskAccess access) {
+            TaskAccess access, PointsService points, Clock clock) {
         this.tasks = tasks;
         this.members = members;
         this.currentMember = currentMember;
         this.access = access;
+        this.points = points;
+        this.clock = clock;
     }
 
     public record StatusChange(
@@ -122,6 +129,37 @@ public class TaskController {
         Task existing = findVisible(id, viewer);
         access.requireDelete(viewer, existing);
         tasks.deleteById(id);
+    }
+
+    @PostMapping("/{id}/confirm")
+    @Operation(summary = "Erledigte Aufgabe bestätigen",
+            description = "Nur für Administratoren. Schreibt die Punkte einmalig gut; die Aufgabe ist danach "
+                    + "abgeschlossen (confirmed).")
+    public Task confirm(@PathVariable String id) {
+        FamilyMember viewer = currentMember.get();
+        access.requireConfirmationRight(viewer);
+        Task task = findAwaitingConfirmation(id, viewer);
+        points.awardForTask(task, viewer);
+        return tasks.save(task.confirmed(LocalDateTime.now(clock), viewer.id()));
+    }
+
+    @PostMapping("/{id}/reopen")
+    @Operation(summary = "Erledigte Aufgabe zurückgeben",
+            description = "Nur für Administratoren. Die Aufgabe ist wieder in Arbeit, es gibt keine Punkte.")
+    public Task reopen(@PathVariable String id) {
+        FamilyMember viewer = currentMember.get();
+        access.requireConfirmationRight(viewer);
+        return tasks.save(findAwaitingConfirmation(id, viewer).withStatus(TaskStatus.IN_PROGRESS));
+    }
+
+    private Task findAwaitingConfirmation(String id, FamilyMember viewer) {
+        Task task = findVisible(id, viewer);
+        if (!task.isAwaitingConfirmation()) {
+            throw ApiException.conflict(task.status() == TaskStatus.CONFIRMED
+                    ? "Die Aufgabe ist bereits bestätigt, die Punkte sind gutgeschrieben."
+                    : "Nur erledigte Aufgaben mit Punkten warten auf eine Bestätigung.");
+        }
+        return task;
     }
 
     // Aufgaben, die jemand nicht sehen darf, gelten für ihn als nicht vorhanden.

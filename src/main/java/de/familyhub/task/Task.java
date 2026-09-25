@@ -80,4 +80,9 @@ public record Task(
         return new Task(id, title, description, assigneeId, dueDate, priority, category, points, newStatus, createdBy,
                 confirmedAt, confirmedBy);
     }
+
+    public Task confirmed(LocalDateTime at, String by) {
+        return new Task(id, title, description, assigneeId, dueDate, priority, category, points, TaskStatus.CONFIRMED,
+                createdBy, at, by);
+    }
 }
