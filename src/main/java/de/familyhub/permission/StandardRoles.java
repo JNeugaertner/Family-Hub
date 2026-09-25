@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-// Standardrechte je Rolle nach Rollenkonzept.docx und docs/konzept/rechtekonzept.drawio.
+// Standardrechte je Rolle nach dem Rollen- und Rechtekonzept (Team-Ordner).
 // Entscheidungen vom 24.09.2026: Kinder sehen alle nicht privaten Termine, Gäste nur freigegebene
 // Kategorien; Jugendliche verwalten eigene Termine und schlagen Termine für andere vor.
 public final class StandardRoles {
