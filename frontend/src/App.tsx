@@ -16,6 +16,7 @@ import {
 import { NOTIFICATIONS } from './components/data';
 import { useAuth, useMe } from './auth/AuthContext';
 import { useCalendarData } from './calendar/CalendarDataContext';
+import { formatLongDate, startOfToday } from './calendar/dates';
 import { ROLE_NAMES } from './roles';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
@@ -213,7 +214,7 @@ export default function App() {
           <div>
             <h1 className="text-lg font-bold text-[#0F172A] leading-tight">{PAGE_TITLES[page]}</h1>
             <p className="text-xs text-slate-400 hidden sm:block">
-              Monday, 21 September 2026
+              {formatLongDate(startOfToday())}
             </p>
           </div>
 

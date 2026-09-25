@@ -2,6 +2,11 @@ package de.familyhub.sampledata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,6 +43,9 @@ class SampleDataLoaderTest {
 
     private static final PasswordEncoder PASSWORD_ENCODER = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 
+    // Mittwoch, 07.10.2026: Die Beispielwoche beginnt am Montag, 05.10.2026
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-07T08:00:00Z"), ZoneId.of("Europe/Berlin"));
+
     private SampleDataLoader loader;
 
     @BeforeEach
@@ -45,7 +53,19 @@ class SampleDataLoaderTest {
         memberRepository.deleteAll();
         eventRepository.deleteAll();
         settingsRepository.deleteAll();
-        loader = new SampleDataLoader(memberRepository, eventRepository, settingsRepository, PASSWORD_ENCODER);
+        loader = new SampleDataLoader(memberRepository, eventRepository, settingsRepository, PASSWORD_ENCODER, CLOCK);
+    }
+
+    @Test
+    void eventsLieInTheCurrentWeek() {
+        loader.load();
+
+        List<CalendarEvent> events = eventRepository.findAll();
+        assertThat(events).filteredOn(e -> e.title().equals("School pickup"))
+                .singleElement()
+                .satisfies(e -> assertThat(e.start()).isEqualTo(LocalDateTime.of(2026, 10, 5, 15, 0)));
+        assertThat(events).allSatisfy(e -> assertThat(e.start().toLocalDate())
+                .isBetween(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 13)));
     }
 
     @Test
