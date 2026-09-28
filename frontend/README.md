@@ -43,7 +43,8 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Erfolge: Fortschritt je Kind, Animation bei neuen Erfolgen; Anpassen (Admins) | Backend: `/api/achievements` |
 | Belohnungen: Shop, einlösen, zurückziehen; Genehmigen/Ablehnen und Belohnungen verwalten (Admins) | Backend: `/api/rewards`, `/api/redemptions` |
 | Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter Profiles) | Backend: `/api/google` |
-| Einkauf, Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
+| Einkaufsliste: hinzufügen, vorschlagen, abhaken, bearbeiten, Vorschläge übernehmen; Dashboard „Einkaufsliste“ | Backend: `/api/shopping` |
+| Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
 daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem
@@ -76,6 +77,12 @@ verdient“. Gezählt werden bestätigte Aufgaben ab Einführung der Erfolge, ni
 rückwirkend. Jeder Erfolg bringt einmalig Bonuspunkte. Beim nächsten Öffnen
 erscheint nach „Neue Punkte“ die Animation „Neuer Erfolg“. Eltern können im
 Tab „Erfolge“ einzelne Erfolge abschalten und Ziel und Bonus anpassen.
+
+**Einkaufsliste:** Eltern und Jugendliche setzen Artikel direkt auf die Liste,
+haken ab und bearbeiten. Kinder sehen die ganze Liste und schlagen Artikel vor;
+ihre Vorschläge sehen nur sie selbst und die Eltern, die sie übernehmen oder
+ablehnen (Zähler an „Shopping“). Abgehakte Artikel bleiben stehen, bis jemand
+„Abgehakte entfernen“ klickt.
 
 **Google Kalender:** Termine aus Google tragen im Kalender und im Dashboard ein
 „G“ und lassen sich nur ansehen; geändert werden sie in Google. Ganztägige
@@ -110,6 +117,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/family/`: API für Mitglieder, Rollen und Einstellungen, Farbpalette
 - `src/tasks/`: Aufgaben-API, `TaskDataContext` (lädt Aufgaben und Punktestände), `permissions.ts` (was die angemeldete Person bei Aufgaben darf)
 - `src/points/`: Punkte-API, Punktestände je Kind, Belohnungsanimation und Hinweis auf neue Punkte
+- `src/shopping/`: Einkaufslisten-API, `ShoppingDataContext`, Kategorien
 - `src/achievements/`: Erfolge-API (Katalog, Fortschritt je Kind, Anpassen)
 - `src/rewards/`: Belohnungs-API und `RewardDataContext` (Belohnungen und Einlösungen, lädt nach Änderungen auch die Punktestände neu)
 - `src/google/`: Google-API des Backends, Karte „Google Kalender“ für die Profilseite, „G“-Abzeichen

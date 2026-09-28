@@ -27,7 +27,8 @@ import java.util.stream.Collectors;
 // Standardrechte je Rolle nach dem Rollen- und Rechtekonzept (Team-Ordner).
 // Entscheidungen vom 24.09.2026: Kinder sehen alle nicht privaten Termine, Gäste nur freigegebene
 // Kategorien; Jugendliche verwalten eigene Termine und schlagen Termine für andere vor.
-// 28.09.2026: Kinder und Jugendliche lösen Belohnungen für sich selbst ein ("punkte/vorschlagen/eigen").
+// 28.09.2026: Kinder und Jugendliche lösen Belohnungen für sich selbst ein ("punkte/vorschlagen/eigen");
+// Kinder sehen die ganze Einkaufsliste und schlagen Artikel vor.
 public final class StandardRoles {
 
     private static final Map<Role, Set<Permission>> PERMISSIONS = new EnumMap<>(Role.class);
@@ -74,6 +75,7 @@ public final class StandardRoles {
                 of(AUFGABEN, BEARBEITEN, Scope.EIGEN),
                 of(PUNKTE, ANSEHEN, Scope.EIGEN),
                 of(PUNKTE, VORSCHLAGEN, Scope.EIGEN),
+                of(EINKAUF, ANSEHEN, Scope.FAMILIE),
                 of(EINKAUF, VORSCHLAGEN, Scope.FAMILIE),
                 of(ESSEN, VORSCHLAGEN, Scope.FAMILIE),
                 of(WETTER, ANSEHEN, Scope.FAMILIE),

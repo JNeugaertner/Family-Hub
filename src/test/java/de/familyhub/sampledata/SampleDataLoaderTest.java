@@ -30,6 +30,8 @@ import de.familyhub.points.PointEntry;
 import de.familyhub.points.PointEntryRepository;
 import de.familyhub.rewards.Reward;
 import de.familyhub.rewards.RewardRepository;
+import de.familyhub.shopping.ShoppingItem;
+import de.familyhub.shopping.ShoppingItemRepository;
 import de.familyhub.settings.FamilySettingsRepository;
 import de.familyhub.task.Task;
 import de.familyhub.task.TaskRepository;
@@ -58,6 +60,9 @@ class SampleDataLoaderTest {
     @Autowired
     private RewardRepository rewardRepository;
 
+    @Autowired
+    private ShoppingItemRepository shoppingRepository;
+
     private static final PasswordEncoder PASSWORD_ENCODER = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 
     // Mittwoch, 07.10.2026: Die Beispielwoche beginnt am Montag, 05.10.2026
@@ -73,8 +78,19 @@ class SampleDataLoaderTest {
         taskRepository.deleteAll();
         pointRepository.deleteAll();
         rewardRepository.deleteAll();
+        shoppingRepository.deleteAll();
         loader = new SampleDataLoader(memberRepository, eventRepository, settingsRepository, taskRepository,
-                pointRepository, rewardRepository, PASSWORD_ENCODER, CLOCK);
+                pointRepository, rewardRepository, shoppingRepository, PASSWORD_ENCODER, CLOCK);
+    }
+
+    @Test
+    void loadsSampleShoppingListWithOneProposalOnlyOnce() {
+        loader.load();
+        loader.load();
+
+        assertThat(shoppingRepository.findAll()).hasSize(13)
+                .filteredOn(ShoppingItem::isProposal).extracting(ShoppingItem::name).containsExactly("Schokolade");
+        assertThat(shoppingRepository.findAll()).filteredOn(ShoppingItem::checked).hasSize(2);
     }
 
     @Test
