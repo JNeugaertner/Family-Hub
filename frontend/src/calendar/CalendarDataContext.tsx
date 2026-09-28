@@ -34,6 +34,13 @@ function toMember(m: ApiMember): CalendarMember {
   return { id: m.id, name: m.name, color: m.color, initials: m.name.slice(0, 2).toUpperCase(), effectiveRole: m.effectiveRole };
 }
 
+// Liegt der Termin an diesem Tag (yyyy-MM-dd)? Ganztägige Termine gelten an jedem Tag bis vor ihr Ende.
+export function occursOn(event: CalendarEvent, dateKey: string): boolean {
+  return event.allDay
+    ? event.start.slice(0, 10) <= dateKey && dateKey < event.end.slice(0, 10)
+    : event.date === dateKey;
+}
+
 // Backend liefert "2026-09-25T10:00:00"; die Ansichten gruppieren nach Datum und HH:mm.
 function toEvent(e: api.ApiEvent): CalendarEvent {
   return {
@@ -51,6 +58,8 @@ function toEvent(e: api.ApiEvent): CalendarEvent {
     private: e.private,
     status: e.status,
     createdBy: e.createdBy ?? undefined,
+    source: e.external?.provider === 'google' ? 'google' : undefined,
+    allDay: e.start.slice(11, 16) === '00:00' && e.end.slice(11, 16) === '00:00' && e.end > e.start,
   };
 }
 

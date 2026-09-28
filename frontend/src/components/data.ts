@@ -47,6 +47,10 @@ export interface CalendarEvent {
   private: boolean;
   status: EventStatus;
   createdBy?: string;
+  // Aus Google übernommen: nur ansehen, geändert wird in Google
+  source?: 'google';
+  // Von 00:00 bis 00:00 eines späteren Tages (z. B. ganztägige Google-Termine)
+  allDay?: boolean;
   travelTime?: number;
   transportMode?: TransportMode;
   conflict?: boolean;

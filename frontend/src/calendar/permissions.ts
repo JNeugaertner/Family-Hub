@@ -30,14 +30,15 @@ export function useCalendarPermissions() {
     // Termine für andere werden zum Vorschlag, wenn ich dort nur vorschlagen darf.
     becomesProposal: (memberId: string) => !isOwn(memberId) && !mayCreateFamily && mayPropose,
 
+    // Google-Termine sind für alle schreibgeschützt; geändert wird in Google.
     canEdit: (event: CalendarEvent) =>
-      event.status === 'proposed'
+      !event.source && (event.status === 'proposed'
         ? (event.createdBy === me.id && mayPropose) || mayEditFamily
-        : can('kalender', 'bearbeiten', isOwn(event.memberId) ? 'eigen' : 'familie'),
+        : can('kalender', 'bearbeiten', isOwn(event.memberId) ? 'eigen' : 'familie')),
 
     canDelete: (event: CalendarEvent) =>
-      event.status === 'proposed'
+      !event.source && (event.status === 'proposed'
         ? event.createdBy === me.id || mayDecide
-        : can('kalender', 'loeschen', isOwn(event.memberId) ? 'eigen' : 'familie'),
+        : can('kalender', 'loeschen', isOwn(event.memberId) ? 'eigen' : 'familie')),
   };
 }

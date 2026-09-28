@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Dashboard from './components/Dashboard';
 import CalendarPage from './components/CalendarPage';
 import Tasks from './components/Tasks';
@@ -19,6 +19,7 @@ import { useCalendarData } from './calendar/CalendarDataContext';
 import { formatLongDate, startOfToday } from './calendar/dates';
 import { useTaskData } from './tasks/TaskDataContext';
 import NewPointsNotice from './points/NewPointsNotice';
+import { googleReturnFromUrl } from './google/api';
 import { ROLE_NAMES } from './roles';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
@@ -48,7 +49,13 @@ const PAGE_TITLES: Record<Page, string> = {
 };
 
 export default function App() {
-  const [page, setPage] = useState<Page>('dashboard');
+  // Nach der Rückkehr von Google (?google=…) die Profilseite mit der Google-Karte öffnen
+  const [page, setPage] = useState<Page>(() => (googleReturnFromUrl() ? 'profiles' : 'dashboard'));
+  // Parameter danach aus der Adresse nehmen, damit die Meldung beim Neuladen nicht wieder erscheint.
+  // Effekte der Kinder laufen vorher, die Google-Karte hat ihn da schon gelesen.
+  useEffect(() => {
+    if (googleReturnFromUrl()) window.history.replaceState(null, '', window.location.pathname);
+  }, []);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const me = useMe();

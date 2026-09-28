@@ -4,7 +4,8 @@ import {
   MEALS, WEATHER, CLOTHING_RECOMMENDATIONS, getWeatherCondition,
   type CalendarEvent,
 } from './data';
-import { useCalendarData } from '../calendar/CalendarDataContext';
+import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
+import GoogleBadge from '../google/GoogleBadge';
 import { startOfToday, toDateKey } from '../calendar/dates';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { usePointHolders } from '../points/usePointHolders';
@@ -43,7 +44,7 @@ function MiniCalendar({ onNavigate }: { onNavigate: (p: Page) => void }) {
 
   const getEvents = (d: number) => {
     const s = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    return calendarEvents.filter(e => e.date === s && e.status === 'approved');
+    return calendarEvents.filter(e => occursOn(e, s) && e.status === 'approved');
   };
 
   return (
@@ -169,7 +170,7 @@ function departureStr(ev: CalendarEvent): string | null {
 function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
   const { events, memberById } = useCalendarData();
   const todayEvents = events
-    .filter(e => e.date === toDateKey(startOfToday()) && e.status === 'approved')
+    .filter(e => occursOn(e, toDateKey(startOfToday())) && e.status === 'approved')
     .sort((a, b) => a.time.localeCompare(b.time));
 
   return (
@@ -197,7 +198,9 @@ function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-slate-800">{ev.title}</span>
+                    <span className="text-sm font-semibold text-slate-800">
+                      {ev.source === 'google' && <GoogleBadge className="mr-1" />}{ev.title}
+                    </span>
                     {(ev.conflict || ev.travelConflict) && (
                       <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
                         <AlertTriangleIcon size={10} /> Konflikt
@@ -205,7 +208,7 @@ function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400 flex-wrap">
-                    <span className="flex items-center gap-1"><ClockIcon size={10} />{ev.time}{ev.endTime ? ` – ${ev.endTime}` : ''}</span>
+                    <span className="flex items-center gap-1"><ClockIcon size={10} />{ev.allDay ? 'Ganztägig' : `${ev.time}${ev.endTime ? ` – ${ev.endTime}` : ''}`}</span>
                     {ev.location && <span className="flex items-center gap-1"><MapPinIcon size={10} />{ev.location}</span>}
                   </div>
                   {dep && (
