@@ -12,6 +12,7 @@ import {
 } from '../family/api';
 import { FAMILY_COLORS } from '../family/colors';
 import GoogleCalendarCard from '../google/GoogleCalendarCard';
+import WeatherLocationCard from '../weather/WeatherLocationCard';
 import { hasPermission, permissionKey, ROLE_NAMES, type Permission, type RoleId } from '../roles';
 
 function ShieldLock({ size = 16, className = '' }: { size?: number; className?: string }) {
@@ -571,6 +572,7 @@ export default function Profiles({ onNavigate }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {mayManageRights && <GuestSettingsCard />}
+        {mayManageRights && <WeatherLocationCard />}
         <PasswordCard />
         {mayConnectGoogle && <GoogleCalendarCard />}
       </div>

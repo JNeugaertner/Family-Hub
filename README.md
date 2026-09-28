@@ -12,7 +12,8 @@ Rollen und Rechte, Aufgaben mit Punktesystem (Punkte nach Bestätigung
 durch die Eltern), ein Belohnungsshop (Punkte einlösen, Eltern genehmigen),
 Erfolge mit Bonuspunkten, die Einkaufsliste (Kinder schlagen vor, Eltern
 übernehmen), der Essensplan mit Gerichte-Sammlung (Zutaten per Knopf auf die
-Einkaufsliste, Kinder äußern Wünsche) sowie das Einbinden des eigenen Google
+Einkaufsliste, Kinder äußern Wünsche), das Wetter am Wohnort mit
+Kleidungsempfehlung (OpenWeather) sowie das Einbinden des eigenen Google
 Kalenders (nur lesen).
 Die übrigen Bereiche der Oberfläche zeigen noch feste Beispieldaten.
 
@@ -107,6 +108,26 @@ Dafür braucht das Backend eigene Zugangsdaten von Google:
 
 Solange die Google-App im Status „Testing“ ist, laufen die Zugänge nach
 7 Tagen ab. FamilyHub zeigt dann „Bitte neu verbinden“ an.
+
+## Wetter einrichten (optional)
+
+Die Übersicht zeigt das Wetter am Wohnort der Familie (aktuell, heute, die
+nächsten vier Tage und eine Kleidungsempfehlung). Die Daten kommen von
+[OpenWeather](https://openweathermap.org); es genügt ein kostenloser Zugang.
+
+1. Bei OpenWeather unter „My API keys“ einen Schlüssel anlegen. Neue Schlüssel
+   werden erst nach bis zu zwei Stunden aktiv.
+2. In `local.properties` im Projektordner eintragen (steht in `.gitignore`,
+   **nie einchecken**):
+
+   ```properties
+   familyhub.weather.api-key=<API-Schlüssel>
+   ```
+3. Backend neu starten und als Administrator unter „Familie“ → „Wohnort für das
+   Wetter“ den Ort suchen und auswählen.
+
+Das Backend fragt OpenWeather höchstens alle zehn Minuten
+(`familyhub.weather.cache-duration`).
 
 ## Projektstruktur
 

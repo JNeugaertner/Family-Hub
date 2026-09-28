@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import {
-  WEATHER, CLOTHING_RECOMMENDATIONS, getWeatherCondition,
-  type CalendarEvent,
-} from './data';
+import type { CalendarEvent } from './data';
 import { useAuth } from '../auth/AuthContext';
 import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
 import type { MealType } from '../meals/api';
@@ -12,6 +9,7 @@ import GoogleBadge from '../google/GoogleBadge';
 import { startOfToday, toDateKey } from '../calendar/dates';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { usePointHolders } from '../points/usePointHolders';
+import WeatherWidget from '../weather/WeatherWidget';
 import {
   CalendarIcon, CheckSquareIcon, ShoppingCartIcon, UtensilsIcon,
   StarIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon,
@@ -99,64 +97,6 @@ function MiniCalendar({ onNavigate }: { onNavigate: (p: Page) => void }) {
       <button onClick={() => onNavigate('calendar')} className="mt-4 w-full py-2 text-[#2563EB] text-xs font-semibold hover:bg-[#EFF6FF] rounded-xl transition-colors">
         Vollständigen Kalender öffnen →
       </button>
-    </div>
-  );
-}
-
-// ─── weather + integrated clothing chips ─────────────────────────────────────
-
-function WeatherWidget() {
-  const w         = WEATHER;
-  const condition = getWeatherCondition(w.today.temp, w.today.condition);
-  const rec       = CLOTHING_RECOMMENDATIONS[condition];
-
-  return (
-    <div className="bg-gradient-to-br from-[#2563EB] to-[#14B8A6] rounded-2xl p-4 text-white relative overflow-hidden">
-      {/* decorative circles */}
-      <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-white/10 -translate-y-6 translate-x-6 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full bg-white/10 translate-y-4 -translate-x-4 pointer-events-none" />
-
-      <div className="relative">
-        {/* Temperature row */}
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="text-4xl font-light">{w.today.temp}°</div>
-            <div className="text-white/80 text-sm mt-0.5">{w.today.condition}</div>
-            <div className="text-white/60 text-xs mt-1">H:{w.today.high}° · L:{w.today.low}° · 💧{w.today.humidity}% · 💨{w.today.wind} km/h</div>
-          </div>
-          <div className="text-4xl">{w.today.icon}</div>
-        </div>
-
-        {/* 4-day forecast */}
-        <div className="flex gap-2 mt-3 border-t border-white/20 pt-3">
-          {w.forecast.slice(0, 4).map(f => (
-            <div key={f.day} className="flex-1 flex flex-col items-center gap-0.5">
-              <div className="text-white/60 text-[10px]">{f.day}</div>
-              <div className="text-sm">{f.icon}</div>
-              <div className="text-white text-[10px] font-medium">{f.high}°</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Clothing recommendation chips */}
-        <div className="mt-3 pt-3 border-t border-white/20">
-          <div className="text-white/70 text-[10px] font-semibold uppercase tracking-wide mb-2">
-            {rec.emoji} Empfehlungen für heute
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {rec.items.map(item => (
-              <span
-                key={item.label}
-                className="flex items-center gap-1 bg-white/20 hover:bg-white/30 transition-colors rounded-full px-2.5 py-1 text-xs font-medium text-white cursor-default"
-                title={item.reason}
-              >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -426,7 +366,7 @@ export default function Dashboard({ onNavigate }: Props) {
         {/* Left column */}
         <div className="space-y-5">
           <MiniCalendar onNavigate={onNavigate} />
-          <WeatherWidget />
+          <WeatherWidget onNavigate={onNavigate} />
           <PointsWidget onNavigate={onNavigate} />
         </div>
 
