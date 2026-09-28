@@ -72,7 +72,7 @@ den ersten Administrator an.
 
 ## Google Kalender einrichten (optional)
 
-Jedes Familienmitglied außer Gästen kann unter „Profiles“ seinen Google
+Jedes Familienmitglied außer Gästen kann unter „Familie“ seinen Google
 Kalender verbinden. FamilyHub liest die Termine (ein Jahr zurück und ein Jahr
 voraus) und übernimmt sie schreibgeschützt; geändert wird weiter in Google.
 Abgeglichen wird beim Verbinden, per Knopf und alle 15 Minuten. Beim Trennen
