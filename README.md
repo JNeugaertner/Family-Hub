@@ -76,7 +76,8 @@ werden die übernommenen Termine wieder entfernt.
 Dafür braucht das Backend eigene Zugangsdaten von Google:
 
 1. In der [Google Cloud Console](https://console.cloud.google.com) ein Projekt
-   anlegen und die **Google Calendar API** aktivieren.
+   anlegen und die **Google Calendar API** aktivieren (`calendar-json.googleapis.com`,
+   nicht die ähnlich benannte „CalDAV API“).
 2. Unter „OAuth-Zustimmungsbildschirm“ den Typ **Extern** wählen, die
    Berechtigung `.../auth/calendar.readonly` hinzufügen und alle Google-Konten,
    die testen sollen, als **Testnutzer** eintragen.
