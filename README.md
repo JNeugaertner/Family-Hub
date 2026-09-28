@@ -11,8 +11,9 @@ die Eltern entscheiden.**
 Rollen und Rechte, Aufgaben mit Punktesystem (Punkte nach Bestätigung
 durch die Eltern), ein Belohnungsshop (Punkte einlösen, Eltern genehmigen),
 Erfolge mit Bonuspunkten, die Einkaufsliste (Kinder schlagen vor, Eltern
-übernehmen)
-sowie das Einbinden des eigenen Google Kalenders (nur lesen).
+übernehmen), der Essensplan mit Gerichte-Sammlung (Zutaten per Knopf auf die
+Einkaufsliste, Kinder äußern Wünsche) sowie das Einbinden des eigenen Google
+Kalenders (nur lesen).
 Die übrigen Bereiche der Oberfläche zeigen noch feste Beispieldaten.
 
 ## Tech-Stack

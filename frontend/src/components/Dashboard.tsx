@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import {
-  MEALS, WEATHER, CLOTHING_RECOMMENDATIONS, getWeatherCondition,
+  WEATHER, CLOTHING_RECOMMENDATIONS, getWeatherCondition,
   type CalendarEvent,
 } from './data';
 import { useAuth } from '../auth/AuthContext';
 import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
+import type { MealType } from '../meals/api';
+import { useMealData } from '../meals/MealDataContext';
 import { useShoppingData } from '../shopping/ShoppingDataContext';
 import GoogleBadge from '../google/GoogleBadge';
 import { startOfToday, toDateKey } from '../calendar/dates';
@@ -277,7 +279,10 @@ function QuickTasks({ onNavigate }: { onNavigate: (p: Page) => void }) {
 // ─── meal widget ──────────────────────────────────────────────────────────────
 
 function MealWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
-  const today = MEALS['Mon'];
+  const { can } = useAuth();
+  const { today } = useMealData();
+  if (!can('essen', 'ansehen', 'familie')) return null;
+  const meal = (type: MealType) => today.find(e => e.type === type && e.status === 'approved')?.name ?? '—';
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-3">
@@ -289,10 +294,10 @@ function MealWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
       </div>
       <div className="grid grid-cols-2 gap-2">
         {[
-          { label: '🌅 Frühstück',   meal: today.breakfast, bg: 'bg-[#FFF7ED]', text: 'text-[#F97316]' },
-          { label: '☀️ Mittagessen', meal: today.lunch,     bg: 'bg-[#F0FDFA]', text: 'text-[#14B8A6]' },
-          { label: '🌙 Abendessen',  meal: today.dinner,    bg: 'bg-[#EFF6FF]', text: 'text-[#2563EB]' },
-          { label: '🍎 Snacks',       meal: today.snacks,   bg: 'bg-[#FDF4FF]', text: 'text-[#8B5CF6]' },
+          { label: '🌅 Frühstück',   meal: meal('fruehstueck'), bg: 'bg-[#FFF7ED]', text: 'text-[#F97316]' },
+          { label: '☀️ Mittagessen', meal: meal('mittagessen'), bg: 'bg-[#F0FDFA]', text: 'text-[#14B8A6]' },
+          { label: '🌙 Abendessen',  meal: meal('abendessen'),  bg: 'bg-[#EFF6FF]', text: 'text-[#2563EB]' },
+          { label: '🍎 Snacks',       meal: meal('snacks'),      bg: 'bg-[#FDF4FF]', text: 'text-[#8B5CF6]' },
         ].map(({ label, meal, bg, text }) => (
           <div key={label} className={`p-3 rounded-xl ${bg}`}>
             <div className={`text-[10px] font-semibold uppercase tracking-wide ${text} mb-1`}>{label}</div>

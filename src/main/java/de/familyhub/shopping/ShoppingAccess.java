@@ -65,6 +65,11 @@ public class ShoppingAccess {
         require(viewer, LOESCHEN, "Keine Berechtigung, Artikel zu löschen.");
     }
 
+    // Direkt auf die Liste setzen, ohne Vorschlag (z. B. Zutaten aus dem Essensplan übernehmen)
+    public void requireCreate(FamilyMember viewer) {
+        require(viewer, ERSTELLEN, "Keine Berechtigung, Artikel auf die Einkaufsliste zu setzen.");
+    }
+
     public void requireDeleteChecked(FamilyMember viewer) {
         require(viewer, LOESCHEN, "Keine Berechtigung, Artikel zu löschen.");
     }

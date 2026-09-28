@@ -84,16 +84,6 @@ export const INITIAL_TASKS: Task[] = [
   { id: 12, title: 'Set up recycling bins', assigneeId: 2, status: 'done', priority: 'low', dueDate: '2026-09-22', category: 'chores', points: 0 },
 ];
 
-export const MEALS: Record<string, { breakfast: string; lunch: string; dinner: string; snacks: string }> = {
-  Mon: { breakfast: 'Oatmeal with berries', lunch: 'Turkey sandwich & salad', dinner: 'Spaghetti Bolognese', snacks: 'Apple slices & peanut butter' },
-  Tue: { breakfast: 'Scrambled eggs on toast', lunch: 'Chicken Caesar wrap', dinner: 'Grilled salmon & veggies', snacks: 'Yogurt parfait' },
-  Wed: { breakfast: 'Banana pancakes', lunch: 'Tomato soup & grilled cheese', dinner: 'Chicken stir-fry & rice', snacks: 'Carrot sticks & hummus' },
-  Thu: { breakfast: 'Greek yogurt & granola', lunch: 'Tuna salad sandwich', dinner: 'Beef tacos', snacks: 'Banana & almond butter' },
-  Fri: { breakfast: 'Avocado toast & eggs', lunch: 'Pasta salad', dinner: '🍕 Pizza night!', snacks: 'Fruit smoothie' },
-  Sat: { breakfast: 'French toast & bacon', lunch: 'Picnic in the park', dinner: 'Homemade burgers', snacks: '🍦 Ice cream' },
-  Sun: { breakfast: '🥞 Big family brunch', lunch: 'Light leftovers', dinner: 'Roast chicken & roasties', snacks: '🍪 Cookies & milk' },
-};
-
 export interface Message {
   id: number;
   source: 'whatsapp' | 'telegram' | 'family';
