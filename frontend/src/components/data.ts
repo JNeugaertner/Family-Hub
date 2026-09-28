@@ -84,33 +84,6 @@ export const INITIAL_TASKS: Task[] = [
   { id: 12, title: 'Set up recycling bins', assigneeId: 2, status: 'done', priority: 'low', dueDate: '2026-09-22', category: 'chores', points: 0 },
 ];
 
-export interface ShoppingItem {
-  id: number;
-  name: string;
-  category: string;
-  checked: boolean;
-  quantity?: string;
-  addedById: number;
-  urgent?: boolean;
-}
-
-export const INITIAL_SHOPPING: ShoppingItem[] = [
-  { id: 1, name: 'Organic milk', category: 'Dairy', checked: false, quantity: '2 × 2L', addedById: 1, urgent: true },
-  { id: 2, name: 'Whole grain bread', category: 'Bakery', checked: false, quantity: '1 loaf', addedById: 1 },
-  { id: 3, name: 'Chicken breast', category: 'Meat & Fish', checked: false, quantity: '1 kg', addedById: 2 },
-  { id: 4, name: 'Broccoli', category: 'Vegetables', checked: true, quantity: '1 head', addedById: 1 },
-  { id: 5, name: 'Apple juice', category: 'Beverages', checked: false, quantity: '1.5L', addedById: 4 },
-  { id: 6, name: 'Greek yogurt', category: 'Dairy', checked: false, quantity: '4 packs', addedById: 3 },
-  { id: 7, name: 'Penne pasta', category: 'Pantry', checked: true, quantity: '500g', addedById: 2 },
-  { id: 8, name: 'Tomato sauce', category: 'Pantry', checked: false, quantity: '2 jars', addedById: 2 },
-  { id: 9, name: 'Bananas', category: 'Fruit', checked: false, quantity: '1 bunch', addedById: 5 },
-  { id: 10, name: 'Cheddar cheese', category: 'Dairy', checked: false, quantity: '200g', addedById: 1 },
-  { id: 11, name: 'Free-range eggs', category: 'Dairy', checked: false, quantity: '12', addedById: 1, urgent: true },
-  { id: 12, name: 'Orange juice', category: 'Beverages', checked: true, quantity: '1L', addedById: 3 },
-  { id: 13, name: 'Salmon fillet', category: 'Meat & Fish', checked: false, quantity: '400g', addedById: 2 },
-  { id: 14, name: 'Spinach', category: 'Vegetables', checked: false, quantity: '200g', addedById: 1 },
-];
-
 export const MEALS: Record<string, { breakfast: string; lunch: string; dinner: string; snacks: string }> = {
   Mon: { breakfast: 'Oatmeal with berries', lunch: 'Turkey sandwich & salad', dinner: 'Spaghetti Bolognese', snacks: 'Apple slices & peanut butter' },
   Tue: { breakfast: 'Scrambled eggs on toast', lunch: 'Chicken Caesar wrap', dinner: 'Grilled salmon & veggies', snacks: 'Yogurt parfait' },

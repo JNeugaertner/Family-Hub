@@ -38,6 +38,9 @@ import de.familyhub.permission.Role;
 import de.familyhub.points.PointEntry;
 import de.familyhub.points.PointEntryRepository;
 import de.familyhub.rewards.RewardRepository;
+import de.familyhub.shopping.ShoppingItem;
+import de.familyhub.shopping.ShoppingItemRepository;
+import de.familyhub.shopping.ShoppingItemStatus;
 import de.familyhub.settings.FamilySettings;
 import de.familyhub.settings.FamilySettingsRepository;
 import de.familyhub.task.Task;
@@ -110,19 +113,21 @@ public class SampleDataLoader implements ApplicationRunner {
     private final TaskRepository taskRepository;
     private final PointEntryRepository pointRepository;
     private final RewardRepository rewardRepository;
+    private final ShoppingItemRepository shoppingRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
     public SampleDataLoader(FamilyMemberRepository memberRepository, CalendarEventRepository eventRepository,
             FamilySettingsRepository settingsRepository, TaskRepository taskRepository,
-            PointEntryRepository pointRepository, RewardRepository rewardRepository, PasswordEncoder passwordEncoder,
-            Clock clock) {
+            PointEntryRepository pointRepository, RewardRepository rewardRepository,
+            ShoppingItemRepository shoppingRepository, PasswordEncoder passwordEncoder, Clock clock) {
         this.memberRepository = memberRepository;
         this.eventRepository = eventRepository;
         this.settingsRepository = settingsRepository;
         this.taskRepository = taskRepository;
         this.pointRepository = pointRepository;
         this.rewardRepository = rewardRepository;
+        this.shoppingRepository = shoppingRepository;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
     }
@@ -137,6 +142,7 @@ public class SampleDataLoader implements ApplicationRunner {
             log.info("Beispielfamilie übersprungen: Die Datenbank enthält bereits Familienmitglieder.");
             loadTasksAndPoints();
             loadRewards();
+            loadShopping();
             return;
         }
 
@@ -156,6 +162,33 @@ public class SampleDataLoader implements ApplicationRunner {
                 MEMBERS.size(), SAMPLE_PASSWORD, EVENTS.size());
         loadTasksAndPoints();
         loadRewards();
+        loadShopping();
+    }
+
+    // Auch für bestehende Datenbanken, solange die Einkaufsliste leer ist; Zuordnung über die Benutzernamen.
+    private void loadShopping() {
+        if (shoppingRepository.count() > 0) {
+            return;
+        }
+        Map<String, String> idByUsername = memberRepository.findAll().stream()
+                .filter(m -> m.username() != null)
+                .collect(Collectors.toMap(FamilyMember::username, FamilyMember::id));
+        LocalDateTime now = LocalDateTime.now(clock);
+        List<ShoppingItem> items = new ArrayList<>();
+        for (int i = 0; i < SampleShopping.ITEMS.size(); i++) {
+            SampleShopping.SampleItem s = SampleShopping.ITEMS.get(i);
+            String creator = idByUsername.get(s.username());
+            if (creator == null) {
+                continue;
+            }
+            items.add(new ShoppingItem(null, s.name(), s.quantity(), s.category(), s.urgent(), s.checked(),
+                    s.proposal() ? ShoppingItemStatus.PROPOSED : ShoppingItemStatus.APPROVED, creator,
+                    now.minusMinutes(SampleShopping.ITEMS.size() - i), s.checked() ? creator : null));
+        }
+        shoppingRepository.saveAll(items);
+        if (!items.isEmpty()) {
+            log.info("Beispiel-Einkaufsliste angelegt: {} Artikel.", items.size());
+        }
     }
 
     // Auch für bestehende Datenbanken (der Belohnungsshop kam später dazu), solange es noch keine Belohnungen gibt.

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { StarIcon, TrophyIcon, PlusIcon, CheckIcon, XIcon } from './Icons';
 import { useAuth, useMe } from '../auth/AuthContext';
+import {
+  listAchievementProgress, listAchievements, updateAchievement, type Achievement, type MemberAchievements,
+} from '../achievements/api';
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import { listHistory, type PointEntry } from '../points/api';
 import { formatAgo, usePointHolders, type PointHolder } from '../points/usePointHolders';
@@ -53,12 +56,13 @@ function StatusBadge({ redemption }: { redemption: Redemption }) {
 
 // ─── tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'shop' | 'manage';
+type Tab = 'overview' | 'shop' | 'achievements' | 'manage';
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
-  { id: 'overview', label: 'Übersicht',      emoji: '📊' },
-  { id: 'shop',     label: 'Belohnungsshop', emoji: '🛍️' },
-  { id: 'manage',   label: 'Verwalten',      emoji: '⚙️' },
+  { id: 'overview',     label: 'Übersicht',      emoji: '📊' },
+  { id: 'shop',         label: 'Belohnungsshop', emoji: '🛍️' },
+  { id: 'achievements', label: 'Erfolge',        emoji: '🏆' },
+  { id: 'manage',       label: 'Verwalten',      emoji: '⚙️' },
 ];
 
 // ─── overview tab ─────────────────────────────────────────────────────────────
@@ -390,6 +394,155 @@ function ShopTab({ rewards, redemptions, holders, forOthers, busy, onRedeem, onW
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── achievements tab ─────────────────────────────────────────────────────────
+
+function AchievementsTab({ kids: children, mayManage, refreshKey }: {
+  kids: PointHolder[];
+  mayManage: boolean;
+  refreshKey: unknown;
+}) {
+  const [progress, setProgress] = useState<MemberAchievements[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    listAchievementProgress()
+      .then(p => { if (!cancelled) { setProgress(p); setError(null); } })
+      .catch(err => { if (!cancelled) setError(errorText(err)); });
+    return () => { cancelled = true; };
+  }, [refreshKey]);
+
+  return (
+    <div className="space-y-6">
+      {error && <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{error}</div>}
+      {!progress && !error && <div className="text-sm text-slate-400">Erfolge werden geladen…</div>}
+      {progress && children.map(c => {
+        const items = progress.find(p => p.memberId === c.id)?.items ?? [];
+        const earned = items.filter(i => i.earnedAt).length;
+        return (
+          <div key={c.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5" data-achievements={c.name}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: c.color }}>{c.initials[0]}</div>
+              <div>
+                <div className="font-bold text-slate-800">{c.name}</div>
+                <div className="text-xs text-slate-400">{earned}/{items.length} Erfolge erreicht</div>
+              </div>
+              <div className="ml-auto font-bold text-lg" style={{ color: c.color }}>{c.points} Pkt.</div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {items.map(a => {
+                const done = !!a.earnedAt;
+                return (
+                  <div
+                    key={a.achievementId}
+                    data-achievement={a.name}
+                    data-earned={done}
+                    className={`flex flex-col items-center p-3 rounded-xl text-center border transition-all ${done ? 'bg-[#FFFBEB] border-[#FDE68A] shadow-sm' : 'bg-slate-50 border-slate-100'}`}
+                    title={a.description ?? undefined}
+                  >
+                    <span className={`text-3xl mb-1.5 ${done ? '' : 'opacity-40 grayscale'}`}>{a.icon}</span>
+                    <span className="text-[11px] font-semibold text-slate-700 leading-tight">{a.name}</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 leading-tight">{a.description}</span>
+                    {done ? (
+                      <span className="text-[10px] text-[#F59E0B] font-bold mt-1.5">
+                        ✓ {formatDate(a.earnedAt!)}{a.bonus > 0 && ` · +${a.bonus} Pkt.`}
+                      </span>
+                    ) : (
+                      <div className="w-full mt-2">
+                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${(a.current / a.target) * 100}%`, backgroundColor: c.color }} />
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-1">{a.current}/{a.target}{a.bonus > 0 && ` · +${a.bonus} Pkt.`}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      <p className="text-xs text-slate-400">Erfolge zählen bestätigte Aufgaben seit Einführung der Erfolge, nicht rückwirkend.</p>
+      {mayManage && <AchievementSettings onChanged={() => listAchievementProgress().then(setProgress).catch(() => {})} />}
+    </div>
+  );
+}
+
+// Eltern: Erfolge aktivieren/deaktivieren, Ziel und Bonus anpassen
+function AchievementSettings({ onChanged }: { onChanged: () => void }) {
+  const { reload: reloadPoints } = useTaskData();
+  const [catalog, setCatalog] = useState<Achievement[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, { active: boolean; target: number; bonus: number }>>({});
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  useEffect(() => {
+    listAchievements().then(list => {
+      setCatalog(list);
+      setDrafts(Object.fromEntries(list.map(a => [a.id, { active: a.active, target: a.target, bonus: a.bonus }])));
+    }).catch(err => setMessage({ text: errorText(err), ok: false }));
+  }, []);
+
+  const save = async (a: Achievement) => {
+    setMessage(null);
+    try {
+      const saved = await updateAchievement(a.id, drafts[a.id]);
+      setCatalog(list => list.map(x => (x.id === saved.id ? saved : x)));
+      setMessage({ text: `„${a.name}“ gespeichert.`, ok: true });
+      onChanged();
+      await reloadPoints();
+    } catch (err) {
+      setMessage({ text: errorText(err), ok: false });
+    }
+  };
+
+  const changed = (a: Achievement) => {
+    const d = drafts[a.id];
+    return d && (d.active !== a.active || d.target !== a.target || d.bonus !== a.bonus);
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5" aria-labelledby="achievement-settings-title">
+      <h3 id="achievement-settings-title" className="font-bold text-slate-800 text-base mb-1">⚙️ Erfolge anpassen</h3>
+      <p className="text-xs text-slate-400 mb-3">Wer ein gesenktes Ziel schon erreicht, bekommt den Erfolg sofort samt Bonus.</p>
+      {message && <p role={message.ok ? 'status' : 'alert'} className={`text-sm mb-2 ${message.ok ? 'text-[#15803D]' : 'text-[#DC2626]'}`}>{message.text}</p>}
+      <div className="divide-y divide-slate-50">
+        {catalog.map(a => {
+          const d = drafts[a.id];
+          if (!d) return null;
+          const set = (patch: Partial<typeof d>) => setDrafts(all => ({ ...all, [a.id]: { ...d, ...patch } }));
+          return (
+            <div key={a.id} className={`flex flex-wrap items-center gap-3 py-2.5 ${d.active ? '' : 'opacity-60'}`} data-achievement-setting={a.name}>
+              <span className="text-2xl w-8 text-center">{a.icon}</span>
+              <div className="flex-1 min-w-[160px]">
+                <div className="text-sm font-semibold text-slate-800">{a.name}</div>
+                <div className="text-xs text-slate-400">{a.description}</div>
+              </div>
+              <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                <input type="checkbox" className="w-4 h-4 accent-[#22C55E]" checked={d.active} onChange={e => set({ active: e.target.checked })} />
+                Aktiv
+              </label>
+              <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                Ziel
+                <input type="number" min={1} max={10000} value={d.target} onChange={e => set({ target: Number(e.target.value) })}
+                  className="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm" aria-label={`Ziel für ${a.name}`} />
+              </label>
+              <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                Bonus ⭐
+                <input type="number" min={0} max={1000} value={d.bonus} onChange={e => set({ bonus: Number(e.target.value) })}
+                  className="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm" aria-label={`Bonus für ${a.name}`} />
+              </label>
+              <button type="button" onClick={() => save(a)} disabled={!changed(a)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:opacity-30">
+                Speichern
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -826,6 +979,7 @@ export default function Rewards({ onNavigate }: Props) {
               : `„${reward.name}“ für ${member.name} eingelöst und genehmigt: ${reward.cost} Punkte abgezogen.`)}
           onWithdraw={r => run(() => withdraw(r.id), `Einlösung zurückgezogen, ${r.cost} Punkte sind wieder da.`)} />
       )}
+      {tab === 'achievements' && <AchievementsTab kids={children} mayManage={mayManage} refreshKey={balances} />}
       {tab === 'manage' && mayManage && (
         <div className="space-y-5">
           {mayDecide && (

@@ -9,7 +9,9 @@ die Eltern entscheiden.**
 
 **Status:** Proof of Concept. Umgesetzt sind der Familienkalender, Anmeldung,
 Rollen und Rechte, Aufgaben mit Punktesystem (Punkte nach Bestätigung
-durch die Eltern), ein Belohnungsshop (Punkte einlösen, Eltern genehmigen)
+durch die Eltern), ein Belohnungsshop (Punkte einlösen, Eltern genehmigen),
+Erfolge mit Bonuspunkten, die Einkaufsliste (Kinder schlagen vor, Eltern
+übernehmen)
 sowie das Einbinden des eigenen Google Kalenders (nur lesen).
 Die übrigen Bereiche der Oberfläche zeigen noch feste Beispieldaten.
 
@@ -24,14 +26,16 @@ Die übrigen Bereiche der Oberfläche zeigen noch feste Beispieldaten.
 
 ## Schnellstart
 
-**Voraussetzungen:** JDK 25, MongoDB 8.0 und für die Oberfläche Node.js 24 mit
-pnpm 10. Maven wird nicht benötigt, der Maven Wrapper lädt es beim ersten Aufruf
+**Voraussetzungen:** JDK 25, MongoDB 8.0 (oder Docker) und für die Oberfläche
+Node.js 24 mit pnpm 10. Maven wird nicht benötigt, der Maven Wrapper lädt es beim ersten Aufruf
 selbst. Unter Windows kann MongoDB ohne Admin-Rechte als ZIP nach
 `%LOCALAPPDATA%\Programs\mongodb` entpackt werden.
 
 ```bash
 # 1. MongoDB starten (lauscht nur auf 127.0.0.1:27017, beenden mit Strg+C)
 powershell -ExecutionPolicy Bypass -File scripts/start-mongodb.ps1
+#    oder mit Docker (läuft im Hintergrund, beenden mit: docker compose down)
+docker compose up -d
 
 # 2. Backend starten (Windows: mvnw.cmd statt ./mvnw)
 ./mvnw spring-boot:run
@@ -109,7 +113,8 @@ Solange die Google-App im Status „Testing“ ist, laufen die Zugänge nach
 ├── src/main/java/de/familyhub/   Backend (Spring Boot)
 ├── src/test/java/de/familyhub/   Backend-Tests
 ├── frontend/                     Oberfläche (React, siehe frontend/README.md)
-└── scripts/                      Hilfsskripte (z. B. MongoDB starten)
+├── scripts/                      Hilfsskripte (z. B. MongoDB starten)
+└── docker-compose.yml            MongoDB alternativ per Docker
 ```
 
 ## Dokumentation

@@ -34,6 +34,8 @@ const PERMISSION_DISPLAY: (Permission & { label: string; icon: string })[] = [
   { module: 'kalender', action: 'erstellen', scope: 'familie', label: 'Termine für alle anlegen', icon: '🗓️' },
   { module: 'kalender', action: 'freigeben', scope: 'familie', label: 'Vorschläge freigeben', icon: '✅' },
   { module: 'aufgaben', action: 'bearbeiten', scope: 'eigen', label: 'Eigene Aufgaben abhaken', icon: '☑️' },
+  { module: 'einkauf', action: 'ansehen', scope: 'familie', label: 'Einkaufsliste ansehen', icon: '🧾' },
+  { module: 'einkauf', action: 'vorschlagen', scope: 'familie', label: 'Artikel vorschlagen', icon: '💡' },
   { module: 'einkauf', action: 'bearbeiten', scope: 'familie', label: 'Einkaufsliste bearbeiten', icon: '🛒' },
   { module: 'essen', action: 'vorschlagen', scope: 'familie', label: 'Essenswünsche einreichen', icon: '🍽️' },
   { module: 'punkte', action: 'ansehen', scope: 'familie', label: 'Punktestände der Familie sehen', icon: '⭐' },

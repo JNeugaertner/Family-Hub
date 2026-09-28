@@ -40,9 +40,11 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Profile: Mitglieder, Rollen, Einzelrechte, Freigaben für Gäste, eigenes Passwort | Backend: `/api/members`, `/api/roles`, `/api/settings`, `/api/auth/password` |
 | Aufgaben: anlegen, abhaken, bestätigen oder zurückgeben; Dashboard „Dringende Aufgaben“ | Backend: `/api/tasks` |
 | Punkte: Punktestände, Rangliste, Historie, Belohnungsanimation; Dashboard „Familienpunkte“ | Backend: `/api/points` |
+| Erfolge: Fortschritt je Kind, Animation bei neuen Erfolgen; Anpassen (Admins) | Backend: `/api/achievements` |
 | Belohnungen: Shop, einlösen, zurückziehen; Genehmigen/Ablehnen und Belohnungen verwalten (Admins) | Backend: `/api/rewards`, `/api/redemptions` |
 | Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter Profiles) | Backend: `/api/google` |
-| Einkauf, Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
+| Einkaufsliste: hinzufügen, vorschlagen, abhaken, bearbeiten, Vorschläge übernehmen; Dashboard „Einkaufsliste“ | Backend: `/api/shopping` |
+| Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
 daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem
@@ -68,6 +70,19 @@ Ablehnen und beim Zurückziehen einer offenen Einlösung kommen die Punkte
 zurück. Eltern können auch direkt für ein Kind einlösen, das gilt dann sofort
 als genehmigt. Je Belohnung ist einstellbar, ob sie mehrfach einlösbar ist.
 Offene Genehmigungen zählt ein Hinweis an „Rewards“ in der Seitenleiste.
+
+**Erfolge:** Kinder und Jugendliche erreichen automatisch Erfolge, z. B. „Erste
+Aufgabe“, „5 Schulaufgaben“, „7 Tage hintereinander“ oder „200 Punkte
+verdient“. Gezählt werden bestätigte Aufgaben ab Einführung der Erfolge, nicht
+rückwirkend. Jeder Erfolg bringt einmalig Bonuspunkte. Beim nächsten Öffnen
+erscheint nach „Neue Punkte“ die Animation „Neuer Erfolg“. Eltern können im
+Tab „Erfolge“ einzelne Erfolge abschalten und Ziel und Bonus anpassen.
+
+**Einkaufsliste:** Eltern und Jugendliche setzen Artikel direkt auf die Liste,
+haken ab und bearbeiten. Kinder sehen die ganze Liste und schlagen Artikel vor;
+ihre Vorschläge sehen nur sie selbst und die Eltern, die sie übernehmen oder
+ablehnen (Zähler an „Shopping“). Abgehakte Artikel bleiben stehen, bis jemand
+„Abgehakte entfernen“ klickt.
 
 **Google Kalender:** Termine aus Google tragen im Kalender und im Dashboard ein
 „G“ und lassen sich nur ansehen; geändert werden sie in Google. Ganztägige
@@ -102,6 +117,8 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/family/`: API für Mitglieder, Rollen und Einstellungen, Farbpalette
 - `src/tasks/`: Aufgaben-API, `TaskDataContext` (lädt Aufgaben und Punktestände), `permissions.ts` (was die angemeldete Person bei Aufgaben darf)
 - `src/points/`: Punkte-API, Punktestände je Kind, Belohnungsanimation und Hinweis auf neue Punkte
+- `src/shopping/`: Einkaufslisten-API, `ShoppingDataContext`, Kategorien
+- `src/achievements/`: Erfolge-API (Katalog, Fortschritt je Kind, Anpassen)
 - `src/rewards/`: Belohnungs-API und `RewardDataContext` (Belohnungen und Einlösungen, lädt nach Änderungen auch die Punktestände neu)
 - `src/google/`: Google-API des Backends, Karte „Google Kalender“ für die Profilseite, „G“-Abzeichen
 - `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
