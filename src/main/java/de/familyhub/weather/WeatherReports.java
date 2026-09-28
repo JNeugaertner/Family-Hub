@@ -115,6 +115,15 @@ final class WeatherReports {
                     new AdviceItem("🧢", "Kappe oder Sonnenhut", "Direkte Sonne"),
                     new AdviceItem("💧", "Trinkflasche", "Warmer Tag")));
         }
+        if (high >= 24) {
+            List<AdviceItem> items = new ArrayList<>(List.of(
+                    new AdviceItem("👕", "Leichte Kleidung", "Bis " + high + "°"),
+                    new AdviceItem("💧", "Trinkflasche", "Warmer Tag")));
+            if (low <= 12) {
+                items.add(new AdviceItem("🧥", "Dünne Jacke für morgens", "Morgens nur " + low + "°"));
+            }
+            return new Advice("warm", "Warmes Wetter", items);
+        }
         List<AdviceItem> items = new ArrayList<>(List.of(
                 new AdviceItem("🧥", "Leichte Jacke", "Zwischen " + low + "° und " + high + "°")));
         if (high - low >= 8) {

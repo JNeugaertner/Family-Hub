@@ -125,12 +125,21 @@ class WeatherReportsTest {
         assertThat(WeatherReports.advice(cloudy(), now(31, 33, 5), 33, 20, null).kind()).isEqualTo("heat");
         assertThat(WeatherReports.advice(new Condition(800, "Clear", "klarer Himmel", "01d"), now(24, 24, 5), 25, 13,
                 null).kind()).isEqualTo("sun");
-        assertThat(WeatherReports.advice(cloudy(), now(24, 24, 5), 25, 13, null))
+        // Warm, aber bewölkt (so am 28.09.2026 in Stuttgart): keine Jacke, außer es ist morgens kühl
+        assertThat(WeatherReports.advice(cloudy(), now(28, 28, 3), 28, 17, null))
+                .satisfies(a -> {
+                    assertThat(a.kind()).isEqualTo("warm");
+                    assertThat(a.items()).extracting(AdviceItem::label)
+                            .containsExactly("Leichte Kleidung", "Trinkflasche");
+                });
+        assertThat(WeatherReports.advice(cloudy(), now(24, 24, 3), 25, 11, null).items())
+                .extracting(AdviceItem::label).contains("Dünne Jacke für morgens");
+        assertThat(WeatherReports.advice(cloudy(), now(18, 18, 5), 20, 11, null))
                 .satisfies(a -> {
                     assertThat(a.kind()).isEqualTo("mild");
                     assertThat(a.items()).extracting(AdviceItem::label)
                             .containsExactly("Leichte Jacke", "Zwiebellook", "Feste Schuhe");
-                    assertThat(a.items().get(0).reason()).isEqualTo("Zwischen 13° und 25°");
+                    assertThat(a.items().get(0).reason()).isEqualTo("Zwischen 11° und 20°");
                 });
     }
 }

@@ -26,7 +26,7 @@ public record WeatherReport(
 
     @Schema(description = "Kleidungsempfehlung für heute")
     public record Advice(
-            @Schema(description = "rain, heat, cold, sun oder mild") String kind,
+            @Schema(description = "rain, heat, cold, sun, warm oder mild") String kind,
             String title,
             List<AdviceItem> items) {
     }

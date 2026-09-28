@@ -21,7 +21,7 @@ export interface WeatherReport {
   high: number;
   low: number;
   days: { date: string; high: number; low: number; description: string; icon: string; rainChance: number }[];
-  advice: { kind: 'rain' | 'heat' | 'cold' | 'sun' | 'mild'; title: string; items: AdviceItem[] };
+  advice: { kind: 'rain' | 'heat' | 'cold' | 'sun' | 'warm' | 'mild'; title: string; items: AdviceItem[] };
   observedAt: string;
 }
 
