@@ -9,6 +9,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import java.time.Instant;
@@ -20,6 +21,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
@@ -86,6 +88,41 @@ class GoogleApiTest {
 
         assertThatThrownBy(() -> api.refreshAccessToken("refresh-1"))
                 .isInstanceOfSatisfying(GoogleException.class, e -> assertThat(e.reconnectNeeded()).isTrue());
+    }
+
+    @Test
+    void disabledCalendarApiIsReportedClearly() {
+        server.expect(requestTo("https://api.test/calendar/v3/users/me/calendarList?maxResults=250"))
+                .andRespond(withStatus(HttpStatus.FORBIDDEN).contentType(MediaType.APPLICATION_JSON).body("""
+                        {"error": {"code": 403, "message": "Google Calendar API has not been used in project 123",
+                          "errors": [{"reason": "accessNotConfigured"}], "status": "PERMISSION_DENIED"}}
+                        """));
+
+        assertThatThrownBy(() -> api.listCalendars("access-1"))
+                .isInstanceOf(GoogleException.class)
+                .hasMessage("Die Google Calendar API ist im Google-Cloud-Projekt nicht aktiviert.");
+    }
+
+    @Test
+    void missingCalendarPermissionRequiresReconnect() {
+        server.expect(requestTo("https://api.test/calendar/v3/users/me/calendarList?maxResults=250"))
+                .andRespond(withStatus(HttpStatus.FORBIDDEN).contentType(MediaType.APPLICATION_JSON).body("""
+                        {"error": {"code": 403, "message": "Request had insufficient authentication scopes.",
+                          "errors": [{"reason": "insufficientPermissions"}], "status": "PERMISSION_DENIED",
+                          "details": [{"reason": "ACCESS_TOKEN_SCOPE_INSUFFICIENT"}]}}
+                        """));
+
+        assertThatThrownBy(() -> api.listCalendars("access-1"))
+                .isInstanceOfSatisfying(GoogleException.class, e -> assertThat(e.reconnectNeeded()).isTrue());
+    }
+
+    @Test
+    void otherErrorsKeepGooglesMessage() {
+        server.expect(requestTo("https://api.test/calendar/v3/users/me/calendarList?maxResults=250"))
+                .andRespond(withStatus(HttpStatus.FORBIDDEN).body("{\"error\": {\"message\": \"Rate Limit Exceeded\"}}"));
+
+        assertThatThrownBy(() -> api.listCalendars("access-1"))
+                .hasMessageContaining("HTTP 403").hasMessageContaining("Rate Limit Exceeded");
     }
 
     @Test

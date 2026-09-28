@@ -165,9 +165,19 @@ public class GoogleApi {
                 .body(Tokens.class);
     }
 
+    // Häufige Ursachen verständlich melden; sonst Googles eigene Meldung anhängen, damit sie im Log steht.
     private static GoogleException apiError(ClientHttpResponse response) throws IOException {
-        return new GoogleException("Google hat die Anfrage abgelehnt (HTTP " + response.getStatusCode().value() + ").",
-                false);
+        String body = bodyOf(response);
+        if (body.contains("accessNotConfigured") || body.contains("SERVICE_DISABLED")) {
+            return new GoogleException("Die Google Calendar API ist im Google-Cloud-Projekt nicht aktiviert.", false);
+        }
+        if (body.contains("insufficientPermissions") || body.contains("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
+            return new GoogleException("Der Zugriff auf den Kalender wurde bei Google nicht erlaubt. Bitte neu verbinden "
+                    + "und den Kalenderzugriff zulassen.", true);
+        }
+        String detail = body.replaceAll("\\s+", " ").strip();
+        return new GoogleException("Google hat die Anfrage abgelehnt (HTTP " + response.getStatusCode().value() + "): "
+                + (detail.length() > 300 ? detail.substring(0, 300) + "…" : detail), false);
     }
 
     private static String bodyOf(ClientHttpResponse response) throws IOException {
