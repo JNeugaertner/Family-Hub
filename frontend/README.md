@@ -40,8 +40,9 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Profile: Mitglieder, Rollen, Einzelrechte, Freigaben für Gäste, eigenes Passwort | Backend: `/api/members`, `/api/roles`, `/api/settings`, `/api/auth/password` |
 | Aufgaben: anlegen, abhaken, bestätigen oder zurückgeben; Dashboard „Dringende Aufgaben“ | Backend: `/api/tasks` |
 | Punkte: Punktestände, Rangliste, Historie, Belohnungsanimation; Dashboard „Familienpunkte“ | Backend: `/api/points` |
+| Belohnungen: Shop, einlösen, zurückziehen; Genehmigen/Ablehnen und Belohnungen verwalten (Admins) | Backend: `/api/rewards`, `/api/redemptions` |
 | Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter Profiles) | Backend: `/api/google` |
-| Belohnungsshop, Erfolge, Einkauf, Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
+| Einkauf, Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
 daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem
@@ -59,6 +60,14 @@ Stift (auch ein Klick auf die Karte öffnet das Formular); bestätigte Aufgaben
 lassen sich nur ansehen. Administratoren räumen mit „Erledigte löschen“ in der
 Spalte Done auf: Das entfernt bestätigte Aufgaben und erledigte ohne Punkte,
 wartende Bestätigungen bleiben stehen, die Punkte-Historie bleibt erhalten.
+
+**Belohnungen:** Kinder und Jugendliche lösen im Belohnungsshop Punkte für
+sich selbst ein; die Punkte werden sofort abgezogen und die Einlösung wartet
+auf die Eltern. Eltern genehmigen oder lehnen (mit optionalem Grund) ab; beim
+Ablehnen und beim Zurückziehen einer offenen Einlösung kommen die Punkte
+zurück. Eltern können auch direkt für ein Kind einlösen, das gilt dann sofort
+als genehmigt. Je Belohnung ist einstellbar, ob sie mehrfach einlösbar ist.
+Offene Genehmigungen zählt ein Hinweis an „Rewards“ in der Seitenleiste.
 
 **Google Kalender:** Termine aus Google tragen im Kalender und im Dashboard ein
 „G“ und lassen sich nur ansehen; geändert werden sie in Google. Ganztägige
@@ -93,6 +102,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/family/`: API für Mitglieder, Rollen und Einstellungen, Farbpalette
 - `src/tasks/`: Aufgaben-API, `TaskDataContext` (lädt Aufgaben und Punktestände), `permissions.ts` (was die angemeldete Person bei Aufgaben darf)
 - `src/points/`: Punkte-API, Punktestände je Kind, Belohnungsanimation und Hinweis auf neue Punkte
+- `src/rewards/`: Belohnungs-API und `RewardDataContext` (Belohnungen und Einlösungen, lädt nach Änderungen auch die Punktestände neu)
 - `src/google/`: Google-API des Backends, Karte „Google Kalender“ für die Profilseite, „G“-Abzeichen
 - `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
 - `src/components/`: die Seiten (Dashboard, Calendar, Tasks, Rewards, Shopping, MealPlanning, AIAssistant, Messenger, Profiles)

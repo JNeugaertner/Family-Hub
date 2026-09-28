@@ -20,6 +20,7 @@ import { formatLongDate, startOfToday } from './calendar/dates';
 import { useTaskData } from './tasks/TaskDataContext';
 import NewPointsNotice from './points/NewPointsNotice';
 import { googleReturnFromUrl } from './google/api';
+import { useRewardData } from './rewards/RewardDataContext';
 import { ROLE_NAMES } from './roles';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
@@ -67,6 +68,10 @@ export default function App() {
   const taskBadge = mayConfirmTasks
     ? tasks.filter(t => t.status === 'done' && t.points > 0).length
     : tasks.filter(t => t.assigneeId === me.id && t.status !== 'done' && t.status !== 'confirmed').length;
+  // Zähler an "Rewards": für Administratoren die Einlösungen, die auf Genehmigung warten
+  const { redemptions } = useRewardData();
+  const mayDecideRewards = can('punkte', 'freigeben', 'familie');
+  const rewardBadge = mayDecideRewards ? redemptions.filter(r => r.status === 'pending').length : 0;
   const initial = me.name.charAt(0).toUpperCase();
 
   const unreadCount = NOTIFICATIONS.filter(n => !n.read).length;
@@ -179,6 +184,12 @@ export default function App() {
                   <span className="ml-auto w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center"
                     title={mayConfirmTasks ? 'Aufgaben warten auf Bestätigung' : 'Offene Aufgaben'}>
                     {taskBadge}<span className="sr-only">{mayConfirmTasks ? ' warten auf Bestätigung' : ' offen'}</span>
+                  </span>
+                )}
+                {id === 'rewards' && rewardBadge > 0 && (
+                  <span className="ml-auto w-5 h-5 rounded-full bg-[#8B5CF6] text-white text-[10px] font-bold flex items-center justify-center"
+                    title="Einlösungen warten auf Genehmigung">
+                    {rewardBadge}<span className="sr-only"> Einlösungen warten auf Genehmigung</span>
                   </span>
                 )}
               </button>

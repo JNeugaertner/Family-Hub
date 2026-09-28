@@ -27,6 +27,8 @@ import de.familyhub.permission.Permission;
 import de.familyhub.permission.Permissions;
 import de.familyhub.permission.Role;
 import de.familyhub.permission.Scope;
+import de.familyhub.rewards.RedemptionRepository;
+import de.familyhub.rewards.RedemptionStatus;
 import de.familyhub.security.CurrentMember;
 import de.familyhub.task.TaskRepository;
 import de.familyhub.web.ApiException;
@@ -48,10 +50,12 @@ public class FamilyMemberController {
     private final PasswordEncoder passwordEncoder;
     private final Permissions permissions;
     private final GoogleAccountService googleAccounts;
+    private final RedemptionRepository redemptions;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
             TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
-            PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts) {
+            PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts,
+            RedemptionRepository redemptions) {
         this.members = members;
         this.events = events;
         this.tasks = tasks;
@@ -61,6 +65,7 @@ public class FamilyMemberController {
         this.passwordEncoder = passwordEncoder;
         this.permissions = permissions;
         this.googleAccounts = googleAccounts;
+        this.redemptions = redemptions;
     }
 
     @GetMapping
@@ -144,6 +149,10 @@ public class FamilyMemberController {
             String aufgaben = taskCount == 1 ? "eine Aufgabe" : taskCount + " Aufgaben";
             throw ApiException.conflict("Dem Familienmitglied ist noch " + aufgaben
                     + " zugewiesen. Bitte zuerst die Aufgaben löschen oder einem anderen Mitglied zuweisen.");
+        }
+        if (redemptions.countByMemberIdAndStatus(id, RedemptionStatus.PENDING) > 0) {
+            throw ApiException.conflict("Das Familienmitglied hat noch offene Einlösungen von Belohnungen. "
+                    + "Bitte zuerst genehmigen oder ablehnen.");
         }
         googleAccounts.forgetMember(id);
         members.deleteById(id);

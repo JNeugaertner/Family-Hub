@@ -5,6 +5,7 @@ import { AuthProvider } from './auth/AuthContext'
 import AuthGate from './auth/AuthGate'
 import { CalendarDataProvider } from './calendar/CalendarDataContext'
 import { TaskDataProvider } from './tasks/TaskDataContext'
+import { RewardDataProvider } from './rewards/RewardDataContext'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -13,7 +14,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <AuthGate>
         <CalendarDataProvider>
           <TaskDataProvider>
-            <App />
+            <RewardDataProvider>
+              <App />
+            </RewardDataProvider>
           </TaskDataProvider>
         </CalendarDataProvider>
       </AuthGate>

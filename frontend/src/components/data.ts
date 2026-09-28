@@ -121,25 +121,6 @@ export const MEALS: Record<string, { breakfast: string; lunch: string; dinner: s
   Sun: { breakfast: '🥞 Big family brunch', lunch: 'Light leftovers', dinner: 'Roast chicken & roasties', snacks: '🍪 Cookies & milk' },
 };
 
-export interface Achievement {
-  id: number;
-  name: string;
-  icon: string;
-  description: string;
-  memberId?: number;
-  earned: boolean;
-  points: number;
-}
-
-export const ACHIEVEMENTS: Achievement[] = [
-  { id: 1, name: 'Early Bird', icon: '🌅', description: 'Completed 5 morning tasks', earned: true, points: 50 },
-  { id: 2, name: 'Helping Hand', icon: '🤝', description: 'Helped a sibling 3 times', earned: true, points: 75 },
-  { id: 3, name: 'Scholar', icon: '📚', description: 'Homework on time all week', earned: false, points: 100 },
-  { id: 4, name: 'Chef Jr.', icon: '👨‍🍳', description: 'Helped cook 3 meals', earned: false, points: 80 },
-  { id: 5, name: 'Super Clean', icon: '✨', description: 'Cleaned room 7 days straight', earned: true, points: 120 },
-  { id: 6, name: 'Star Reader', icon: '⭐', description: 'Read 10 books this month', earned: false, points: 150 },
-];
-
 export interface Message {
   id: number;
   source: 'whatsapp' | 'telegram' | 'family';
