@@ -7,9 +7,11 @@ Müllabfuhr, Fahrzeiten, Messenger-Eingaben und Sprachfunktionen in einer
 gemeinsamen Oberfläche. Leitprinzip: **Der Agent informiert und bereitet vor,
 die Eltern entscheiden.**
 
-**Status:** Proof of Concept. Umgesetzt sind der Familienkalender sowie
-Anmeldung, Rollen und Rechte. Die übrigen Bereiche der Oberfläche zeigen noch
-feste Beispieldaten.
+**Status:** Proof of Concept. Umgesetzt sind der Familienkalender, Anmeldung,
+Rollen und Rechte, Aufgaben mit Punktesystem (Punkte nach Bestätigung
+durch die Eltern), ein Belohnungsshop (Punkte einlösen, Eltern genehmigen)
+sowie das Einbinden des eigenen Google Kalenders (nur lesen).
+Die übrigen Bereiche der Oberfläche zeigen noch feste Beispieldaten.
 
 ## Tech-Stack
 
@@ -64,6 +66,43 @@ Ohne Beispieldaten (`familyhub.sample-data.enabled=false`) legt man beim ersten
 Start in der Oberfläche („Familie einrichten“) oder über `POST /api/auth/setup`
 den ersten Administrator an.
 
+## Google Kalender einrichten (optional)
+
+Jedes Familienmitglied außer Gästen kann unter „Profiles“ seinen Google
+Kalender verbinden. FamilyHub liest die Termine (ein Jahr zurück und ein Jahr
+voraus) und übernimmt sie schreibgeschützt; geändert wird weiter in Google.
+Abgeglichen wird beim Verbinden, per Knopf und alle 15 Minuten. Beim Trennen
+werden die übernommenen Termine wieder entfernt.
+
+Dafür braucht das Backend eigene Zugangsdaten von Google:
+
+1. In der [Google Cloud Console](https://console.cloud.google.com) ein Projekt
+   anlegen und die **Google Calendar API** aktivieren (`calendar-json.googleapis.com`,
+   nicht die ähnlich benannte „CalDAV API“).
+2. Unter „OAuth-Zustimmungsbildschirm“ den Typ **Extern** wählen, die
+   Berechtigung `.../auth/calendar.readonly` hinzufügen und alle Google-Konten,
+   die testen sollen, als **Testnutzer** eintragen.
+3. Unter „Anmeldedaten“ eine **OAuth-Client-ID** vom Typ „Webanwendung“ anlegen
+   mit der autorisierten Weiterleitungs-URI
+   `http://localhost:8080/api/google/callback`.
+4. Im Projektordner eine Datei `local.properties` anlegen. Sie steht in
+   `.gitignore` und darf **nie eingecheckt** werden:
+
+   ```properties
+   familyhub.google.client-id=<Client-ID aus Schritt 3>
+   familyhub.google.client-secret=<Clientschlüssel aus Schritt 3>
+   # Beliebige lange Zufallszeichenkette; damit werden die Google-Zugänge in
+   # der Datenbank verschlüsselt. Wird sie geändert, muss man neu verbinden.
+   familyhub.google.token-key=<Zufallszeichenkette>
+   ```
+
+   Eine Zufallszeichenkette erzeugt z. B. PowerShell:
+   `$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)`
+5. Backend neu starten.
+
+Solange die Google-App im Status „Testing“ ist, laufen die Zugänge nach
+7 Tagen ab. FamilyHub zeigt dann „Bitte neu verbinden“ an.
+
 ## Projektstruktur
 
 ```
@@ -84,8 +123,14 @@ Team-Ordner, nicht im Repository.
 
 ## Zusammenarbeit
 
-- **Nicht direkt auf `main` committen.** Für jede Aufgabe einen Branch anlegen
-  (`feature/...`, `fix/...`) und per Pull Request mergen.
+- **Branches:**
+  - `main` enthält nur geprüfte, lauffähige Stände. Jede Version bekommt einen
+    Tag (`v0.1.0`, …); `release/v0.1.0` sichert den ersten Stand zusätzlich.
+  - `develop` ist die Basis für die Weiterentwicklung. Neue Features auf
+    `feature/...`, Fehlerbehebungen auf `fix/...` von `develop` abzweigen und
+    per Pull Request in `develop` mergen.
+  - Ist `develop` getestet und stabil, wird `develop` in `main` gemergt und ein
+    neuer Tag gesetzt. Nie direkt auf `main` oder `release/...` committen.
 - **Commit-Nachrichten auf Deutsch**, erste Zeile als kurze Zusammenfassung im
   Imperativ, z. B. „Termin-API um Zeitraumfilter ergänzen". Bei Bedarf darunter
   eine Leerzeile und das Warum.

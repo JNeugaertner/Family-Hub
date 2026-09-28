@@ -1,5 +1,7 @@
 // Feste Beispieldaten für die Seiten, die noch nicht ans Backend angeschlossen sind (Aufgaben, Punkte,
 // Einkauf, Essen, Nachrichten). Kalender, Dashboard-Termine und Profile kommen aus dem Backend.
+import { addDays, mondayOf, startOfToday, toDateKey } from '../calendar/dates';
+
 export interface FamilyMember {
   id: number;
   name: string;
@@ -45,6 +47,10 @@ export interface CalendarEvent {
   private: boolean;
   status: EventStatus;
   createdBy?: string;
+  // Aus Google übernommen: nur ansehen, geändert wird in Google
+  source?: 'google';
+  // Von 00:00 bis 00:00 eines späteren Tages (z. B. ganztägige Google-Termine)
+  allDay?: boolean;
   travelTime?: number;
   transportMode?: TransportMode;
   conflict?: boolean;
@@ -115,25 +121,6 @@ export const MEALS: Record<string, { breakfast: string; lunch: string; dinner: s
   Sun: { breakfast: '🥞 Big family brunch', lunch: 'Light leftovers', dinner: 'Roast chicken & roasties', snacks: '🍪 Cookies & milk' },
 };
 
-export interface Achievement {
-  id: number;
-  name: string;
-  icon: string;
-  description: string;
-  memberId?: number;
-  earned: boolean;
-  points: number;
-}
-
-export const ACHIEVEMENTS: Achievement[] = [
-  { id: 1, name: 'Early Bird', icon: '🌅', description: 'Completed 5 morning tasks', earned: true, points: 50 },
-  { id: 2, name: 'Helping Hand', icon: '🤝', description: 'Helped a sibling 3 times', earned: true, points: 75 },
-  { id: 3, name: 'Scholar', icon: '📚', description: 'Homework on time all week', earned: false, points: 100 },
-  { id: 4, name: 'Chef Jr.', icon: '👨‍🍳', description: 'Helped cook 3 meals', earned: false, points: 80 },
-  { id: 5, name: 'Super Clean', icon: '✨', description: 'Cleaned room 7 days straight', earned: true, points: 120 },
-  { id: 6, name: 'Star Reader', icon: '⭐', description: 'Read 10 books this month', earned: false, points: 150 },
-];
-
 export interface Message {
   id: number;
   source: 'whatsapp' | 'telegram' | 'family';
@@ -178,11 +165,14 @@ export interface GarbagePickup {
   reminderDayBefore: boolean;
 }
 
+// Noch ohne Backend: Abholtermine relativ zur aktuellen Woche (0 = Montag), passend zu den Beispielterminen
+const thisWeek = (day: number) => toDateKey(addDays(mondayOf(startOfToday()), day));
+
 export const GARBAGE_PICKUPS: GarbagePickup[] = [
-  { id: 1, type: 'Gelber Sack',  date: '2026-09-22', color: '#CA8A04', bgColor: '#FEF9C3', icon: '🟡', reminderDayBefore: true },
-  { id: 2, type: 'Papier',       date: '2026-09-24', color: '#2563EB', bgColor: '#EFF6FF', icon: '🔵', reminderDayBefore: true },
-  { id: 3, type: 'Biomüll',      date: '2026-09-28', color: '#16A34A', bgColor: '#F0FDF4', icon: '🟢', reminderDayBefore: true },
-  { id: 4, type: 'Restmüll',     date: '2026-10-05', color: '#6B7280', bgColor: '#F9FAFB', icon: '⚫', reminderDayBefore: true },
+  { id: 1, type: 'Gelber Sack',  date: thisWeek(1),  color: '#CA8A04', bgColor: '#FEF9C3', icon: '🟡', reminderDayBefore: true },
+  { id: 2, type: 'Papier',       date: thisWeek(3),  color: '#2563EB', bgColor: '#EFF6FF', icon: '🔵', reminderDayBefore: true },
+  { id: 3, type: 'Biomüll',      date: thisWeek(7),  color: '#16A34A', bgColor: '#F0FDF4', icon: '🟢', reminderDayBefore: true },
+  { id: 4, type: 'Restmüll',     date: thisWeek(14), color: '#6B7280', bgColor: '#F9FAFB', icon: '⚫', reminderDayBefore: true },
 ];
 
 export interface ClothingRecommendation {

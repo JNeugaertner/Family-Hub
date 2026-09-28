@@ -29,6 +29,16 @@ class WebConfigTest {
                 .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
     }
 
+    // Aufgaben abhaken nutzt PATCH (PATCH /api/tasks/{id}/status)
+    @Test
+    void frontendOriginMayUsePatch() throws Exception {
+        mvc.perform(options("/api/tasks/1/status")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "PATCH"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
+    }
+
     @Test
     void otherOriginsAreBlocked() throws Exception {
         mvc.perform(options("/api/events")

@@ -33,6 +33,10 @@ import de.familyhub.permission.Module;
 import de.familyhub.permission.Permission;
 import de.familyhub.permission.Role;
 import de.familyhub.permission.Scope;
+import de.familyhub.task.Task;
+import de.familyhub.task.TaskCategory;
+import de.familyhub.task.TaskPriority;
+import de.familyhub.task.TaskRepository;
 import de.familyhub.testsupport.TestUsers;
 
 @SpringBootTest
@@ -50,6 +54,9 @@ class FamilyMemberControllerTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private TaskRepository tasks;
 
     private FamilyMember sarah;
 
@@ -274,6 +281,18 @@ class FamilyMemberControllerTest {
         mvc.perform(delete("/api/members/" + lucas.id()).with(as(sarah)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value(containsString("einen Termin")));
+    }
+
+    @Test
+    void deleteIsRefusedWhileMemberHasTasks() throws Exception {
+        FamilyMember lucas = members.save(TestUsers.member("Lucas", Role.KIND));
+        Task task = tasks.save(new Task(null, "Müll rausbringen", null, lucas.id(), LocalDate.of(2026, 9, 30),
+                TaskPriority.HIGH, TaskCategory.CHORES, 15));
+
+        mvc.perform(delete("/api/members/" + lucas.id()).with(as(sarah)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(containsString("eine Aufgabe")));
+        tasks.delete(task);
     }
 
     @Test

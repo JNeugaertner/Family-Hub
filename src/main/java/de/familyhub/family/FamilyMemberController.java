@@ -20,13 +20,17 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import de.familyhub.calendar.CalendarEventRepository;
+import de.familyhub.google.GoogleAccountService;
 import de.familyhub.permission.Action;
 import de.familyhub.permission.Module;
 import de.familyhub.permission.Permission;
 import de.familyhub.permission.Permissions;
 import de.familyhub.permission.Role;
 import de.familyhub.permission.Scope;
+import de.familyhub.rewards.RedemptionRepository;
+import de.familyhub.rewards.RedemptionStatus;
 import de.familyhub.security.CurrentMember;
+import de.familyhub.task.TaskRepository;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,22 +43,29 @@ public class FamilyMemberController {
 
     private final FamilyMemberRepository members;
     private final CalendarEventRepository events;
+    private final TaskRepository tasks;
     private final CurrentMember currentMember;
     private final MemberResponses responses;
     private final FamilyRules rules;
     private final PasswordEncoder passwordEncoder;
     private final Permissions permissions;
+    private final GoogleAccountService googleAccounts;
+    private final RedemptionRepository redemptions;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
-            CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
-            PasswordEncoder passwordEncoder, Permissions permissions) {
+            TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
+            PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts,
+            RedemptionRepository redemptions) {
         this.members = members;
         this.events = events;
+        this.tasks = tasks;
         this.currentMember = currentMember;
         this.responses = responses;
         this.rules = rules;
         this.passwordEncoder = passwordEncoder;
         this.permissions = permissions;
+        this.googleAccounts = googleAccounts;
+        this.redemptions = redemptions;
     }
 
     @GetMapping
@@ -118,7 +129,8 @@ public class FamilyMemberController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Familienmitglied löschen",
-            description = "Nur für Administratoren und nur, wenn dem Mitglied keine Termine mehr zugeordnet sind.")
+            description = "Nur für Administratoren und nur, wenn dem Mitglied keine Termine mehr zugeordnet sind. "
+                    + "Aus Google importierte Termine und die Google-Verbindung werden mitgelöscht.")
     public void delete(@PathVariable String id) {
         FamilyMember admin = requireManager();
         FamilyMember member = find(id);
@@ -126,12 +138,23 @@ public class FamilyMemberController {
             requireRightsManager(admin, "Nur Administratoren dürfen Administratoren löschen.");
         }
         rules.checkAdministratorRemains(member, null);
-        long eventCount = events.countByMemberId(id);
+        long eventCount = events.countByMemberIdAndExternalIsNull(id);
         if (eventCount > 0) {
             String termine = eventCount == 1 ? "einen Termin" : eventCount + " Termine";
             throw ApiException.conflict("Das Familienmitglied hat noch " + termine
                     + ". Bitte zuerst die Termine löschen oder einem anderen Mitglied zuordnen.");
         }
+        long taskCount = tasks.countByAssigneeId(id);
+        if (taskCount > 0) {
+            String aufgaben = taskCount == 1 ? "eine Aufgabe" : taskCount + " Aufgaben";
+            throw ApiException.conflict("Dem Familienmitglied ist noch " + aufgaben
+                    + " zugewiesen. Bitte zuerst die Aufgaben löschen oder einem anderen Mitglied zuweisen.");
+        }
+        if (redemptions.countByMemberIdAndStatus(id, RedemptionStatus.PENDING) > 0) {
+            throw ApiException.conflict("Das Familienmitglied hat noch offene Einlösungen von Belohnungen. "
+                    + "Bitte zuerst genehmigen oder ablehnen.");
+        }
+        googleAccounts.forgetMember(id);
         members.deleteById(id);
     }
 

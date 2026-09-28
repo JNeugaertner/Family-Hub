@@ -7,12 +7,11 @@ import {
   ChevronLeftIcon, ChevronRightIcon, PlusIcon,
   AlertTriangleIcon, ClockIcon, MapPinIcon,
 } from './Icons';
-import { useCalendarData } from '../calendar/CalendarDataContext';
+import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
 import { useCalendarPermissions } from '../calendar/permissions';
 import EventFormModal from './EventFormModal';
-
-// Das Figma-UI rechnet mit einem festen "Heute"; die Beispieldaten im Backend liegen in dieser Woche.
-const UI_TODAY = '2026-09-21';
+import { addDays, fromDateKey, startOfToday, toDateKey } from '../calendar/dates';
+import GoogleBadge from '../google/GoogleBadge';
 
 type SelectEvent = (event: CalendarEvent) => void;
 
@@ -80,6 +79,11 @@ function timeToMins(time: string): number {
 const eventMarker = (event: CalendarEvent) =>
   `${event.status === 'proposed' ? '⏳ ' : ''}${event.private ? '🔒 ' : ''}`;
 
+const sourceNote = (event: CalendarEvent) => (event.source === 'google' ? ' (Google Kalender)' : '');
+
+const timeRange = (event: CalendarEvent) =>
+  event.allDay ? 'Ganztägig' : `${event.time}${event.endTime ? ` – ${event.endTime}` : ''}`;
+
 const proposalStyle = (event: CalendarEvent, color: string) =>
   event.status === 'proposed'
     ? { backgroundColor: `${color}33`, color, border: `1px dashed ${color}` }
@@ -95,11 +99,12 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
       <div
         className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md truncate flex items-center gap-0.5 cursor-pointer hover:opacity-80 ${event.status === 'proposed' ? '' : 'text-white'} ${event.travelConflict ? 'ring-1 ring-[#EF4444]' : ''}`}
         style={proposalStyle(event, color)}
-        title={`${eventMarker(event)}${event.title}${event.status === 'proposed' ? ' (Vorschlag)' : ''}`}
+        title={`${eventMarker(event)}${event.title}${event.status === 'proposed' ? ' (Vorschlag)' : ''}${sourceNote(event)}`}
         onClick={e => { e.stopPropagation(); onSelect(event); }}
       >
         {(event.conflict || event.travelConflict) && <span>⚠</span>}
         {event.transportMode && <span>{TRANSPORT_ICONS[event.transportMode]}</span>}
+        {event.source === 'google' && <GoogleBadge className="flex-shrink-0" />}
         {eventMarker(event)}{event.title}
       </div>
     );
@@ -120,6 +125,9 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
           {event.private && (
             <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium">🔒 Privat</span>
           )}
+          {event.source === 'google' && (
+            <span className="text-[10px] bg-white border border-slate-200 text-[#4285F4] px-1.5 py-0.5 rounded-full font-medium">Google</span>
+          )}
           {(event.conflict || event.travelConflict) && (
             <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
               <AlertTriangleIcon size={10} />
@@ -133,7 +141,7 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
         <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
           <span className="flex items-center gap-1">
             <ClockIcon size={11} />
-            {event.time}{event.endTime ? ` – ${event.endTime}` : ''}
+            {timeRange(event)}
           </span>
           {event.location && (
             <span className="flex items-center gap-1">
@@ -170,7 +178,7 @@ function MonthView({ year, month, events: allEvents, onSelect }: { year: number;
   const firstDay    = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrev  = new Date(year, month, 0).getDate();
-  const today       = new Date(2026, 8, 21);
+  const today       = startOfToday();
 
   const garbageByDate: Record<string, GarbagePickup> = {};
   GARBAGE_PICKUPS.forEach(g => { garbageByDate[g.date] = g; });
@@ -182,7 +190,7 @@ function MonthView({ year, month, events: allEvents, onSelect }: { year: number;
 
   const getEventsForDay = (d: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    return allEvents.filter(e => e.date === dateStr).sort((a, b) => a.time.localeCompare(b.time));
+    return allEvents.filter(e => occursOn(e, dateStr)).sort((a, b) => a.time.localeCompare(b.time));
   };
 
   return (
@@ -243,7 +251,8 @@ function MonthView({ year, month, events: allEvents, onSelect }: { year: number;
 
 function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events: CalendarEvent[]; onSelect: SelectEvent }) {
   const { memberById } = useCalendarData();
-  const startOfWeek = new Date(2026, 8, 21 + weekOffset * 7);
+  const todayKey = toDateKey(startOfToday());
+  const startOfWeek = addDays(startOfToday(), weekOffset * 7);
   const dow = startOfWeek.getDay();
   startOfWeek.setDate(startOfWeek.getDate() - dow);
 
@@ -263,13 +272,16 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
     return events.filter(e => e.date === dateStr);
   };
 
+  // Ganztägige Termine stehen oben am Tag (liegen außerhalb des Stundenrasters), auch über mehrere Tage
+  const allDayFor = (dateStr: string) => events.filter(e => e.allDay && occursOn(e, dateStr));
+
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="grid border-b border-slate-100" style={{ gridTemplateColumns: '52px repeat(7, 1fr)' }}>
         <div className="border-r border-slate-100" />
         {weekDays.map(d => {
-          const isToday    = d.getDate() === 21 && d.getMonth() === 8 && d.getFullYear() === 2026;
+          const isToday    = toDateKey(d) === todayKey;
           const dateStr    = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           const events     = getEventsForDay(d);
           const garbage    = garbageByDate[dateStr];
@@ -306,6 +318,18 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
                   🗑 {garbage.type}
                 </div>
               )}
+              {allDayFor(dateStr).map(ev => (
+                <button
+                  key={ev.id}
+                  type="button"
+                  onClick={() => onSelect(ev)}
+                  className="block w-[calc(100%-8px)] text-left text-[9px] font-medium text-white mx-1 mt-1 px-1 py-0.5 rounded truncate hover:opacity-80"
+                  style={{ backgroundColor: memberById(ev.memberId)?.color ?? '#94A3B8' }}
+                  title={`${eventMarker(ev)}${ev.title} (ganztägig)${sourceNote(ev)}`}
+                >
+                  {ev.source === 'google' && <GoogleBadge className="mr-0.5" />}{eventMarker(ev)}{ev.title}
+                </button>
+              ))}
             </div>
           );
         })}
@@ -356,10 +380,12 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
                         } : ev.status === 'proposed'
                           ? proposalStyle(ev, member?.color || '#94A3B8')
                           : { backgroundColor: member?.color || '#94A3B8', color: 'white' }}
-                        title={`${eventMarker(ev)}${ev.title} at ${ev.time}`}
+                        title={`${eventMarker(ev)}${ev.title} at ${ev.time}${sourceNote(ev)}`}
                         onClick={() => onSelect(ev)}
                       >
-                        <div className="truncate font-semibold">{eventMarker(ev)}{ev.title}</div>
+                        <div className="truncate font-semibold">
+                          {ev.source === 'google' && <GoogleBadge className="mr-0.5" />}{eventMarker(ev)}{ev.title}
+                        </div>
                         <div className="opacity-80 text-[9px]">{ev.time}{ev.endTime ? `–${ev.endTime}` : ''}</div>
                         {hasTravel && (
                           <div className={`text-[9px] font-bold mt-0.5 ${hasTravelConflict ? 'text-[#EF4444]' : 'text-white/90'}`}>
@@ -405,17 +431,21 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
 
 // ─── day view ─────────────────────────────────────────────────────────────────
 
-function DayView({ events, onSelect }: { events: CalendarEvent[]; onSelect: SelectEvent }) {
-  const todayEvents = events
-    .filter(e => e.date === UI_TODAY)
+function DayView({ day, events, onSelect }: { day: Date; events: CalendarEvent[]; onSelect: SelectEvent }) {
+  const dayKey = toDateKey(day);
+  const isToday = dayKey === toDateKey(startOfToday());
+  const dayEvents = events
+    .filter(e => occursOn(e, dayKey))
     .sort((a, b) => a.time.localeCompare(b.time));
 
   return (
     <div className="space-y-3">
-      {todayEvents.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400">Heute keine Termine 🎉</div>
+      {dayEvents.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400">
+          {isToday ? 'Heute keine Termine 🎉' : 'An diesem Tag keine Termine'}
+        </div>
       ) : (
-        todayEvents.map(ev => <EventPill key={ev.id} event={ev} onSelect={onSelect} />)
+        dayEvents.map(ev => <EventPill key={ev.id} event={ev} onSelect={onSelect} />)
       )}
     </div>
   );
@@ -425,9 +455,10 @@ function DayView({ events, onSelect }: { events: CalendarEvent[]; onSelect: Sele
 
 export default function CalendarPage({ onNavigate }: Props) {
   const [view, setView]               = useState<View>('month');
-  const [year, setYear]               = useState(2026);
-  const [month, setMonth]             = useState(8);
+  const [year, setYear]               = useState(() => startOfToday().getFullYear());
+  const [month, setMonth]             = useState(() => startOfToday().getMonth());
   const [weekOffset, setWeekOffset]   = useState(0);
+  const [dayOffset, setDayOffset]     = useState(0);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null);
 
@@ -452,21 +483,30 @@ export default function CalendarPage({ onNavigate }: Props) {
     if (view === 'month') {
       if (month === 0) { setYear(y => y - 1); setMonth(11); } else setMonth(m => m - 1);
     } else if (view === 'week') setWeekOffset(w => w - 1);
+    else setDayOffset(d => d - 1);
   };
   const next = () => {
     if (view === 'month') {
       if (month === 11) { setYear(y => y + 1); setMonth(0); } else setMonth(m => m + 1);
     } else if (view === 'week') setWeekOffset(w => w + 1);
+    else setDayOffset(d => d + 1);
   };
+
+  const today = startOfToday();
+  const todayKey = toDateKey(today);
+  const shownDay = addDays(today, dayOffset);
+  const weekStart = addDays(today, weekOffset * 7 - today.getDay());
+  const heading = view === 'day'
+    ? shownDay.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+    : view === 'week' ? `${MONTHS[weekStart.getMonth()]} ${weekStart.getFullYear()}` : `${MONTHS[month]} ${year}`;
+  // Rest der Woche (bis Sonntag) nach dem gezeigten Tag, für "Diese Woche" in der Tagesansicht
+  const endOfShownWeek = toDateKey(addDays(shownDay, (7 - shownDay.getDay()) % 7));
 
   const conflicts = visibleEvents.filter(e => e.conflict || e.travelConflict);
 
   // Upcoming garbage pickups for sidebar
   const upcomingGarbage = GARBAGE_PICKUPS
-    .filter(g => {
-      const today = new Date('2026-09-21');
-      return new Date(g.date) >= today;
-    })
+    .filter(g => g.date >= todayKey)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 3);
 
@@ -479,7 +519,7 @@ export default function CalendarPage({ onNavigate }: Props) {
             <ChevronLeftIcon size={16} />
           </button>
           <h2 className="font-bold text-slate-800 text-lg min-w-[180px] text-center">
-            {view === 'day' ? 'Mo, 21. September 2026' : `${MONTHS[month]} ${year}`}
+            {heading}
           </h2>
           <button onClick={next} className="p-2 rounded-xl hover:bg-white border border-slate-200 text-slate-500 shadow-sm transition-colors">
             <ChevronRightIcon size={16} />
@@ -606,8 +646,7 @@ export default function CalendarPage({ onNavigate }: Props) {
         <div className="mb-5 flex flex-wrap gap-2">
           {upcomingGarbage.map(g => {
             const ws  = WASTE_STYLES[g.type];
-            const today = new Date('2026-09-21');
-            const days  = Math.round((new Date(g.date).getTime() - today.getTime()) / 86_400_000);
+            const days  = Math.round((fromDateKey(g.date).getTime() - today.getTime()) / 86_400_000);
             return (
               <div
                 key={g.id}
@@ -643,7 +682,7 @@ export default function CalendarPage({ onNavigate }: Props) {
       {/* Views */}
       {view === 'month' && <MonthView year={year} month={month} events={visibleEvents} onSelect={openEditor} />}
       {view === 'week'  && <WeekView weekOffset={weekOffset} events={visibleEvents} onSelect={openEditor} />}
-      {view === 'day'   && <DayView events={visibleEvents} onSelect={openEditor} />}
+      {view === 'day'   && <DayView day={shownDay} events={visibleEvents} onSelect={openEditor} />}
 
       {/* Upcoming events (day view only) */}
       {view === 'day' && (
@@ -651,7 +690,7 @@ export default function CalendarPage({ onNavigate }: Props) {
           <h3 className="font-bold text-slate-800 mb-3">Diese Woche</h3>
           <div className="space-y-2">
             {visibleEvents
-              .filter(e => e.date > UI_TODAY && e.date <= '2026-09-27')
+              .filter(e => e.date > toDateKey(shownDay) && e.date <= endOfShownWeek)
               .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
               .slice(0, 5)
               .map(ev => <EventPill key={ev.id} event={ev} onSelect={openEditor} />)
@@ -661,7 +700,8 @@ export default function CalendarPage({ onNavigate }: Props) {
       )}
 
       {editor && (
-        <EventFormModal event={editor.event} defaultDate={UI_TODAY} onClose={() => setEditor(null)} />
+        <EventFormModal event={editor.event} defaultDate={view === 'day' ? toDateKey(shownDay) : todayKey}
+          onClose={() => setEditor(null)} />
       )}
     </div>
   );

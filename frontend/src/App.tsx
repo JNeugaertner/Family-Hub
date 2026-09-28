@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Dashboard from './components/Dashboard';
 import CalendarPage from './components/CalendarPage';
 import Tasks from './components/Tasks';
@@ -16,6 +16,11 @@ import {
 import { NOTIFICATIONS } from './components/data';
 import { useAuth, useMe } from './auth/AuthContext';
 import { useCalendarData } from './calendar/CalendarDataContext';
+import { formatLongDate, startOfToday } from './calendar/dates';
+import { useTaskData } from './tasks/TaskDataContext';
+import NewPointsNotice from './points/NewPointsNotice';
+import { googleReturnFromUrl } from './google/api';
+import { useRewardData } from './rewards/RewardDataContext';
 import { ROLE_NAMES } from './roles';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
@@ -45,12 +50,28 @@ const PAGE_TITLES: Record<Page, string> = {
 };
 
 export default function App() {
-  const [page, setPage] = useState<Page>('dashboard');
+  // Nach der Rückkehr von Google (?google=…) die Profilseite mit der Google-Karte öffnen
+  const [page, setPage] = useState<Page>(() => (googleReturnFromUrl() ? 'profiles' : 'dashboard'));
+  // Parameter danach aus der Adresse nehmen, damit die Meldung beim Neuladen nicht wieder erscheint.
+  // Effekte der Kinder laufen vorher, die Google-Karte hat ihn da schon gelesen.
+  useEffect(() => {
+    if (googleReturnFromUrl()) window.history.replaceState(null, '', window.location.pathname);
+  }, []);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const me = useMe();
-  const { roleName, logout } = useAuth();
+  const { roleName, logout, can } = useAuth();
   const { members } = useCalendarData();
+  const { tasks } = useTaskData();
+  // Zähler an "Tasks": für Administratoren die wartenden Bestätigungen, sonst die eigenen offenen Aufgaben
+  const mayConfirmTasks = can('punkte', 'freigeben', 'familie');
+  const taskBadge = mayConfirmTasks
+    ? tasks.filter(t => t.status === 'done' && t.points > 0).length
+    : tasks.filter(t => t.assigneeId === me.id && t.status !== 'done' && t.status !== 'confirmed').length;
+  // Zähler an "Rewards": für Administratoren die Einlösungen, die auf Genehmigung warten
+  const { redemptions } = useRewardData();
+  const mayDecideRewards = can('punkte', 'freigeben', 'familie');
+  const rewardBadge = mayDecideRewards ? redemptions.filter(r => r.status === 'pending').length : 0;
   const initial = me.name.charAt(0).toUpperCase();
 
   const unreadCount = NOTIFICATIONS.filter(n => !n.read).length;
@@ -159,8 +180,17 @@ export default function App() {
                 {id === 'messenger' && (
                   <span className="ml-auto w-5 h-5 rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center">3</span>
                 )}
-                {id === 'tasks' && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center">5</span>
+                {id === 'tasks' && taskBadge > 0 && (
+                  <span className="ml-auto w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center"
+                    title={mayConfirmTasks ? 'Aufgaben warten auf Bestätigung' : 'Offene Aufgaben'}>
+                    {taskBadge}<span className="sr-only">{mayConfirmTasks ? ' warten auf Bestätigung' : ' offen'}</span>
+                  </span>
+                )}
+                {id === 'rewards' && rewardBadge > 0 && (
+                  <span className="ml-auto w-5 h-5 rounded-full bg-[#8B5CF6] text-white text-[10px] font-bold flex items-center justify-center"
+                    title="Einlösungen warten auf Genehmigung">
+                    {rewardBadge}<span className="sr-only"> Einlösungen warten auf Genehmigung</span>
+                  </span>
                 )}
               </button>
             );
@@ -213,7 +243,7 @@ export default function App() {
           <div>
             <h1 className="text-lg font-bold text-[#0F172A] leading-tight">{PAGE_TITLES[page]}</h1>
             <p className="text-xs text-slate-400 hidden sm:block">
-              Monday, 21 September 2026
+              {formatLongDate(startOfToday())}
             </p>
           </div>
 
@@ -279,6 +309,7 @@ export default function App() {
         <main className="flex-1 overflow-y-auto">
           <PageComponent onNavigate={navigate} />
         </main>
+        <NewPointsNotice />
 
         {/* Mobile bottom nav */}
         <nav className="lg:hidden flex-shrink-0 bg-white border-t border-slate-100 px-2 py-1 safe-area-bottom">

@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import {
-  FAMILY_MEMBERS, INITIAL_TASKS, INITIAL_SHOPPING,
+  FAMILY_MEMBERS, INITIAL_SHOPPING,
   MEALS, WEATHER, CLOTHING_RECOMMENDATIONS, getWeatherCondition,
   type CalendarEvent,
 } from './data';
-import { useCalendarData } from '../calendar/CalendarDataContext';
+import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
+import GoogleBadge from '../google/GoogleBadge';
+import { startOfToday, toDateKey } from '../calendar/dates';
+import { useTaskData } from '../tasks/TaskDataContext';
+import { usePointHolders } from '../points/usePointHolders';
 import {
   CalendarIcon, CheckSquareIcon, ShoppingCartIcon, UtensilsIcon,
   StarIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon,
@@ -25,8 +29,8 @@ const TRANSPORT_ICONS: Record<string, string> = {
 
 function MiniCalendar({ onNavigate }: { onNavigate: (p: Page) => void }) {
   const { events: calendarEvents, memberById } = useCalendarData();
-  const today    = new Date(2026, 8, 21);
-  const [viewDate, setViewDate] = useState(new Date(2026, 8, 1));
+  const today    = startOfToday();
+  const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const year     = viewDate.getFullYear();
   const month    = viewDate.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
@@ -40,7 +44,7 @@ function MiniCalendar({ onNavigate }: { onNavigate: (p: Page) => void }) {
 
   const getEvents = (d: number) => {
     const s = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    return calendarEvents.filter(e => e.date === s && e.status === 'approved');
+    return calendarEvents.filter(e => occursOn(e, s) && e.status === 'approved');
   };
 
   return (
@@ -166,7 +170,7 @@ function departureStr(ev: CalendarEvent): string | null {
 function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
   const { events, memberById } = useCalendarData();
   const todayEvents = events
-    .filter(e => e.date === '2026-09-21' && e.status === 'approved')
+    .filter(e => occursOn(e, toDateKey(startOfToday())) && e.status === 'approved')
     .sort((a, b) => a.time.localeCompare(b.time));
 
   return (
@@ -194,7 +198,9 @@ function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-slate-800">{ev.title}</span>
+                    <span className="text-sm font-semibold text-slate-800">
+                      {ev.source === 'google' && <GoogleBadge className="mr-1" />}{ev.title}
+                    </span>
                     {(ev.conflict || ev.travelConflict) && (
                       <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
                         <AlertTriangleIcon size={10} /> Konflikt
@@ -202,7 +208,7 @@ function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400 flex-wrap">
-                    <span className="flex items-center gap-1"><ClockIcon size={10} />{ev.time}{ev.endTime ? ` – ${ev.endTime}` : ''}</span>
+                    <span className="flex items-center gap-1"><ClockIcon size={10} />{ev.allDay ? 'Ganztägig' : `${ev.time}${ev.endTime ? ` – ${ev.endTime}` : ''}`}</span>
                     {ev.location && <span className="flex items-center gap-1"><MapPinIcon size={10} />{ev.location}</span>}
                   </div>
                   {dep && (
@@ -231,7 +237,9 @@ function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
 // ─── quick tasks ──────────────────────────────────────────────────────────────
 
 function QuickTasks({ onNavigate }: { onNavigate: (p: Page) => void }) {
-  const urgent = INITIAL_TASKS.filter(t => t.status !== 'done' && t.priority === 'high').slice(0, 4);
+  const { tasks } = useTaskData();
+  const { memberById } = useCalendarData();
+  const urgent = tasks.filter(t => t.status !== 'done' && t.status !== 'confirmed' && t.priority === 'high').slice(0, 4);
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-4">
@@ -242,9 +250,10 @@ function QuickTasks({ onNavigate }: { onNavigate: (p: Page) => void }) {
         <button onClick={() => onNavigate('tasks')} className="text-xs text-[#2563EB] font-medium hover:underline">Kanban →</button>
       </div>
       <div className="space-y-2">
+        {urgent.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Keine dringenden Aufgaben 🎉</p>}
         {urgent.map(t => {
-          const member = FAMILY_MEMBERS.find(m => m.id === t.assigneeId);
-          const c = { todo: '#F97316', inprogress: '#2563EB', done: '#22C55E' }[t.status];
+          const member = memberById(t.assigneeId);
+          const c = t.status === 'inprogress' ? '#2563EB' : '#F97316';
           return (
             <div key={t.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c }} />
@@ -337,8 +346,9 @@ function ShoppingWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
 // ─── points widget ────────────────────────────────────────────────────────────
 
 function PointsWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
-  const children  = FAMILY_MEMBERS.filter(m => m.role === 'Child');
-  const maxPoints = Math.max(...children.map(c => c.points));
+  const children  = usePointHolders();
+  const maxPoints = Math.max(1, ...children.map(c => c.points));
+  if (children.length === 0) return null;
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-4">

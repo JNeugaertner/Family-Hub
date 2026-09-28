@@ -4,6 +4,7 @@ import { useCalendarData } from '../calendar/CalendarDataContext';
 import { useCalendarPermissions } from '../calendar/permissions';
 import { ApiError } from '../api/client';
 import { CATEGORY_OPTIONS } from '../calendar/categories';
+import GoogleBadge from '../google/GoogleBadge';
 
 // Das Backend meldet "Ende nach Beginn" unter endAfterStart; im Formular gehört es zum Feld "Ende".
 const FIELD_ALIASES: Record<string, string> = { endAfterStart: 'end' };
@@ -156,7 +157,12 @@ export default function EventFormModal({ event, defaultDate, onClose }: Props) {
               wenn ein Administrator ihn freigibt.
             </div>
           )}
-          {readOnly && (
+          {event?.source === 'google' ? (
+            <div className="bg-slate-50 border border-slate-200 text-slate-600 text-sm rounded-xl p-3">
+              <GoogleBadge /> Aus Google Kalender übernommen. Ändern oder löschen kannst du ihn nur in Google;
+              FamilyHub übernimmt Änderungen beim nächsten Abgleich.
+            </div>
+          ) : readOnly && (
             <p className="text-xs text-slate-500">Du kannst diesen Termin ansehen, aber nicht ändern.</p>
           )}
           {formError && (

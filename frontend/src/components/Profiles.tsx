@@ -11,6 +11,7 @@ import {
   type ApiMember, type MemberInput, type RoleInfo,
 } from '../family/api';
 import { FAMILY_COLORS } from '../family/colors';
+import GoogleCalendarCard from '../google/GoogleCalendarCard';
 import { hasPermission, permissionKey, ROLE_NAMES, type Permission, type RoleId } from '../roles';
 
 function ShieldLock({ size = 16, className = '' }: { size?: number; className?: string }) {
@@ -36,7 +37,8 @@ const PERMISSION_DISPLAY: (Permission & { label: string; icon: string })[] = [
   { module: 'einkauf', action: 'bearbeiten', scope: 'familie', label: 'Einkaufsliste bearbeiten', icon: '🛒' },
   { module: 'essen', action: 'vorschlagen', scope: 'familie', label: 'Essenswünsche einreichen', icon: '🍽️' },
   { module: 'punkte', action: 'ansehen', scope: 'familie', label: 'Punktestände der Familie sehen', icon: '⭐' },
-  { module: 'punkte', action: 'freigeben', scope: 'familie', label: 'Punkte vergeben', icon: '🎁' },
+  { module: 'punkte', action: 'vorschlagen', scope: 'eigen', label: 'Belohnungen einlösen', icon: '🛍️' },
+  { module: 'punkte', action: 'freigeben', scope: 'familie', label: 'Punkte vergeben, Einlösungen genehmigen', icon: '🎁' },
   { module: 'familie', action: 'verwalten', scope: 'familie', label: 'Familienmitglieder verwalten', icon: '👥' },
   { module: 'system', action: 'verwalten', scope: 'familie', label: 'Rollen & Rechte verwalten', icon: '🔒' },
 ];
@@ -489,6 +491,8 @@ export default function Profiles({ onNavigate }: Props) {
   const { reload: reloadCalendar } = useCalendarData();
   const mayManage = can('familie', 'verwalten', 'familie');
   const mayManageRights = can('system', 'verwalten', 'familie');
+  // Wie im Backend (GoogleController): alle außer Gästen, die ihre eigenen Termine sehen dürfen
+  const mayConnectGoogle = me.role !== 'gast' && can('kalender', 'ansehen', 'eigen');
 
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [roles, setRoles] = useState<RoleInfo[]>([]);
@@ -564,6 +568,7 @@ export default function Profiles({ onNavigate }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {mayManageRights && <GuestSettingsCard />}
         <PasswordCard />
+        {mayConnectGoogle && <GoogleCalendarCard />}
       </div>
 
       {editing && teenAge !== null && (
