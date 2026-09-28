@@ -1,14 +1,13 @@
+# MongoDB für die lokale Entwicklung per Docker (Alternative zu scripts/start-mongodb.ps1).
+# Starten: docker compose up -d   ·   Beenden: docker compose down   (Daten bleiben im Volume mongodb_data)
+# Wie das Skript: ohne Benutzer und Passwort, aber nur vom eigenen Rechner aus erreichbar (127.0.0.1).
 services:
   mongodb:
-    image: mongo:8
+    image: mongo:8.0
     container_name: familyhub-mongodb
 
     ports:
-      - "27017:27017"
-
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin123
+      - "127.0.0.1:27017:27017"
 
     volumes:
       - mongodb_data:/data/db
