@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import {
-  FAMILY_MEMBERS, INITIAL_SHOPPING,
   MEALS, WEATHER, CLOTHING_RECOMMENDATIONS, getWeatherCondition,
   type CalendarEvent,
 } from './data';
+import { useAuth } from '../auth/AuthContext';
 import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
+import { useShoppingData } from '../shopping/ShoppingDataContext';
 import GoogleBadge from '../google/GoogleBadge';
 import { startOfToday, toDateKey } from '../calendar/dates';
 import { useTaskData } from '../tasks/TaskDataContext';
@@ -306,8 +307,13 @@ function MealWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
 // ─── shopping widget ──────────────────────────────────────────────────────────
 
 function ShoppingWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
-  const remaining = INITIAL_SHOPPING.filter(i => !i.checked);
+  const { can } = useAuth();
+  const { items } = useShoppingData();
+  const { memberById } = useCalendarData();
+  const remaining = items.filter(i => i.status === 'approved' && !i.checked)
+    .sort((a, b) => Number(b.urgent) - Number(a.urgent));
   const urgent    = remaining.filter(i => i.urgent);
+  if (!can('einkauf', 'ansehen', 'familie')) return null;
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-3">
@@ -323,8 +329,9 @@ function ShoppingWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
         </div>
       )}
       <div className="space-y-1.5">
+        {remaining.length === 0 && <div className="text-sm text-slate-400 py-2">Alles erledigt 🎉</div>}
         {remaining.slice(0, 5).map(item => {
-          const member = FAMILY_MEMBERS.find(m => m.id === item.addedById);
+          const member = memberById(item.createdBy);
           return (
             <div key={item.id} className="flex items-center gap-2 text-sm">
               <div className="w-4 h-4 rounded border-2 border-slate-200 flex-shrink-0" />

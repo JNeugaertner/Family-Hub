@@ -10,7 +10,8 @@ die Eltern entscheiden.**
 **Status:** Proof of Concept. Umgesetzt sind der Familienkalender, Anmeldung,
 Rollen und Rechte, Aufgaben mit Punktesystem (Punkte nach Bestätigung
 durch die Eltern), ein Belohnungsshop (Punkte einlösen, Eltern genehmigen),
-Erfolge mit Bonuspunkten
+Erfolge mit Bonuspunkten, die Einkaufsliste (Kinder schlagen vor, Eltern
+übernehmen)
 sowie das Einbinden des eigenen Google Kalenders (nur lesen).
 Die übrigen Bereiche der Oberfläche zeigen noch feste Beispieldaten.
 
