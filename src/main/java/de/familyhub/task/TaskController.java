@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import de.familyhub.achievements.AchievementService;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
 import de.familyhub.points.PointsService;
@@ -43,15 +44,17 @@ public class TaskController {
     private final CurrentMember currentMember;
     private final TaskAccess access;
     private final PointsService points;
+    private final AchievementService achievements;
     private final Clock clock;
 
     public TaskController(TaskRepository tasks, FamilyMemberRepository members, CurrentMember currentMember,
-            TaskAccess access, PointsService points, Clock clock) {
+            TaskAccess access, PointsService points, AchievementService achievements, Clock clock) {
         this.tasks = tasks;
         this.members = members;
         this.currentMember = currentMember;
         this.access = access;
         this.points = points;
+        this.achievements = achievements;
         this.clock = clock;
     }
 
@@ -148,13 +151,15 @@ public class TaskController {
     @PostMapping("/{id}/confirm")
     @Operation(summary = "Erledigte Aufgabe bestätigen",
             description = "Nur für Administratoren. Schreibt die Punkte einmalig gut; die Aufgabe ist danach "
-                    + "abgeschlossen (confirmed).")
+                    + "abgeschlossen (confirmed). Zählt für die Erfolge des Kindes.")
     public Task confirm(@PathVariable String id) {
         FamilyMember viewer = currentMember.get();
         access.requireConfirmationRight(viewer);
         Task task = findAwaitingConfirmation(id, viewer);
         points.awardForTask(task, viewer);
-        return tasks.save(task.confirmed(LocalDateTime.now(clock), viewer.id()));
+        Task confirmed = tasks.save(task.confirmed(LocalDateTime.now(clock), viewer.id()));
+        achievements.onTaskConfirmed(confirmed, viewer);
+        return confirmed;
     }
 
     @PostMapping("/{id}/reopen")
