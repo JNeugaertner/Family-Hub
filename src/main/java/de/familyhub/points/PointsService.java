@@ -35,6 +35,15 @@ public class PointsService {
         }
     }
 
+    // Buchung ohne Aufgabe, z. B. Abzug für eine eingelöste Belohnung (negativ) oder die Rückbuchung (positiv).
+    public PointEntry book(String memberId, int amount, String reason, String createdBy) {
+        return entries.save(new PointEntry(null, memberId, amount, reason, null, LocalDateTime.now(clock), createdBy));
+    }
+
+    public int balance(String memberId) {
+        return entries.findByMemberIdOrderByCreatedAtDesc(memberId).stream().mapToInt(PointEntry::amount).sum();
+    }
+
     public Map<String, Integer> balances() {
         return entries.findAll().stream()
                 .collect(Collectors.groupingBy(PointEntry::memberId, Collectors.summingInt(PointEntry::amount)));

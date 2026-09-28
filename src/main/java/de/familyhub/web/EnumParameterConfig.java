@@ -7,6 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import de.familyhub.calendar.EventStatus;
+import de.familyhub.rewards.RedemptionStatus;
 import de.familyhub.task.TaskStatus;
 
 // Query-Parameter in derselben Schreibweise wie im JSON annehmen, z. B. ?status=proposed oder ?status=inprogress.
@@ -17,6 +18,7 @@ public class EnumParameterConfig implements WebMvcConfigurer {
     public void addFormatters(FormatterRegistry registry) {
         registry.addConverter(String.class, EventStatus.class, value -> byJsonName(EventStatus.class, value));
         registry.addConverter(String.class, TaskStatus.class, value -> byJsonName(TaskStatus.class, value));
+        registry.addConverter(String.class, RedemptionStatus.class, value -> byJsonName(RedemptionStatus.class, value));
     }
 
     private static <E extends Enum<E>> E byJsonName(Class<E> type, String value) {

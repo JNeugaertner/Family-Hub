@@ -28,6 +28,8 @@ import de.familyhub.family.FamilyMemberRepository;
 import de.familyhub.permission.Role;
 import de.familyhub.points.PointEntry;
 import de.familyhub.points.PointEntryRepository;
+import de.familyhub.rewards.Reward;
+import de.familyhub.rewards.RewardRepository;
 import de.familyhub.settings.FamilySettingsRepository;
 import de.familyhub.task.Task;
 import de.familyhub.task.TaskRepository;
@@ -53,6 +55,9 @@ class SampleDataLoaderTest {
     @Autowired
     private PointEntryRepository pointRepository;
 
+    @Autowired
+    private RewardRepository rewardRepository;
+
     private static final PasswordEncoder PASSWORD_ENCODER = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 
     // Mittwoch, 07.10.2026: Die Beispielwoche beginnt am Montag, 05.10.2026
@@ -67,8 +72,22 @@ class SampleDataLoaderTest {
         settingsRepository.deleteAll();
         taskRepository.deleteAll();
         pointRepository.deleteAll();
+        rewardRepository.deleteAll();
         loader = new SampleDataLoader(memberRepository, eventRepository, settingsRepository, taskRepository,
-                pointRepository, PASSWORD_ENCODER, CLOCK);
+                pointRepository, rewardRepository, PASSWORD_ENCODER, CLOCK);
+    }
+
+    @Test
+    void loadsSampleRewardsAlsoIntoExistingDatabasesButOnlyOnce() {
+        memberRepository.save(new FamilyMember(null, "Eigene Familie", "#000000", "eigene", null, Role.ADMINISTRATOR,
+                null, false));
+
+        loader.load();
+        loader.load();
+
+        assertThat(rewardRepository.findAll()).hasSize(10)
+                .filteredOn(r -> !r.active()).extracting(Reward::name).containsExactly("Shopping-Gutschein 10€");
+        assertThat(rewardRepository.findAll()).filteredOn(r -> !r.repeatable()).hasSize(3);
     }
 
     private Map<String, Integer> balancesByUsername() {

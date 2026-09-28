@@ -37,6 +37,7 @@ import de.familyhub.family.FamilyMemberRepository;
 import de.familyhub.permission.Role;
 import de.familyhub.points.PointEntry;
 import de.familyhub.points.PointEntryRepository;
+import de.familyhub.rewards.RewardRepository;
 import de.familyhub.settings.FamilySettings;
 import de.familyhub.settings.FamilySettingsRepository;
 import de.familyhub.task.Task;
@@ -108,17 +109,20 @@ public class SampleDataLoader implements ApplicationRunner {
     private final FamilySettingsRepository settingsRepository;
     private final TaskRepository taskRepository;
     private final PointEntryRepository pointRepository;
+    private final RewardRepository rewardRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
     public SampleDataLoader(FamilyMemberRepository memberRepository, CalendarEventRepository eventRepository,
             FamilySettingsRepository settingsRepository, TaskRepository taskRepository,
-            PointEntryRepository pointRepository, PasswordEncoder passwordEncoder, Clock clock) {
+            PointEntryRepository pointRepository, RewardRepository rewardRepository, PasswordEncoder passwordEncoder,
+            Clock clock) {
         this.memberRepository = memberRepository;
         this.eventRepository = eventRepository;
         this.settingsRepository = settingsRepository;
         this.taskRepository = taskRepository;
         this.pointRepository = pointRepository;
+        this.rewardRepository = rewardRepository;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
     }
@@ -132,6 +136,7 @@ public class SampleDataLoader implements ApplicationRunner {
         if (memberRepository.count() > 0) {
             log.info("Beispielfamilie übersprungen: Die Datenbank enthält bereits Familienmitglieder.");
             loadTasksAndPoints();
+            loadRewards();
             return;
         }
 
@@ -150,6 +155,16 @@ public class SampleDataLoader implements ApplicationRunner {
                 + "und {} Termine. Nur für Entwicklung, für echten Betrieb familyhub.sample-data.enabled=false setzen.",
                 MEMBERS.size(), SAMPLE_PASSWORD, EVENTS.size());
         loadTasksAndPoints();
+        loadRewards();
+    }
+
+    // Auch für bestehende Datenbanken (der Belohnungsshop kam später dazu), solange es noch keine Belohnungen gibt.
+    private void loadRewards() {
+        if (rewardRepository.count() > 0) {
+            return;
+        }
+        rewardRepository.saveAll(SampleRewards.REWARDS);
+        log.info("Beispielbelohnungen angelegt: {} Belohnungen.", SampleRewards.REWARDS.size());
     }
 
     // Auch für bestehende Datenbanken (Aufgaben und Punkte kamen später dazu): Beispielaufgaben und -punkte, solange
