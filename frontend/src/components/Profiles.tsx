@@ -37,7 +37,8 @@ const PERMISSION_DISPLAY: (Permission & { label: string; icon: string })[] = [
   { module: 'einkauf', action: 'bearbeiten', scope: 'familie', label: 'Einkaufsliste bearbeiten', icon: '🛒' },
   { module: 'essen', action: 'vorschlagen', scope: 'familie', label: 'Essenswünsche einreichen', icon: '🍽️' },
   { module: 'punkte', action: 'ansehen', scope: 'familie', label: 'Punktestände der Familie sehen', icon: '⭐' },
-  { module: 'punkte', action: 'freigeben', scope: 'familie', label: 'Punkte vergeben', icon: '🎁' },
+  { module: 'punkte', action: 'vorschlagen', scope: 'eigen', label: 'Belohnungen einlösen', icon: '🛍️' },
+  { module: 'punkte', action: 'freigeben', scope: 'familie', label: 'Punkte vergeben, Einlösungen genehmigen', icon: '🎁' },
   { module: 'familie', action: 'verwalten', scope: 'familie', label: 'Familienmitglieder verwalten', icon: '👥' },
   { module: 'system', action: 'verwalten', scope: 'familie', label: 'Rollen & Rechte verwalten', icon: '🔒' },
 ];

@@ -30,7 +30,8 @@ export default function NewPointsNotice() {
       const seen = readSeen(key);
       writeSeen(key, entries[0].createdAt);
       if (!seen) return; // erster Besuch: die bisherige Historie nicht feiern
-      const fresh = entries.filter(e => e.createdAt > seen && e.amount > 0);
+      // Nur Punkte für erledigte Aufgaben feiern, keine Rückbuchungen abgelehnter Belohnungen
+      const fresh = entries.filter(e => e.createdAt > seen && e.amount > 0 && e.taskId);
       if (fresh.length === 0) return;
       const total = fresh.reduce((sum, e) => sum + e.amount, 0);
       setText(fresh.length === 1
