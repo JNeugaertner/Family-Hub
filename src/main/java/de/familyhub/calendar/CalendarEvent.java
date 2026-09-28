@@ -50,12 +50,22 @@ public record CalendarEvent(
         EventStatus status,
 
         @Schema(accessMode = Schema.AccessMode.READ_ONLY, description = "Id des Mitglieds, das den Termin angelegt hat")
-        String createdBy) {
+        String createdBy,
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY,
+                description = "Nur bei importierten Terminen (z. B. Google Kalender); diese sind schreibgeschützt")
+        ExternalRef external) {
 
     @PersistenceCreator
     public CalendarEvent {
         privateEvent = Boolean.TRUE.equals(privateEvent);
         status = status == null ? EventStatus.APPROVED : status;
+    }
+
+    public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
+            EventCategory category, String location, String description, Boolean privateEvent, EventStatus status,
+            String createdBy) {
+        this(id, title, start, end, memberId, category, location, description, privateEvent, status, createdBy, null);
     }
 
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
@@ -66,6 +76,11 @@ public record CalendarEvent(
     @JsonIgnore
     public boolean isProposal() {
         return status == EventStatus.PROPOSED;
+    }
+
+    @JsonIgnore
+    public boolean isExternal() {
+        return external != null;
     }
 
     // Fehlende Zeiten meldet bereits @NotNull, daher hier nur die Reihenfolge prüfen.

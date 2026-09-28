@@ -11,7 +11,6 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -29,7 +28,7 @@ import org.springframework.web.client.RestClient;
 class GoogleApiTest {
 
     private static final GoogleProperties PROPERTIES = new GoogleProperties("client-id", "client-secret", "key",
-            "http://localhost:8080/api/google/callback", "http://localhost:5173", Duration.ofMinutes(15),
+            "http://localhost:8080/api/google/callback", "http://localhost:5173",
             "https://auth.test/auth", "https://auth.test/token", "https://auth.test/revoke",
             "https://api.test/calendar/v3");
 
