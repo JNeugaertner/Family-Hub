@@ -99,7 +99,7 @@ function SetupForm() {
     <form onSubmit={submit} className="space-y-4" aria-label="Familie einrichten" noValidate>
       <div>
         <h2 className="text-lg font-bold text-slate-800">Familie einrichten</h2>
-        <p className="text-sm text-slate-500 mt-1">Lege dich als ersten Administrator an. Weitere Familienmitglieder fügst du danach unter „Profiles“ hinzu.</p>
+        <p className="text-sm text-slate-500 mt-1">Lege dich als ersten Administrator an. Weitere Familienmitglieder fügst du danach unter „Familie“ hinzu.</p>
       </div>
       {formError && <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{formError}</div>}
       <Field id="setup-name" label="Dein Name" error={errors.name}>

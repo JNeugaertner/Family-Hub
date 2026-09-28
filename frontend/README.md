@@ -42,7 +42,7 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Punkte: Punktestände, Rangliste, Historie, Belohnungsanimation; Dashboard „Familienpunkte“ | Backend: `/api/points` |
 | Erfolge: Fortschritt je Kind, Animation bei neuen Erfolgen; Anpassen (Admins) | Backend: `/api/achievements` |
 | Belohnungen: Shop, einlösen, zurückziehen; Genehmigen/Ablehnen und Belohnungen verwalten (Admins) | Backend: `/api/rewards`, `/api/redemptions` |
-| Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter Profiles) | Backend: `/api/google` |
+| Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter „Familie“) | Backend: `/api/google` |
 | Einkaufsliste: hinzufügen, vorschlagen, abhaken, bearbeiten, Vorschläge übernehmen; Dashboard „Einkaufsliste“ | Backend: `/api/shopping` |
 | Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
 
@@ -69,7 +69,7 @@ auf die Eltern. Eltern genehmigen oder lehnen (mit optionalem Grund) ab; beim
 Ablehnen und beim Zurückziehen einer offenen Einlösung kommen die Punkte
 zurück. Eltern können auch direkt für ein Kind einlösen, das gilt dann sofort
 als genehmigt. Je Belohnung ist einstellbar, ob sie mehrfach einlösbar ist.
-Offene Genehmigungen zählt ein Hinweis an „Rewards“ in der Seitenleiste.
+Offene Genehmigungen zählt ein Hinweis an „Belohnungen“ in der Seitenleiste.
 
 **Erfolge:** Kinder und Jugendliche erreichen automatisch Erfolge, z. B. „Erste
 Aufgabe“, „5 Schulaufgaben“, „7 Tage hintereinander“ oder „200 Punkte
@@ -81,7 +81,7 @@ Tab „Erfolge“ einzelne Erfolge abschalten und Ziel und Bonus anpassen.
 **Einkaufsliste:** Eltern und Jugendliche setzen Artikel direkt auf die Liste,
 haken ab und bearbeiten. Kinder sehen die ganze Liste und schlagen Artikel vor;
 ihre Vorschläge sehen nur sie selbst und die Eltern, die sie übernehmen oder
-ablehnen (Zähler an „Shopping“). Abgehakte Artikel bleiben stehen, bis jemand
+ablehnen (Zähler an „Einkauf“). Abgehakte Artikel bleiben stehen, bis jemand
 „Abgehakte entfernen“ klickt.
 
 **Google Kalender:** Termine aus Google tragen im Kalender und im Dashboard ein

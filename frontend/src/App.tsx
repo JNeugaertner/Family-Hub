@@ -27,27 +27,27 @@ import { ROLE_NAMES } from './roles';
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
 
 const NAV = [
-  { id: 'dashboard' as Page, label: 'Dashboard', Icon: HomeIcon },
-  { id: 'calendar' as Page, label: 'Calendar', Icon: CalendarIcon },
-  { id: 'tasks' as Page, label: 'Tasks', Icon: CheckSquareIcon },
-  { id: 'rewards' as Page, label: 'Rewards', Icon: StarIcon },
-  { id: 'shopping' as Page, label: 'Shopping', Icon: ShoppingCartIcon },
-  { id: 'meals' as Page, label: 'Meal Plan', Icon: UtensilsIcon },
-  { id: 'assistant' as Page, label: 'AI Assistant', Icon: SparklesIcon },
-  { id: 'messenger' as Page, label: 'Messages', Icon: MessageIcon },
-  { id: 'profiles' as Page, label: 'Profiles', Icon: UsersIcon },
+  { id: 'dashboard' as Page, label: 'Übersicht', Icon: HomeIcon },
+  { id: 'calendar' as Page, label: 'Kalender', Icon: CalendarIcon },
+  { id: 'tasks' as Page, label: 'Aufgaben', Icon: CheckSquareIcon },
+  { id: 'rewards' as Page, label: 'Belohnungen', Icon: StarIcon },
+  { id: 'shopping' as Page, label: 'Einkauf', Icon: ShoppingCartIcon },
+  { id: 'meals' as Page, label: 'Essensplan', Icon: UtensilsIcon },
+  { id: 'assistant' as Page, label: 'KI-Assistent', Icon: SparklesIcon },
+  { id: 'messenger' as Page, label: 'Nachrichten', Icon: MessageIcon },
+  { id: 'profiles' as Page, label: 'Familie', Icon: UsersIcon },
 ];
 
 const PAGE_TITLES: Record<Page, string> = {
-  dashboard: 'Dashboard',
-  calendar: 'Family Calendar',
-  tasks: 'Tasks',
-  rewards: 'Rewards',
-  shopping: 'Shopping List',
-  meals: 'Meal Planning',
-  assistant: 'AI Assistant',
-  messenger: 'Messages',
-  profiles: 'Profiles',
+  dashboard: 'Übersicht',
+  calendar: 'Familienkalender',
+  tasks: 'Aufgaben',
+  rewards: 'Belohnungen',
+  shopping: 'Einkaufsliste',
+  meals: 'Essensplanung',
+  assistant: 'KI-Assistent',
+  messenger: 'Nachrichten',
+  profiles: 'Familie & Profile',
 };
 
 export default function App() {
@@ -131,7 +131,7 @@ export default function App() {
           <button
             className="ml-auto lg:hidden text-slate-400 hover:text-slate-600 p-1"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Close menu"
+            aria-label="Menü schließen"
           >
             <XIcon size={18} />
           </button>
@@ -215,7 +215,7 @@ export default function App() {
             onClick={() => navigate('profiles')}
           >
             <SettingsIcon size={18} className="flex-shrink-0 text-slate-400" />
-            <span className="text-sm">Settings</span>
+            <span className="text-sm">Einstellungen</span>
           </button>
           <div className="flex items-center gap-2 px-3 py-2 mt-1 rounded-xl bg-slate-50">
             <div
@@ -246,7 +246,7 @@ export default function App() {
           <button
             className="lg:hidden text-slate-500 hover:text-slate-800 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
             onClick={() => setSidebarOpen(true)}
-            aria-label="Open menu"
+            aria-label="Menü öffnen"
           >
             <MenuIcon size={20} />
           </button>
@@ -265,7 +265,7 @@ export default function App() {
               className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-[#2563EB] to-[#14B8A6] text-white text-sm font-medium px-3.5 py-1.5 rounded-full hover:shadow-md hover:shadow-blue-200 transition-all"
             >
               <SparklesIcon size={14} />
-              <span>Ask AI</span>
+              <span>KI fragen</span>
             </button>
 
             {/* Notifications */}
@@ -273,7 +273,7 @@ export default function App() {
               <button
                 className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
                 onClick={() => setShowNotifications(!showNotifications)}
-                aria-label={`Notifications (${unreadCount} unread)`}
+                aria-label={`Benachrichtigungen (${unreadCount} ungelesen)`}
               >
                 <BellIcon size={20} />
                 {unreadCount > 0 && (
@@ -284,8 +284,8 @@ export default function App() {
               {showNotifications && (
                 <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                    <span className="font-semibold text-sm text-slate-800">Notifications</span>
-                    <span className="text-xs text-[#2563EB] font-medium cursor-pointer">Mark all read</span>
+                    <span className="font-semibold text-sm text-slate-800">Benachrichtigungen</span>
+                    <span className="text-xs text-[#2563EB] font-medium cursor-pointer">Alle als gelesen markieren</span>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
                     {NOTIFICATIONS.map(n => (
@@ -308,7 +308,7 @@ export default function App() {
             <button
               className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold ring-2 ring-[#EFF6FF] hover:ring-[#2563EB] transition-all"
               style={{ backgroundColor: me.color }}
-              aria-label="My profile"
+              aria-label="Mein Profil"
               onClick={() => navigate('profiles')}
             >
               {initial}
@@ -346,7 +346,7 @@ export default function App() {
               className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[48px]"
             >
               <span className="text-slate-400"><MenuIcon size={20} /></span>
-              <span className="text-[9px] font-medium text-slate-400">More</span>
+              <span className="text-[9px] font-medium text-slate-400">Mehr</span>
             </button>
           </div>
         </nav>
@@ -356,8 +356,8 @@ export default function App() {
       <button
         onClick={() => navigate('assistant')}
         className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#2563EB] to-[#14B8A6] text-white shadow-lg shadow-blue-300/50 flex items-center justify-center hover:scale-110 transition-transform z-30"
-        aria-label="Voice assistant"
-        title="Voice Assistant"
+        aria-label="Sprachassistent"
+        title="Sprachassistent"
       >
         <MicIcon size={22} />
       </button>
