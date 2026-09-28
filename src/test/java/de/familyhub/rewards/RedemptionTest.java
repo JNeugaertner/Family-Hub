@@ -171,15 +171,18 @@ class RedemptionTest {
     }
 
     @Test
-    void parentRedeemsForChildAndItIsApprovedAtOnce() throws Exception {
+        void parentCannotRedeemForSelfOrChild() throws Exception {
+                mvc.perform(post("/api/redemptions").with(as(sarah)).contentType(APPLICATION_JSON)
+                                                .content("{\"rewardId\": \"" + pizza.id() + "\"}"))
+                                .andExpect(status().isForbidden())
+                                .andExpect(jsonPath("$.detail").value("Nur Kinder und Jugendliche dürfen Belohnungen einlösen."));
+
         mvc.perform(post("/api/redemptions").with(as(sarah)).contentType(APPLICATION_JSON)
                         .content("{\"rewardId\": \"" + pizza.id() + "\", \"memberId\": \"" + lucas.id() + "\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("approved"))
-                .andExpect(jsonPath("$.memberId").value(lucas.id()))
-                .andExpect(jsonPath("$.requestedBy").value(sarah.id()));
+                                .andExpect(status().isForbidden())
+                                .andExpect(jsonPath("$.detail").value("Du darfst Belohnungen nur für dich selbst einlösen."));
 
-        assertThat(points.balance(lucas.id())).isEqualTo(500);
+                assertThat(points.balance(lucas.id())).isEqualTo(700);
     }
 
     @Test
