@@ -43,6 +43,10 @@ export const changeTaskStatus = (id: string, status: Exclude<TaskStatus, 'confir
 
 export const deleteTask = (id: string) => request<void>(`/api/tasks/${id}`, { method: 'DELETE' });
 
-export const confirmTask = (id: string) => request<ApiTask>(`/api/tasks/${id}/confirm`, { method: 'POST' });
+// Nur Administratoren: bestätigte und erledigte Aufgaben ohne Punkte löschen (wartende Bestätigungen bleiben)
+export const deleteCompletedTasks = () =>
+  request<{ deleted: number }>('/api/tasks/completed', { method: 'DELETE' });
+
+export const confirmTask =(id: string) => request<ApiTask>(`/api/tasks/${id}/confirm`, { method: 'POST' });
 
 export const reopenTask = (id: string) => request<ApiTask>(`/api/tasks/${id}/reopen`, { method: 'POST' });

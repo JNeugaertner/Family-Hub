@@ -76,6 +76,12 @@ public record Task(
         return status == TaskStatus.DONE && points > 0;
     }
 
+    // Abgeschlossen: bestätigt, oder erledigt ohne Punkte (nichts wartet mehr auf eine Bestätigung)
+    @JsonIgnore
+    public boolean isCompleted() {
+        return status == TaskStatus.CONFIRMED || (status == TaskStatus.DONE && points == 0);
+    }
+
     public Task withStatus(TaskStatus newStatus) {
         return new Task(id, title, description, assigneeId, dueDate, priority, category, points, newStatus, createdBy,
                 confirmedAt, confirmedBy);

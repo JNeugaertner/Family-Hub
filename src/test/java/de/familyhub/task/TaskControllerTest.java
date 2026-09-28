@@ -2,6 +2,7 @@ package de.familyhub.task;
 
 import static de.familyhub.testsupport.TestUsers.as;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -140,6 +141,28 @@ class TaskControllerTest {
                         .content("{\"status\": \"confirmed\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.status").exists());
+    }
+
+    @Test
+    void administratorDeletesCompletedTasksButKeepsTasksAwaitingConfirmation() throws Exception {
+        LocalDate due = LocalDate.of(2026, 9, 28);
+        tasks.save(new Task(null, "Bestätigt", null, lucas.id(), due, TaskPriority.LOW, TaskCategory.CHORES, 10)
+                .withStatus(TaskStatus.CONFIRMED));
+        tasks.save(new Task(null, "Erledigt ohne Punkte", null, lucas.id(), due, TaskPriority.LOW,
+                TaskCategory.CHORES, 0).withStatus(TaskStatus.DONE));
+        tasks.save(new Task(null, "Wartet auf Bestätigung", null, lucas.id(), due, TaskPriority.LOW,
+                TaskCategory.CHORES, 15).withStatus(TaskStatus.DONE));
+        tasks.save(new Task(null, "Offen", null, lucas.id(), due, TaskPriority.LOW, TaskCategory.CHORES, 5));
+
+        mvc.perform(delete("/api/tasks/completed").with(as(lucas)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("Nur Administratoren dürfen erledigte Aufgaben gesammelt löschen."));
+
+        mvc.perform(delete("/api/tasks/completed").with(as(sarah)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deleted").value(2));
+        mvc.perform(get("/api/tasks").with(as(sarah)))
+                .andExpect(jsonPath("$[*].title", containsInAnyOrder("Wartet auf Bestätigung", "Offen")));
     }
 
     @Test

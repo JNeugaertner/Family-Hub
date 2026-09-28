@@ -16,6 +16,7 @@ interface TaskData {
   saveTask: (input: api.TaskInput, id?: string) => Promise<void>;
   changeStatus: (id: string, status: Exclude<api.TaskStatus, 'confirmed'>) => Promise<void>;
   removeTask: (id: string) => Promise<void>;
+  removeCompletedTasks: () => Promise<{ deleted: number }>;
   confirmTask: (id: string) => Promise<api.ApiTask>;
   reopenTask: (id: string) => Promise<void>;
 }
@@ -61,6 +62,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
       await api.changeTaskStatus(id, s);
     }),
     removeTask: afterChange(api.deleteTask),
+    removeCompletedTasks: afterChange(api.deleteCompletedTasks),
     confirmTask: afterChange(api.confirmTask),
     reopenTask: afterChange(async (id: string) => { await api.reopenTask(id); }),
   }), [status, error, tasks, balances, reload, afterChange]);

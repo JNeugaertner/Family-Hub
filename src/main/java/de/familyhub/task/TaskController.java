@@ -131,6 +131,20 @@ public class TaskController {
         tasks.deleteById(id);
     }
 
+    public record DeletedTasks(int deleted) {
+    }
+
+    @DeleteMapping("/completed")
+    @Operation(summary = "Abgeschlossene Aufgaben löschen",
+            description = "Nur für Administratoren. Löscht bestätigte Aufgaben und erledigte ohne Punkte. Erledigte "
+                    + "Aufgaben, die noch auf Bestätigung warten, bleiben stehen. Die Punkte-Historie bleibt erhalten.")
+    public DeletedTasks deleteCompleted() {
+        access.requireDeleteAll(currentMember.get());
+        List<Task> completed = tasks.findAll().stream().filter(Task::isCompleted).toList();
+        tasks.deleteAll(completed);
+        return new DeletedTasks(completed.size());
+    }
+
     @PostMapping("/{id}/confirm")
     @Operation(summary = "Erledigte Aufgabe bestätigen",
             description = "Nur für Administratoren. Schreibt die Punkte einmalig gut; die Aufgabe ist danach "
