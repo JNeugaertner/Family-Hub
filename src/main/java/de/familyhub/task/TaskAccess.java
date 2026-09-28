@@ -68,6 +68,12 @@ public class TaskAccess {
                 isAssignedByOthers(viewer, task), "Aufgaben zu löschen", "löschen");
     }
 
+    public void requireDeleteAll(FamilyMember viewer) {
+        if (!permissions.can(viewer, AUFGABEN, LOESCHEN, Scope.FAMILIE)) {
+            throw ApiException.forbidden("Nur Administratoren dürfen erledigte Aufgaben gesammelt löschen.");
+        }
+    }
+
     public void requireConfirmationRight(FamilyMember viewer) {
         if (!permissions.can(viewer, PUNKTE, FREIGEBEN, Scope.FAMILIE)) {
             throw ApiException.forbidden("Nur Administratoren dürfen erledigte Aufgaben bestätigen oder zurückgeben.");

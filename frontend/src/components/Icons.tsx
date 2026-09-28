@@ -188,6 +188,13 @@ export const ClockIcon = ({ size = 20, className = '', strokeWidth = 1.8 }: Icon
   </svg>
 );
 
+export const PencilIcon = ({ size = 20, className = '', strokeWidth = 1.8 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 20h9"/>
+    <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/>
+  </svg>
+);
+
 export const MapPinIcon = ({ size = 20, className = '', strokeWidth = 1.8 }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/>

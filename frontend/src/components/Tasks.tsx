@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { PlusIcon, ClockIcon, AlertTriangleIcon } from './Icons';
+import { useCallback, useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
+import { PlusIcon, ClockIcon, AlertTriangleIcon, PencilIcon } from './Icons';
 import { ApiError } from '../api/client';
 import { useCalendarData, type CalendarMember } from '../calendar/CalendarDataContext';
 import { startOfToday, toDateKey } from '../calendar/dates';
@@ -37,10 +37,12 @@ function errorText(err: unknown) {
 
 // ─── Karte ───────────────────────────────────────────────────────────────────
 
-function TaskCard({ task, member, todayKey, onTick, onEdit, onConfirm, onReopen }: {
+// onEdit öffnet das Formular; mayEdit = false heißt nur ansehen (z. B. bestätigte Aufgaben, Löschen bleibt möglich).
+function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, onReopen }: {
   task: ApiTask;
   member?: CalendarMember;
   todayKey: string;
+  mayEdit: boolean;
   onTick?: (status: BoardStatus) => void;
   onEdit?: () => void;
   onConfirm?: () => void;
@@ -48,10 +50,13 @@ function TaskCard({ task, member, todayKey, onTick, onEdit, onConfirm, onReopen 
 }) {
   const pri = PRIORITY_COLORS[task.priority];
   const overdue = isOverdue(task, todayKey);
+  // Knöpfe in der Karte sollen nicht zusätzlich das Formular öffnen
+  const only = (action: () => void) => (e: MouseEvent) => { e.stopPropagation(); action(); };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-3.5 shadow-sm hover:shadow-md hover:shadow-slate-100 transition-all group"
-      data-task={task.title}>
+    <div className={`bg-white rounded-xl border border-slate-100 p-3.5 shadow-sm hover:shadow-md hover:shadow-slate-100 transition-all group ${onEdit ? 'cursor-pointer' : ''}`}
+      data-task={task.title}
+      onClick={onEdit}>
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span
@@ -62,20 +67,24 @@ function TaskCard({ task, member, todayKey, onTick, onEdit, onConfirm, onReopen 
           </span>
           <span className="text-xs text-slate-400">{CATEGORY_ICONS[task.category] || '📋'} {task.category}</span>
         </div>
-        {task.points > 0 && (
-          <span className="text-[10px] font-bold text-[#F59E0B] flex items-center gap-0.5 flex-shrink-0">
-            ⭐ {task.points}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {task.points > 0 && (
+            <span className="text-[10px] font-bold text-[#F59E0B] flex items-center gap-0.5">
+              ⭐ {task.points}
+            </span>
+          )}
+          {onEdit && (
+            <button onClick={only(onEdit)}
+              className="p-1 -m-1 rounded-md text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
+              aria-label={`${task.title} ${mayEdit ? 'bearbeiten' : 'ansehen'}`}
+              title={mayEdit ? 'Bearbeiten' : 'Ansehen'}>
+              <PencilIcon size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {onEdit ? (
-        <button onClick={onEdit} className="font-semibold text-slate-800 text-sm mb-1 leading-snug text-left hover:underline">
-          {task.title}
-        </button>
-      ) : (
-        <h3 className="font-semibold text-slate-800 text-sm mb-1 leading-snug">{task.title}</h3>
-      )}
+      <h3 className="font-semibold text-slate-800 text-sm mb-1 leading-snug">{task.title}</h3>
       {task.description && (
         <p className="text-xs text-slate-500 mb-2 leading-relaxed line-clamp-2">{task.description}</p>
       )}
@@ -111,11 +120,11 @@ function TaskCard({ task, member, todayKey, onTick, onEdit, onConfirm, onReopen 
       {/* Bestätigen (Administratoren) */}
       {awaitsConfirmation(task) && onConfirm && onReopen && (
         <div className="flex gap-1.5 mt-3 pt-2.5 border-t border-slate-50">
-          <button onClick={onReopen}
+          <button onClick={only(onReopen)}
             className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50">
             Zurückgeben
           </button>
-          <button onClick={onConfirm}
+          <button onClick={only(onConfirm)}
             className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold bg-[#22C55E] text-white hover:bg-[#16A34A]">
             Bestätigen +{task.points} ⭐
           </button>
@@ -128,7 +137,7 @@ function TaskCard({ task, member, todayKey, onTick, onEdit, onConfirm, onReopen 
           {(['todo', 'inprogress', 'done'] as BoardStatus[]).map(s => (
             <button
               key={s}
-              onClick={() => task.status !== s && onTick(s)}
+              onClick={only(() => task.status !== s && onTick(s))}
               aria-pressed={task.status === s}
               className={`flex-1 py-1 rounded-lg text-[10px] font-semibold transition-colors ${
                 task.status === s
@@ -306,7 +315,7 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly,
 // ─── Seite ───────────────────────────────────────────────────────────────────
 
 export default function Tasks({ onNavigate }: Props) {
-  const { status, error, tasks, reload, changeStatus, confirmTask, reopenTask } = useTaskData();
+  const { status, error, tasks, reload, changeStatus, confirmTask, reopenTask, removeCompletedTasks } = useTaskData();
   const { members, memberById } = useCalendarData();
   const perms = useTaskPermissions();
   const [editor, setEditor] = useState<{ task?: ApiTask } | null>(null);
@@ -314,6 +323,8 @@ export default function Tasks({ onNavigate }: Props) {
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [actionError, setActionError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearedMessage, setClearedMessage] = useState<string | null>(null);
   const hideCelebration = useCallback(() => setCelebration(null), []);
   const todayKey = toDateKey(startOfToday());
 
@@ -358,6 +369,18 @@ export default function Tasks({ onNavigate }: Props) {
     overdue: tasks.filter(t => isOverdue(t, todayKey)).length,
   };
   const waiting = tasks.filter(awaitsConfirmation);
+  // Abgeschlossen: bestätigt oder erledigt ohne Punkte (wie Task.isCompleted im Backend)
+  const completed = tasks.filter(t => t.status === 'confirmed' || (t.status === 'done' && t.points === 0));
+
+  const clearCompleted = () => {
+    if (!confirmClear) { setConfirmClear(true); return; }
+    setConfirmClear(false);
+    setClearedMessage(null);
+    act(async () => {
+      const { deleted } = await removeCompletedTasks();
+      setClearedMessage(`${deleted} abgeschlossene Aufgabe${deleted === 1 ? '' : 'n'} gelöscht.`);
+    });
+  };
   const filterMembers = perms.maySeeFamilyTasks ? members.filter(m => m.effectiveRole !== 'gast') : [];
 
   return (
@@ -390,6 +413,9 @@ export default function Tasks({ onNavigate }: Props) {
       )}
       {actionError && (
         <div role="alert" className="mb-5 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{actionError}</div>
+      )}
+      {clearedMessage && (
+        <div role="status" className="mb-5 bg-[#F0FDF4] border border-[#BBF7D0] text-[#15803D] text-sm rounded-xl p-3">{clearedMessage}</div>
       )}
       {perms.mayConfirm && waiting.length > 0 && (
         <div className="mb-5 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-3 text-sm font-semibold text-[#92400E]">
@@ -466,6 +492,20 @@ export default function Tasks({ onNavigate }: Props) {
                   {colTasks.length}
                 </span>
               </div>
+              {/* Abgeschlossene Aufgaben der ganzen Familie löschen (Administratoren) */}
+              {col.id === 'done' && perms.mayDeleteCompleted && completed.length > 0 && (
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <button type="button" onClick={clearCompleted}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${confirmClear ? 'bg-[#EF4444] text-white hover:bg-[#DC2626]' : 'border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]'}`}>
+                    {confirmClear ? `Wirklich ${completed.length} löschen?` : `🗑 Erledigte löschen (${completed.length})`}
+                  </button>
+                  {confirmClear && (
+                    <button type="button" onClick={() => setConfirmClear(false)} className="text-xs text-slate-500 hover:underline">
+                      Abbrechen
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Cards */}
               <div
@@ -478,6 +518,7 @@ export default function Tasks({ onNavigate }: Props) {
                     task={task}
                     member={memberById(task.assigneeId)}
                     todayKey={todayKey}
+                    mayEdit={perms.canEdit(task)}
                     onTick={perms.canTick(task) ? s => act(() => changeStatus(task.id, s)) : undefined}
                     onEdit={perms.canEdit(task) || perms.canDelete(task) ? () => setEditor({ task }) : undefined}
                     onConfirm={perms.mayConfirm ? () => confirm(task) : undefined}

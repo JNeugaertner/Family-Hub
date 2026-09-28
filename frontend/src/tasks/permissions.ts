@@ -22,6 +22,8 @@ export function useTaskPermissions() {
     me,
     mayConfirm,
     maySeeFamilyTasks: can('aufgaben', 'ansehen', 'familie'),
+    // Abgeschlossene Aufgaben der ganzen Familie gesammelt löschen
+    mayDeleteCompleted: mayDeleteFamily,
     canAdd: mayCreateOwn || mayCreateFamily,
     canAssignTo: (memberId: string) => (memberId === me.id ? mayCreateOwn : mayCreateFamily),
     canEdit: (task: ApiTask) => task.status !== 'confirmed' && (isOwnTask(task) ? mayCreateOwn : mayCreateFamily),

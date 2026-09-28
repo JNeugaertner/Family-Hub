@@ -54,7 +54,11 @@ Administrator bestätigt, werden die Punkte gutgeschrieben, genau einmal. Beim
 nächsten Anmelden sieht das Kind eine kurze Animation für neue Punkte.
 Jugendliche legen sich eigene Aufgaben ohne Punkte an; Aufgaben, die ihnen die
 Eltern zuweisen, können sie nur abhaken. Kinder sehen nur ihre eigenen Aufgaben
-und Punkte, Gäste keine.
+und Punkte, Gäste keine. Wer eine Aufgabe ändern darf, sieht an der Karte einen
+Stift (auch ein Klick auf die Karte öffnet das Formular); bestätigte Aufgaben
+lassen sich nur ansehen. Administratoren räumen mit „Erledigte löschen“ in der
+Spalte Done auf: Das entfernt bestätigte Aufgaben und erledigte ohne Punkte,
+wartende Bestätigungen bleiben stehen, die Punkte-Historie bleibt erhalten.
 
 **Google Kalender:** Termine aus Google tragen im Kalender und im Dashboard ein
 „G“ und lassen sich nur ansehen; geändert werden sie in Google. Ganztägige
