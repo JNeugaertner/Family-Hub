@@ -34,6 +34,11 @@ import de.familyhub.calendar.EventCategory;
 import de.familyhub.calendar.EventStatus;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.meals.Dish;
+import de.familyhub.meals.DishRepository;
+import de.familyhub.meals.MealEntry;
+import de.familyhub.meals.MealEntryRepository;
+import de.familyhub.meals.MealStatus;
 import de.familyhub.permission.Role;
 import de.familyhub.points.PointEntry;
 import de.familyhub.points.PointEntryRepository;
@@ -114,13 +119,16 @@ public class SampleDataLoader implements ApplicationRunner {
     private final PointEntryRepository pointRepository;
     private final RewardRepository rewardRepository;
     private final ShoppingItemRepository shoppingRepository;
+    private final DishRepository dishRepository;
+    private final MealEntryRepository mealRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
     public SampleDataLoader(FamilyMemberRepository memberRepository, CalendarEventRepository eventRepository,
             FamilySettingsRepository settingsRepository, TaskRepository taskRepository,
             PointEntryRepository pointRepository, RewardRepository rewardRepository,
-            ShoppingItemRepository shoppingRepository, PasswordEncoder passwordEncoder, Clock clock) {
+            ShoppingItemRepository shoppingRepository, DishRepository dishRepository,
+            MealEntryRepository mealRepository, PasswordEncoder passwordEncoder, Clock clock) {
         this.memberRepository = memberRepository;
         this.eventRepository = eventRepository;
         this.settingsRepository = settingsRepository;
@@ -128,6 +136,8 @@ public class SampleDataLoader implements ApplicationRunner {
         this.pointRepository = pointRepository;
         this.rewardRepository = rewardRepository;
         this.shoppingRepository = shoppingRepository;
+        this.dishRepository = dishRepository;
+        this.mealRepository = mealRepository;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
     }
@@ -143,6 +153,7 @@ public class SampleDataLoader implements ApplicationRunner {
             loadTasksAndPoints();
             loadRewards();
             loadShopping();
+            loadMeals();
             return;
         }
 
@@ -163,6 +174,35 @@ public class SampleDataLoader implements ApplicationRunner {
         loadTasksAndPoints();
         loadRewards();
         loadShopping();
+        loadMeals();
+    }
+
+    // Auch für bestehende Datenbanken, solange es weder Gerichte noch einen Essensplan gibt. Der Plan gilt für die
+    // aktuelle Woche; Zuordnung über die Benutzernamen.
+    private void loadMeals() {
+        if (dishRepository.count() > 0 || mealRepository.count() > 0) {
+            return;
+        }
+        Map<String, String> idByUsername = memberRepository.findAll().stream()
+                .filter(m -> m.username() != null)
+                .collect(Collectors.toMap(FamilyMember::username, FamilyMember::id));
+        String creator = idByUsername.get("sarah");
+        LocalDateTime now = LocalDateTime.now(clock);
+        Map<String, Dish> dishByName = dishRepository.saveAll(SampleMeals.DISHES.stream()
+                        .map(d -> new Dish(null, d.name(), d.ingredients(), creator, now)).toList())
+                .stream().collect(Collectors.toMap(Dish::name, d -> d));
+        LocalDate monday = now.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        List<MealEntry> plan = SampleMeals.PLAN.stream()
+                .filter(p -> idByUsername.containsKey(p.username()))
+                .map(p -> {
+                    Dish dish = dishByName.get(p.dish());
+                    return new MealEntry(null, monday.plusDays(p.day()), p.type(), dish == null ? null : dish.id(),
+                            p.dish(), p.wish() ? MealStatus.PROPOSED : MealStatus.APPROVED,
+                            idByUsername.get(p.username()), now);
+                })
+                .toList();
+        mealRepository.saveAll(plan);
+        log.info("Beispiel-Essensplan angelegt: {} Gerichte und {} Einträge.", dishByName.size(), plan.size());
     }
 
     // Auch für bestehende Datenbanken, solange die Einkaufsliste leer ist; Zuordnung über die Benutzernamen.
