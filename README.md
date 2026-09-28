@@ -8,9 +8,9 @@ gemeinsamen Oberfläche. Leitprinzip: **Der Agent informiert und bereitet vor,
 die Eltern entscheiden.**
 
 **Status:** Proof of Concept. Umgesetzt sind der Familienkalender, Anmeldung,
-Rollen und Rechte sowie Aufgaben mit Punktesystem (Punkte nach Bestätigung
-durch die Eltern). Die übrigen Bereiche der Oberfläche zeigen noch feste
-Beispieldaten.
+Rollen und Rechte, Aufgaben mit Punktesystem (Punkte nach Bestätigung
+durch die Eltern) sowie das Einbinden des eigenen Google Kalenders (nur lesen).
+Die übrigen Bereiche der Oberfläche zeigen noch feste Beispieldaten.
 
 ## Tech-Stack
 
@@ -64,6 +64,42 @@ Entwicklung, alle mit dem Passwort `familyhub`):
 Ohne Beispieldaten (`familyhub.sample-data.enabled=false`) legt man beim ersten
 Start in der Oberfläche („Familie einrichten“) oder über `POST /api/auth/setup`
 den ersten Administrator an.
+
+## Google Kalender einrichten (optional)
+
+Jedes Familienmitglied außer Gästen kann unter „Profiles“ seinen Google
+Kalender verbinden. FamilyHub liest die Termine (ein Jahr zurück und ein Jahr
+voraus) und übernimmt sie schreibgeschützt; geändert wird weiter in Google.
+Abgeglichen wird beim Verbinden, per Knopf und alle 15 Minuten. Beim Trennen
+werden die übernommenen Termine wieder entfernt.
+
+Dafür braucht das Backend eigene Zugangsdaten von Google:
+
+1. In der [Google Cloud Console](https://console.cloud.google.com) ein Projekt
+   anlegen und die **Google Calendar API** aktivieren.
+2. Unter „OAuth-Zustimmungsbildschirm“ den Typ **Extern** wählen, die
+   Berechtigung `.../auth/calendar.readonly` hinzufügen und alle Google-Konten,
+   die testen sollen, als **Testnutzer** eintragen.
+3. Unter „Anmeldedaten“ eine **OAuth-Client-ID** vom Typ „Webanwendung“ anlegen
+   mit der autorisierten Weiterleitungs-URI
+   `http://localhost:8080/api/google/callback`.
+4. Im Projektordner eine Datei `local.properties` anlegen. Sie steht in
+   `.gitignore` und darf **nie eingecheckt** werden:
+
+   ```properties
+   familyhub.google.client-id=<Client-ID aus Schritt 3>
+   familyhub.google.client-secret=<Clientschlüssel aus Schritt 3>
+   # Beliebige lange Zufallszeichenkette; damit werden die Google-Zugänge in
+   # der Datenbank verschlüsselt. Wird sie geändert, muss man neu verbinden.
+   familyhub.google.token-key=<Zufallszeichenkette>
+   ```
+
+   Eine Zufallszeichenkette erzeugt z. B. PowerShell:
+   `$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)`
+5. Backend neu starten.
+
+Solange die Google-App im Status „Testing“ ist, laufen die Zugänge nach
+7 Tagen ab. FamilyHub zeigt dann „Bitte neu verbinden“ an.
 
 ## Projektstruktur
 

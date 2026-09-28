@@ -40,6 +40,7 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Profile: Mitglieder, Rollen, Einzelrechte, Freigaben für Gäste, eigenes Passwort | Backend: `/api/members`, `/api/roles`, `/api/settings`, `/api/auth/password` |
 | Aufgaben: anlegen, abhaken, bestätigen oder zurückgeben; Dashboard „Dringende Aufgaben“ | Backend: `/api/tasks` |
 | Punkte: Punktestände, Rangliste, Historie, Belohnungsanimation; Dashboard „Familienpunkte“ | Backend: `/api/points` |
+| Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter Profiles) | Backend: `/api/google` |
 | Belohnungsshop, Erfolge, Einkauf, Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
@@ -54,6 +55,14 @@ nächsten Anmelden sieht das Kind eine kurze Animation für neue Punkte.
 Jugendliche legen sich eigene Aufgaben ohne Punkte an; Aufgaben, die ihnen die
 Eltern zuweisen, können sie nur abhaken. Kinder sehen nur ihre eigenen Aufgaben
 und Punkte, Gäste keine.
+
+**Google Kalender:** Termine aus Google tragen im Kalender und im Dashboard ein
+„G“ und lassen sich nur ansehen; geändert werden sie in Google. Ganztägige
+Termine stehen in der Wochenansicht oben am Tag und gelten an jedem ihrer
+Tage. Nach der Anmeldung bei Google leitet das Backend auf
+`http://localhost:5173/?google=verbunden|abgebrochen|fehler` zurück; die
+Oberfläche öffnet dann die Profilseite mit einer Meldung. Einrichtung der
+Zugangsdaten: siehe README im Hauptordner.
 
 ## Rollen in der Oberfläche
 
@@ -80,6 +89,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/family/`: API für Mitglieder, Rollen und Einstellungen, Farbpalette
 - `src/tasks/`: Aufgaben-API, `TaskDataContext` (lädt Aufgaben und Punktestände), `permissions.ts` (was die angemeldete Person bei Aufgaben darf)
 - `src/points/`: Punkte-API, Punktestände je Kind, Belohnungsanimation und Hinweis auf neue Punkte
+- `src/google/`: Google-API des Backends, Karte „Google Kalender“ für die Profilseite, „G“-Abzeichen
 - `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
 - `src/components/`: die Seiten (Dashboard, Calendar, Tasks, Rewards, Shopping, MealPlanning, AIAssistant, Messenger, Profiles)
 
