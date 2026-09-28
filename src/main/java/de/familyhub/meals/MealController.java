@@ -83,6 +83,14 @@ public class MealController {
         return inRange(from, to).stream().filter(visible).toList();
     }
 
+    @GetMapping("/wishes")
+    @Operation(summary = "Offene Wünsche", description = "Aus allen Wochen. Administratoren sehen alle, alle anderen "
+            + "nur ihre eigenen.")
+    public List<MealEntry> wishes() {
+        Predicate<MealEntry> visible = access.visibilityFor(currentMember.get());
+        return meals.findByStatus(MealStatus.PROPOSED).stream().filter(visible).sorted(PLAN_ORDER).toList();
+    }
+
     @PostMapping
     @Operation(summary = "Mahlzeit eintragen oder Wunsch äußern",
             description = "Eltern und Jugendliche tragen direkt ein; ein vorhandener Eintrag dieser Mahlzeit wird "

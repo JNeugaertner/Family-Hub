@@ -44,7 +44,8 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Belohnungen: Shop, einlösen, zurückziehen; Genehmigen/Ablehnen und Belohnungen verwalten (Admins) | Backend: `/api/rewards`, `/api/redemptions` |
 | Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter „Familie“) | Backend: `/api/google` |
 | Einkaufsliste: hinzufügen, vorschlagen, abhaken, bearbeiten, Vorschläge übernehmen; Dashboard „Einkaufsliste“ | Backend: `/api/shopping` |
-| Essen, Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
+| Essensplan: Wochenplan, Gerichte-Sammlung, Wünsche der Kinder, Zutaten auf die Einkaufsliste; Dashboard „Mahlzeiten heute“ | Backend: `/api/meals`, `/api/dishes` |
+| Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
 daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem
@@ -84,6 +85,16 @@ ihre Vorschläge sehen nur sie selbst und die Eltern, die sie übernehmen oder
 ablehnen (Zähler an „Einkauf“). Abgehakte Artikel bleiben stehen, bis jemand
 „Abgehakte entfernen“ klickt.
 
+**Essensplan:** Der Wochenplan hat Frühstück, Mittagessen, Abendessen und
+Snacks; je Mahlzeit steht ein Gericht aus der Gerichte-Sammlung oder Freitext.
+Eltern und Jugendliche planen und pflegen die Sammlung (Gerichte mit Zutaten,
+Menge und Kategorie). Kinder sehen den Plan und wünschen sich etwas; der Wunsch
+steht gestrichelt im Plan, nur die Eltern übernehmen ihn (er ersetzt dann den
+bisherigen Eintrag) oder lehnen ab (Zähler an „Essensplan“). Mit dem
+Einkaufswagen an einem Gericht oder „Zutaten der Woche auf die Einkaufsliste“
+kommen die Zutaten auf die Einkaufsliste; was dort schon offen steht, wird nicht
+doppelt angelegt.
+
 **Google Kalender:** Termine aus Google tragen im Kalender und im Dashboard ein
 „G“ und lassen sich nur ansehen; geändert werden sie in Google. Ganztägige
 Termine stehen in der Wochenansicht oben am Tag und gelten an jedem ihrer
@@ -118,6 +129,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/tasks/`: Aufgaben-API, `TaskDataContext` (lädt Aufgaben und Punktestände), `permissions.ts` (was die angemeldete Person bei Aufgaben darf)
 - `src/points/`: Punkte-API, Punktestände je Kind, Belohnungsanimation und Hinweis auf neue Punkte
 - `src/shopping/`: Einkaufslisten-API, `ShoppingDataContext`, Kategorien
+- `src/meals/`: Essensplan-API, `MealDataContext` (angezeigte Woche, heutige Mahlzeiten, offene Wünsche, Gerichte), Mahlzeiten
 - `src/achievements/`: Erfolge-API (Katalog, Fortschritt je Kind, Anpassen)
 - `src/rewards/`: Belohnungs-API und `RewardDataContext` (Belohnungen und Einlösungen, lädt nach Änderungen auch die Punktestände neu)
 - `src/google/`: Google-API des Backends, Karte „Google Kalender“ für die Profilseite, „G“-Abzeichen

@@ -15,4 +15,6 @@ public interface MealEntryRepository extends MongoRepository<MealEntry, String> 
     List<MealEntry> findByDateAndTypeAndStatus(LocalDate date, MealType type, MealStatus status);
 
     List<MealEntry> findByDishId(String dishId);
+
+    List<MealEntry> findByStatus(MealStatus status);
 }

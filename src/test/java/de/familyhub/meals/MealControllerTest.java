@@ -171,6 +171,11 @@ class MealControllerTest {
 
         mvc.perform(get(week()).with(as(sarah)))
                 .andExpect(jsonPath("$[*].name", containsInAnyOrder("Spaghetti Bolognese", "Pfannkuchen", "Pizza")));
+        plan(lucas, MONDAY.plusDays(30), "snacks", null, "Eis");
+        mvc.perform(get("/api/meals/wishes").with(as(sarah)))
+                .andExpect(jsonPath("$[*].name", org.hamcrest.Matchers.contains("Pfannkuchen", "Pizza", "Eis")));
+        mvc.perform(get("/api/meals/wishes").with(as(emma))).andExpect(jsonPath("$").isEmpty());
+        mvc.perform(get("/api/meals/wishes").with(as(lucas))).andExpect(jsonPath("$.length()").value(3));
         mvc.perform(post("/api/meals/" + pancakeWish + "/approve").with(as(sarah)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("approved"));
