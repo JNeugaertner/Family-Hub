@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import de.familyhub.achievements.AchievementService;
 import de.familyhub.calendar.CalendarEventRepository;
 import de.familyhub.google.GoogleAccountService;
 import de.familyhub.permission.Action;
@@ -51,11 +52,12 @@ public class FamilyMemberController {
     private final Permissions permissions;
     private final GoogleAccountService googleAccounts;
     private final RedemptionRepository redemptions;
+    private final AchievementService achievements;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
             TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
             PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts,
-            RedemptionRepository redemptions) {
+            RedemptionRepository redemptions, AchievementService achievements) {
         this.members = members;
         this.events = events;
         this.tasks = tasks;
@@ -66,6 +68,7 @@ public class FamilyMemberController {
         this.permissions = permissions;
         this.googleAccounts = googleAccounts;
         this.redemptions = redemptions;
+        this.achievements = achievements;
     }
 
     @GetMapping
@@ -155,6 +158,7 @@ public class FamilyMemberController {
                     + "Bitte zuerst genehmigen oder ablehnen.");
         }
         googleAccounts.forgetMember(id);
+        achievements.forgetMember(id);
         members.deleteById(id);
     }
 
