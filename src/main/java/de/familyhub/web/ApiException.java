@@ -37,6 +37,11 @@ public class ApiException extends ErrorResponseException {
         return new ApiException(HttpStatus.CONFLICT, "Konflikt", detail, null);
     }
 
+    // Ein angebundener Dienst (z. B. OpenWeather) ist nicht eingerichtet oder nicht erreichbar
+    public static ApiException unavailable(String detail) {
+        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Nicht verfügbar", detail, null);
+    }
+
     public static ApiException invalidField(String field, String message) {
         return new ApiException(HttpStatus.BAD_REQUEST, ApiExceptionHandler.INVALID_INPUT_TITLE,
                 ApiExceptionHandler.INVALID_INPUT_DETAIL, Map.of(field, message));

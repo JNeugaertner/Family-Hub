@@ -45,7 +45,8 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter „Familie“) | Backend: `/api/google` |
 | Einkaufsliste: hinzufügen, vorschlagen, abhaken, bearbeiten, Vorschläge übernehmen; Dashboard „Einkaufsliste“ | Backend: `/api/shopping` |
 | Essensplan: Wochenplan, Gerichte-Sammlung, Wünsche der Kinder, Zutaten auf die Einkaufsliste; Dashboard „Mahlzeiten heute“ | Backend: `/api/meals`, `/api/dishes` |
-| Nachrichten, Wetter, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
+| Wetter mit Kleidungsempfehlung (Dashboard); Wohnort einstellen (Karte unter „Familie“, Admins) | Backend: `/api/weather` |
+| Nachrichten, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
 daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem
@@ -132,6 +133,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/meals/`: Essensplan-API, `MealDataContext` (angezeigte Woche, heutige Mahlzeiten, offene Wünsche, Gerichte), Mahlzeiten
 - `src/achievements/`: Erfolge-API (Katalog, Fortschritt je Kind, Anpassen)
 - `src/rewards/`: Belohnungs-API und `RewardDataContext` (Belohnungen und Einlösungen, lädt nach Änderungen auch die Punktestände neu)
+- `src/weather/`: Wetter-API, Kachel für die Übersicht, Karte „Wohnort für das Wetter“ für die Profilseite
 - `src/google/`: Google-API des Backends, Karte „Google Kalender“ für die Profilseite, „G“-Abzeichen
 - `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
 - `src/components/`: die Seiten (Dashboard, Calendar, Tasks, Rewards, Shopping, MealPlanning, AIAssistant, Messenger, Profiles)
