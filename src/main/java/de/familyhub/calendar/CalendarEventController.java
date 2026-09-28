@@ -99,7 +99,7 @@ public class CalendarEventController {
         FamilyMember viewer = currentMember.get();
         EventStatus status = access.statusForNewEvent(viewer, event);
         requireMember(event.memberId());
-        CalendarEvent saved = events.save(copy(null, event, status, viewer.id()));
+        CalendarEvent saved = events.save(copy(null, event, status, viewer.id(), null));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(saved);
     }
@@ -109,9 +109,10 @@ public class CalendarEventController {
     public CalendarEvent update(@PathVariable String id, @Valid @RequestBody CalendarEvent event) {
         FamilyMember viewer = currentMember.get();
         CalendarEvent existing = findVisible(id, viewer);
+        requireNotImported(existing);
         access.requireUpdate(viewer, existing, event);
         requireMember(event.memberId());
-        return events.save(copy(id, event, existing.status(), existing.createdBy()));
+        return events.save(copy(id, event, existing.status(), existing.createdBy(), null));
     }
 
     @DeleteMapping("/{id}")
@@ -120,6 +121,7 @@ public class CalendarEventController {
     public void delete(@PathVariable String id) {
         FamilyMember viewer = currentMember.get();
         CalendarEvent existing = findVisible(id, viewer);
+        requireNotImported(existing);
         access.requireDelete(viewer, existing);
         events.deleteById(id);
     }
@@ -130,7 +132,7 @@ public class CalendarEventController {
         FamilyMember viewer = currentMember.get();
         access.requireDecision(viewer);
         CalendarEvent proposal = findOpenProposal(id, viewer);
-        return events.save(copy(id, proposal, EventStatus.APPROVED, proposal.createdBy()));
+        return events.save(copy(id, proposal, EventStatus.APPROVED, proposal.createdBy(), proposal.external()));
     }
 
     @PostMapping("/{id}/reject")
@@ -158,14 +160,23 @@ public class CalendarEventController {
                 .orElseThrow(() -> ApiException.notFound("Termin " + id + " existiert nicht."));
     }
 
+    // Importierte Termine kommen beim nächsten Abgleich wieder; geändert werden sie deshalb nur an der Quelle.
+    private static void requireNotImported(CalendarEvent event) {
+        if (event.isExternal()) {
+            throw ApiException.conflict("Google-Termine änderst du in Google. FamilyHub übernimmt sie beim nächsten Abgleich.");
+        }
+    }
+
     private void requireMember(String memberId) {
         if (!members.existsById(memberId)) {
             throw ApiException.invalidField("memberId", "Familienmitglied existiert nicht");
         }
     }
 
-    private static CalendarEvent copy(String id, CalendarEvent e, EventStatus status, String createdBy) {
+    // Eine mitgeschickte Herkunft (external) wird nie übernommen; nur der Google-Abgleich setzt sie.
+    private static CalendarEvent copy(String id, CalendarEvent e, EventStatus status, String createdBy,
+            ExternalRef external) {
         return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberId(), e.category(), e.location(),
-                e.description(), e.privateEvent(), status, createdBy);
+                e.description(), e.privateEvent(), status, createdBy, external);
     }
 }

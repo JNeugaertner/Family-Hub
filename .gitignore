@@ -35,3 +35,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Lokale Zugangsdaten (z. B. Google Kalender) ###
+local.properties

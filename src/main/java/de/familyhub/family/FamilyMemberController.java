@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import de.familyhub.calendar.CalendarEventRepository;
+import de.familyhub.google.GoogleAccountService;
 import de.familyhub.permission.Action;
 import de.familyhub.permission.Module;
 import de.familyhub.permission.Permission;
@@ -46,10 +47,11 @@ public class FamilyMemberController {
     private final FamilyRules rules;
     private final PasswordEncoder passwordEncoder;
     private final Permissions permissions;
+    private final GoogleAccountService googleAccounts;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
             TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
-            PasswordEncoder passwordEncoder, Permissions permissions) {
+            PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts) {
         this.members = members;
         this.events = events;
         this.tasks = tasks;
@@ -58,6 +60,7 @@ public class FamilyMemberController {
         this.rules = rules;
         this.passwordEncoder = passwordEncoder;
         this.permissions = permissions;
+        this.googleAccounts = googleAccounts;
     }
 
     @GetMapping
@@ -121,7 +124,8 @@ public class FamilyMemberController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Familienmitglied löschen",
-            description = "Nur für Administratoren und nur, wenn dem Mitglied keine Termine mehr zugeordnet sind.")
+            description = "Nur für Administratoren und nur, wenn dem Mitglied keine Termine mehr zugeordnet sind. "
+                    + "Aus Google importierte Termine und die Google-Verbindung werden mitgelöscht.")
     public void delete(@PathVariable String id) {
         FamilyMember admin = requireManager();
         FamilyMember member = find(id);
@@ -129,7 +133,7 @@ public class FamilyMemberController {
             requireRightsManager(admin, "Nur Administratoren dürfen Administratoren löschen.");
         }
         rules.checkAdministratorRemains(member, null);
-        long eventCount = events.countByMemberId(id);
+        long eventCount = events.countByMemberIdAndExternalIsNull(id);
         if (eventCount > 0) {
             String termine = eventCount == 1 ? "einen Termin" : eventCount + " Termine";
             throw ApiException.conflict("Das Familienmitglied hat noch " + termine
@@ -141,6 +145,7 @@ public class FamilyMemberController {
             throw ApiException.conflict("Dem Familienmitglied ist noch " + aufgaben
                     + " zugewiesen. Bitte zuerst die Aufgaben löschen oder einem anderen Mitglied zuweisen.");
         }
+        googleAccounts.forgetMember(id);
         members.deleteById(id);
     }
 

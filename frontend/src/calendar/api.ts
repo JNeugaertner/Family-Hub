@@ -13,6 +13,8 @@ export interface ApiEvent {
   private: boolean;
   status: EventStatus;
   createdBy: string | null;
+  // Nur bei importierten Terminen (Google Kalender); diese sind schreibgeschützt
+  external: { provider: string; calendarId: string; eventId: string } | null;
 }
 
 export interface EventInput {

@@ -11,6 +11,7 @@ import {
   type ApiMember, type MemberInput, type RoleInfo,
 } from '../family/api';
 import { FAMILY_COLORS } from '../family/colors';
+import GoogleCalendarCard from '../google/GoogleCalendarCard';
 import { hasPermission, permissionKey, ROLE_NAMES, type Permission, type RoleId } from '../roles';
 
 function ShieldLock({ size = 16, className = '' }: { size?: number; className?: string }) {
@@ -489,6 +490,8 @@ export default function Profiles({ onNavigate }: Props) {
   const { reload: reloadCalendar } = useCalendarData();
   const mayManage = can('familie', 'verwalten', 'familie');
   const mayManageRights = can('system', 'verwalten', 'familie');
+  // Wie im Backend (GoogleController): alle außer Gästen, die ihre eigenen Termine sehen dürfen
+  const mayConnectGoogle = me.role !== 'gast' && can('kalender', 'ansehen', 'eigen');
 
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [roles, setRoles] = useState<RoleInfo[]>([]);
@@ -564,6 +567,7 @@ export default function Profiles({ onNavigate }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {mayManageRights && <GuestSettingsCard />}
         <PasswordCard />
+        {mayConnectGoogle && <GoogleCalendarCard />}
       </div>
 
       {editing && teenAge !== null && (

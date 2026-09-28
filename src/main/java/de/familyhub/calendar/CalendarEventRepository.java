@@ -12,6 +12,13 @@ public interface CalendarEventRepository extends MongoRepository<CalendarEvent, 
 
     long countByMemberId(String memberId);
 
+    // Eigene Termine ohne importierte (z. B. aus Google)
+    long countByMemberIdAndExternalIsNull(String memberId);
+
+    List<CalendarEvent> findByMemberIdAndExternalIsNotNull(String memberId);
+
+    void deleteByMemberIdAndExternalIsNotNull(String memberId);
+
     // Alle Termine, die den Zeitraum [from, to) berühren, auch wenn sie davor beginnen oder danach enden.
     @Query(value = "{ 'start': { $lt: ?1 }, 'end': { $gt: ?0 } }", sort = "{ 'start': 1 }")
     List<CalendarEvent> findOverlapping(LocalDateTime from, LocalDateTime to);
