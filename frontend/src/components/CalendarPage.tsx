@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   GARBAGE_PICKUPS,
   CalendarEvent, type GarbagePickup,
@@ -249,7 +249,13 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
     return d;
   });
 
-  const hours = Array.from({ length: 15 }, (_, i) => i + 6); // 6 bis 20 Uhr
+  // Ganzer Tag; beim Öffnen steht 06:00 oben, frühere und spätere Stunden erreicht man durch Scrollen
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const firstHourRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (gridRef.current && firstHourRef.current) gridRef.current.scrollTop = firstHourRef.current.offsetTop;
+  }, []);
 
   const garbageByDate: Record<string, GarbagePickup> = {};
   GARBAGE_PICKUPS.forEach(g => { garbageByDate[g.date] = g; });
@@ -320,9 +326,9 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
       </div>
 
       {/* Time grid */}
-      <div className="overflow-y-auto max-h-[520px] scrollbar-hide">
+      <div ref={gridRef} className="relative overflow-y-auto max-h-[520px] scrollbar-hide">
         {hours.map(h => (
-          <div key={h} className="grid border-b border-slate-50 min-h-[64px]" style={{ gridTemplateColumns: '52px repeat(7, 1fr)' }}>
+          <div key={h} ref={h === 6 ? firstHourRef : undefined} className="grid border-b border-slate-50 min-h-[64px]" style={{ gridTemplateColumns: '52px repeat(7, 1fr)' }}>
             {/* Hour label */}
             <div className="border-r border-slate-100 py-1 pr-2 text-right flex-shrink-0">
               <span className="text-[10px] text-slate-400 font-medium">
@@ -333,8 +339,8 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
             {weekDays.map((d, di) => {
               const allDayEvents = getEventsForDay(d);
 
-              // events whose start hour == h
-              const hourEvents = allDayEvents.filter(ev => parseInt(ev.time.split(':')[0]) === h);
+              // Termine, die in dieser Stunde beginnen (ganztägige stehen oben am Tag)
+              const hourEvents = allDayEvents.filter(ev => !ev.allDay && parseInt(ev.time.split(':')[0]) === h);
 
               // events whose departure falls in this hour
               const departureEvents = allDayEvents.filter(ev => {
