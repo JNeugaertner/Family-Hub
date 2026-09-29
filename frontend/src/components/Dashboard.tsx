@@ -6,7 +6,7 @@ import type { MealType } from '../meals/api';
 import { useMealData } from '../meals/MealDataContext';
 import { useShoppingData } from '../shopping/ShoppingDataContext';
 import GoogleBadge from '../google/GoogleBadge';
-import { MONTHS, WEEKDAYS_SHORT, formatDayMonth, startOfToday, toDateKey, weekdayIndex } from '../calendar/dates';
+import { MONTHS, WEEKDAYS_SHORT, formatDayMonth, formatLongDate, startOfToday, toDateKey, weekdayIndex } from '../calendar/dates';
 import { cardBackground, dotBackground, memberColors } from '../calendar/eventStyle';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
 import AvatarButton from '../profiles/AvatarButton';
@@ -72,13 +72,16 @@ function MiniCalendar({ onNavigate }: { onNavigate: Navigate }) {
 
       <div className="grid grid-cols-7 gap-y-0.5">
         {cells.map((cell, i) => {
+          // Tage des Vor- und Folgemonats liegen davor bzw. danach
+          const cellDate = new Date(year, month, i - firstDay + 1);
           const events  = cell.type === 'curr' ? getEvents(cell.day) : [];
           const isToday = cell.type === 'curr' && cell.day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
           const hasConflict = events.some(e => e.conflict || e.travelConflict);
           return (
             <button
               key={i}
-              onClick={() => onNavigate('calendar')}
+              onClick={() => onNavigate('calendar', { kind: 'day', date: toDateKey(cellDate) })}
+              aria-label={`${formatLongDate(cellDate)} im Kalender öffnen`}
               className={`flex flex-col items-center py-1 rounded-lg transition-colors relative
                 ${cell.type !== 'curr' ? 'opacity-25' : 'hover:bg-slate-50'}
                 ${isToday ? 'bg-[#2563EB] hover:bg-[#2563EB]' : ''}`}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import {
   GARBAGE_PICKUPS,
   CalendarEvent, type GarbagePickup,
@@ -10,7 +10,7 @@ import {
 import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
 import { useCalendarPermissions } from '../calendar/permissions';
 import EventFormModal from './EventFormModal';
-import { MONTHS, WEEKDAYS_SHORT, addDays, fromDateKey, mondayOf, startOfToday, toDateKey, weekdayIndex } from '../calendar/dates';
+import { MONTHS, WEEKDAYS_SHORT, addDays, formatLongDate, fromDateKey, mondayOf, startOfToday, toDateKey, weekdayIndex } from '../calendar/dates';
 import { CATEGORY_LABELS } from '../calendar/categories';
 import { SHARED_COLOR, blockBackground, cardBackground, dotBackground, memberColors, participantLabel, proposalStyle } from '../calendar/eventStyle';
 import GoogleBadge from '../google/GoogleBadge';
@@ -18,6 +18,7 @@ import ParticipantAvatars from '../calendar/ParticipantAvatars';
 import { useFlashFocus, useFocus } from '../navigation/focus';
 
 type SelectEvent = (event: CalendarEvent) => void;
+type SelectDay = (date: Date) => void;
 
 type Page = string;
 interface Props { onNavigate: (p: any) => void; }
@@ -162,7 +163,8 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
 
 // ─── month view ───────────────────────────────────────────────────────────────
 
-function MonthView({ year, month, events: allEvents, onSelect }: { year: number; month: number; events: CalendarEvent[]; onSelect: SelectEvent }) {
+// Klick auf einen Tag (auch auf "+2 weitere") öffnet ihn in der Tagesansicht
+function MonthView({ year, month, events: allEvents, onSelect, onSelectDay }: { year: number; month: number; events: CalendarEvent[]; onSelect: SelectEvent; onSelectDay: SelectDay }) {
   // Leere Tage vor dem Ersten: die Woche beginnt am Montag
   const firstDay    = weekdayIndex(new Date(year, month, 1));
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -198,19 +200,24 @@ function MonthView({ year, month, events: allEvents, onSelect }: { year: number;
           const isWeekEnd   = i % 7 >= 5;
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`;
           const garbage = cell.type === 'curr' ? garbageByDate[dateStr] : undefined;
+          // Tage des Vor- und Folgemonats liegen davor bzw. danach
+          const cellDate = new Date(year, month, i - firstDay + 1);
+          const openDay = (e: MouseEvent) => { e.stopPropagation(); onSelectDay(cellDate); };
 
           return (
             <div
               key={i}
+              onClick={() => onSelectDay(cellDate)}
               className={`min-h-[90px] lg:min-h-[110px] p-1.5 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer
                 ${cell.type !== 'curr' ? 'bg-slate-50/50' : ''}
                 ${isWeekEnd && cell.type === 'curr' ? 'bg-blue-50/20' : ''}`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-semibold rounded-full
+                <button type="button" onClick={openDay} aria-label={`${formatLongDate(cellDate)} öffnen`}
+                  className={`inline-flex items-center justify-center w-6 h-6 text-xs font-semibold rounded-full hover:ring-2 hover:ring-[#BFDBFE]
                   ${isToday ? 'bg-[#2563EB] text-white' : cell.type !== 'curr' ? 'text-slate-300' : 'text-slate-700'}`}>
                   {cell.day}
-                </span>
+                </button>
                 {hasConflict && <AlertTriangleIcon size={11} className="text-[#EF4444]" />}
               </div>
 
@@ -226,7 +233,11 @@ function MonthView({ year, month, events: allEvents, onSelect }: { year: number;
 
               <div className="space-y-0.5">
                 {events.slice(0, 3).map(ev => <EventPill key={ev.id} event={ev} compact onSelect={onSelect} />)}
-                {events.length > 3 && <div className="text-[9px] text-slate-400 px-1">+{events.length - 3} weitere</div>}
+                {events.length > 3 && (
+                  <button type="button" onClick={openDay} className="text-[9px] text-slate-500 px-1 hover:text-[#2563EB] hover:underline">
+                    +{events.length - 3} weitere
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -459,12 +470,18 @@ export default function CalendarPage({ onNavigate }: Props) {
   const [dayOffset, setDayOffset]     = useState(0);
 
   // Sprung aus der Übersicht: Tagesansicht des Termins, der Termin leuchtet kurz auf
-  const { focus } = useFocus();
+  const showDay = (date: Date) => {
+    setView('day');
+    setDayOffset(Math.round((date.getTime() - startOfToday().getTime()) / 864e5));
+  };
+  const { focus, clear: clearFocus } = useFocus();
   useEffect(() => {
-    if (focus?.kind !== 'event') return;
+    if (focus?.kind !== 'event' && focus?.kind !== 'day') return;
     setView('day');
     setDayOffset(Math.round((fromDateKey(focus.date).getTime() - startOfToday().getTime()) / 864e5));
-  }, [focus]);
+    // Ein Tag hat nichts zum Aufleuchten; ein Termin wird nach dem Aufleuchten gelöscht (useFlashFocus)
+    if (focus.kind === 'day') clearFocus();
+  }, [focus, clearFocus]);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null);
 
@@ -692,7 +709,7 @@ export default function CalendarPage({ onNavigate }: Props) {
       )}
 
       {/* Views */}
-      {view === 'month' && <MonthView year={year} month={month} events={visibleEvents} onSelect={openEditor} />}
+      {view === 'month' && <MonthView year={year} month={month} events={visibleEvents} onSelect={openEditor} onSelectDay={showDay} />}
       {view === 'week'  && <WeekView weekOffset={weekOffset} events={visibleEvents} onSelect={openEditor} />}
       {view === 'day'   && <DayView day={shownDay} events={visibleEvents} onSelect={openEditor} />}
 
