@@ -433,6 +433,16 @@ function DayView({ day, events, onSelect }: { day: Date; events: CalendarEvent[]
   );
 }
 
+// Überschrift der Woche; über einen Monatswechsel beide Monate, z. B. "September – Oktober 2026"
+function weekHeading(monday: Date): string {
+  const sunday = addDays(monday, 6);
+  const [first, last] = [MONTHS[monday.getMonth()], MONTHS[sunday.getMonth()]];
+  if (first === last) return `${first} ${monday.getFullYear()}`;
+  return monday.getFullYear() === sunday.getFullYear()
+    ? `${first} – ${last} ${sunday.getFullYear()}`
+    : `${first} ${monday.getFullYear()} – ${last} ${sunday.getFullYear()}`;
+}
+
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function CalendarPage({ onNavigate }: Props) {
@@ -490,7 +500,7 @@ export default function CalendarPage({ onNavigate }: Props) {
   const weekStart = mondayOf(addDays(today, weekOffset * 7));
   const heading = view === 'day'
     ? shownDay.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
-    : view === 'week' ? `${MONTHS[weekStart.getMonth()]} ${weekStart.getFullYear()}` : `${MONTHS[month]} ${year}`;
+    : view === 'week' ? weekHeading(weekStart) : `${MONTHS[month]} ${year}`;
   // Rest der Woche (bis Sonntag) nach dem gezeigten Tag, für "Diese Woche" in der Tagesansicht
   const endOfShownWeek = toDateKey(addDays(shownDay, (7 - shownDay.getDay()) % 7));
 
