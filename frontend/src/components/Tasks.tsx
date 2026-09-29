@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
 import { useFlashFocus } from '../navigation/focus';
+import AvatarButton from '../profiles/AvatarButton';
 import { PlusIcon, ClockIcon, AlertTriangleIcon, PencilIcon } from './Icons';
 import { ApiError } from '../api/client';
 import { useCalendarData, type CalendarMember } from '../calendar/CalendarDataContext';
@@ -104,13 +105,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
 
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-1.5">
-          <div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
-            style={{ backgroundColor: member?.color ?? '#94A3B8' }}
-            title={member?.name}
-          >
-            {member?.initials[0]}
-          </div>
+          <AvatarButton member={member} size={24} />
           <span className="text-xs text-slate-500">{member?.name}</span>
         </div>
         <div className={`flex items-center gap-1 text-xs font-medium ${overdue ? 'text-[#EF4444]' : 'text-slate-400'}`}>

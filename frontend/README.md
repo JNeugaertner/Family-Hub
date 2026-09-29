@@ -60,6 +60,13 @@ Klasse `focus-flash`; bei „Bewegung reduzieren“ ein ruhiger Rahmen). Wer die
 Einkaufsliste bearbeiten darf, hakt Artikel direkt in der Übersicht ab; gerade
 Abgehaktes bleibt durchgestrichen stehen und lässt sich zurücknehmen.
 
+**Profil-Overlay:** Ein Klick auf einen Familien-Kreis in der Seitenleiste oder auf
+einen Avatar an Terminen und Aufgaben öffnet ein kleines Profil (Rolle, Farbe,
+Alter, bei Kindern und Jugendlichen Punkte und Erfolge mit dem nächsten Ziel).
+Punkte und Erfolge erscheinen nur, wenn die angemeldete Person sie sehen darf
+(Kinder nur die eigenen, Gäste keine). Esc, ein Klick daneben oder Scrollen
+schließt es (`src/profiles/`).
+
 **Aufgaben und Punkte:** Eltern (Administratoren) legen Aufgaben mit Punkten an.
 Das Kind hakt ab, die Aufgabe wartet dann auf Bestätigung. Erst wenn ein
 Administrator bestätigt, werden die Punkte gutgeschrieben, genau einmal. Beim
@@ -146,6 +153,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/rewards/`: Belohnungs-API und `RewardDataContext` (Belohnungen und Einlösungen, lädt nach Änderungen auch die Punktestände neu)
 - `src/weather/`: Wetter-API, Kachel für die Übersicht, Karte „Wohnort für das Wetter“ für die Profilseite
 - `src/google/`: Google-API des Backends, Karte „Google Kalender“ für die Profilseite, „G“-Abzeichen
+- `src/profiles/`: Profil-Overlay (`ProfileCard`) und der klickbare Avatar (`AvatarButton`)
 - `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
 - `src/components/`: die Seiten (Dashboard, Calendar, Tasks, Rewards, Shopping, MealPlanning, AIAssistant, Messenger, Profiles)
 

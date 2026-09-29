@@ -9,6 +9,7 @@ import GoogleBadge from '../google/GoogleBadge';
 import { startOfToday, toDateKey } from '../calendar/dates';
 import { cardBackground, dotBackground, memberColors } from '../calendar/eventStyle';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
+import AvatarButton from '../profiles/AvatarButton';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { usePointHolders } from '../points/usePointHolders';
 import WeatherWidget from '../weather/WeatherWidget';
@@ -215,7 +216,7 @@ function QuickTasks({ onNavigate }: { onNavigate: Navigate }) {
                 <div className="text-sm font-medium text-slate-800 truncate">{t.title}</div>
                 <div className="text-xs text-slate-400">Fällig {t.dueDate.split('-').slice(1).join('/')}</div>
               </div>
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0" style={{ backgroundColor: member?.color }}>{member?.initials[0]}</div>
+              <AvatarButton member={member} size={24} />
             </div>
           );
         })}

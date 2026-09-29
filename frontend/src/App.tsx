@@ -25,6 +25,7 @@ import { useShoppingData } from './shopping/ShoppingDataContext';
 import { useMealData } from './meals/MealDataContext';
 import { ROLE_NAMES } from './roles';
 import { FocusContext, type Focus } from './navigation/focus';
+import AvatarButton from './profiles/AvatarButton';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
 
@@ -154,14 +155,8 @@ export default function App() {
             {members.map(m => {
               const self = m.id === me.id;
               return (
-                <div
-                  key={m.id}
-                  title={`${m.name} · ${ROLE_NAMES[m.effectiveRole]}${self ? ' (du)' : ''}`}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ring-2 ${self ? 'ring-[#2563EB] scale-110' : 'ring-white'}`}
-                  style={{ backgroundColor: m.color }}
-                >
-                  {m.initials[0]}
-                </div>
+                <AvatarButton key={m.id} member={m} size={32}
+                  className={`ring-2 ${self ? 'ring-[#2563EB] scale-110' : 'ring-white'}`} />
               );
             })}
           </div>
