@@ -207,18 +207,15 @@ function OverviewTab({ rewards, kids: children, history, confirmedTasks, redeeme
 
 // ─── shop tab ─────────────────────────────────────────────────────────────────
 
-// holders: für wen eingelöst werden darf (Kinder: nur sich selbst; Administratoren: alle Kinder)
-function ShopTab({ rewards, redemptions, holders, forOthers, busy, onRedeem, onWithdraw }: {
+// Kinder und Jugendliche lösen nur für sich selbst ein.
+function ShopTab({ rewards, redemptions, child, busy, onRedeem, onWithdraw }: {
   rewards: Reward[];
   redemptions: Redemption[];
-  holders: PointHolder[];
-  forOthers: boolean;
+  child: PointHolder;
   busy: boolean;
-  onRedeem: (reward: Reward, member: PointHolder) => void;
+  onRedeem: (reward: Reward) => void;
   onWithdraw: (redemption: Redemption) => void;
 }) {
-  const [viewer, setViewer] = useState(holders[0].id);
-  const child      = holders.find(m => m.id === viewer) ?? holders[0];
   const active     = rewards.filter(r => r.active);
   const categories = Array.from(new Set(active.map(r => r.category)));
 
@@ -229,36 +226,6 @@ function ShopTab({ rewards, redemptions, holders, forOthers, busy, onRedeem, onW
 
   return (
     <div className="space-y-6">
-      {/* Child switcher (Administratoren lösen auch für Kinder ein) */}
-      {holders.length > 1 && <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Einlösen für:</div>
-        <div className="flex flex-wrap gap-2">
-          {holders.map(c => (
-            <button
-              key={c.id}
-              onClick={() => setViewer(c.id)}
-              aria-pressed={viewer === c.id}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${viewer === c.id ? 'text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
-              style={viewer === c.id ? { backgroundColor: c.color } : {}}
-            >
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: viewer === c.id ? 'rgba(255,255,255,0.3)' : c.color }}>
-                {c.initials[0]}
-              </div>
-              {c.name}
-              <span className={`ml-1 text-xs font-bold ${viewer === c.id ? 'text-white/80' : ''}`} style={viewer !== c.id ? { color: c.color } : {}}>
-                {c.points} Pkt.
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>}
-
-      {forOthers && (
-        <div className="bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E40AF] text-xs rounded-xl px-3 py-2">
-          Wenn du für {child.name} einlöst, ist die Einlösung sofort genehmigt und die Punkte werden abgezogen.
-        </div>
-      )}
-
       {/* Balance banner */}
       <div
         className="rounded-2xl p-5 text-white relative overflow-hidden"
@@ -268,7 +235,7 @@ function ShopTab({ rewards, redemptions, holders, forOthers, busy, onRedeem, onW
         <div className="relative flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl">⭐</div>
           <div>
-            <div className="text-white/70 text-sm">{forOthers ? `Punktestand von ${child.name}` : 'Dein Punktestand'}</div>
+            <div className="text-white/70 text-sm">Dein Punktestand</div>
             <div className="text-4xl font-bold" data-balance={child.points}>{child.points}</div>
             <div className="text-white/70 text-sm mt-0.5">Punkte verfügbar</div>
           </div>
@@ -353,7 +320,7 @@ function ShopTab({ rewards, redemptions, holders, forOthers, busy, onRedeem, onW
                         </div>
                       ) : (
                         <button
-                          onClick={() => canAfford && onRedeem(r, child)}
+                          onClick={() => canAfford && onRedeem(r)}
                           disabled={!canAfford || busy}
                           className={`w-full py-2 rounded-xl text-xs font-bold transition-all ${
                             canAfford
@@ -362,7 +329,7 @@ function ShopTab({ rewards, redemptions, holders, forOthers, busy, onRedeem, onW
                           }`}
                           style={canAfford ? { backgroundColor: child.color } : {}}
                         >
-                          {canAfford ? (forOthers ? `Für ${child.name} einlösen` : 'Einlösen') : 'Nicht genug Punkte'}
+                          {canAfford ? 'Einlösen' : 'Nicht genug Punkte'}
                         </button>
                       )}
                     </div>
@@ -377,7 +344,7 @@ function ShopTab({ rewards, redemptions, holders, forOthers, busy, onRedeem, onW
       {/* Redemption history */}
       {myRedemptions.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <h3 className="font-bold text-slate-800 text-base mb-4">📋 {forOthers ? `Einlöseverlauf von ${child.name}` : 'Mein Einlöseverlauf'}</h3>
+          <h3 className="font-bold text-slate-800 text-base mb-4">📋 Mein Einlöseverlauf</h3>
           <div className="space-y-2">
             {myRedemptions.map(red => (
               <div key={red.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50">
@@ -871,7 +838,6 @@ export default function Rewards({ onNavigate }: Props) {
   const mayViewPoints = can('punkte', 'ansehen', 'eigen');
   const mayManage = can('punkte', 'verwalten', 'familie');
   const mayDecide = can('punkte', 'freigeben', 'familie');
-  const mayRedeemForOthers = can('punkte', 'vorschlagen', 'familie');
   const mayRedeemOwn = can('punkte', 'vorschlagen', 'eigen');
   const [tab, setTab]         = useState<Tab>('overview');
   const [history, setHistory] = useState<PointEntry[]>([]);
@@ -901,8 +867,9 @@ export default function Rewards({ onNavigate }: Props) {
     }
   };
 
-  // Für wen im Shop eingelöst werden kann: Administratoren für alle Kinder, sonst nur für sich selbst
-  const shopHolders = mayRedeemForOthers ? children : children.filter(c => c.id === me.id);
+  const shopHolders = mayRedeemOwn && (me.effectiveRole === 'kind' || me.effectiveRole === 'jugendlicher')
+    ? children.filter(c => c.id === me.id)
+    : [];
   const pending = redemptions.filter(r => r.status === 'pending');
   const pendingCount = mayDecide ? pending.length : 0;
   const tabs = TABS.filter(t => (t.id !== 'manage' || mayManage) && (t.id !== 'shop' || shopHolders.length > 0));
@@ -970,13 +937,11 @@ export default function Rewards({ onNavigate }: Props) {
       {tab === 'overview' && <OverviewTab rewards={rewards} kids={children} history={history}
         confirmedTasks={tasks.filter(t => t.status === 'confirmed').length}
         redeemedCount={redemptions.filter(r => r.status === 'approved').length} />}
-      {tab === 'shop' && shopHolders.length > 0 && (mayRedeemOwn || mayRedeemForOthers) && (
-        <ShopTab rewards={rewards} redemptions={redemptions} holders={shopHolders} forOthers={mayRedeemForOthers}
+      {tab === 'shop' && shopHolders.length > 0 && (
+        <ShopTab rewards={rewards} redemptions={redemptions} child={shopHolders[0]}
           busy={busy}
-          onRedeem={(reward, member) => run(() => redeem(reward.id, member.id === me.id ? undefined : member.id),
-            member.id === me.id
-              ? `„${reward.name}“ eingelöst: ${reward.cost} Punkte abgezogen. Deine Eltern müssen noch zustimmen.`
-              : `„${reward.name}“ für ${member.name} eingelöst und genehmigt: ${reward.cost} Punkte abgezogen.`)}
+          onRedeem={reward => run(() => redeem(reward.id),
+            `„${reward.name}“ eingelöst: ${reward.cost} Punkte abgezogen. Deine Eltern müssen noch zustimmen.`)}
           onWithdraw={r => run(() => withdraw(r.id), `Einlösung zurückgezogen, ${r.cost} Punkte sind wieder da.`)} />
       )}
       {tab === 'achievements' && <AchievementsTab kids={children} mayManage={mayManage} refreshKey={balances} />}

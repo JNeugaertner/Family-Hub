@@ -10,20 +10,24 @@ import org.springframework.stereotype.Component;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.permission.Permissions;
+import de.familyhub.permission.RoleResolver;
 import de.familyhub.permission.Scope;
+import de.familyhub.web.ApiException;
 
 // Rechte im Belohnungsshop (Entscheidungen vom 28.09.2026):
 // - Belohnungen sehen: wer Punkte sehen darf ("punkte/ansehen"); inaktive nur, wer verwalten darf.
-// - Einlösen: für sich selbst mit "punkte/vorschlagen/eigen" (Kinder, Jugendliche), für andere mit "familie".
-// - Genehmigen und ablehnen: "punkte/freigeben/familie". Wer das darf, braucht selbst keine Genehmigung.
+// - Einlösen: Kinder und Jugendliche nur für sich selbst mit "punkte/vorschlagen/eigen".
+// - Genehmigen und ablehnen: "punkte/freigeben/familie".
 // - Belohnungen anlegen, ändern, löschen: "punkte/verwalten/familie" (Administratoren).
 @Component
 public class RewardAccess {
 
     private final Permissions permissions;
+    private final RoleResolver roles;
 
-    public RewardAccess(Permissions permissions) {
+    public RewardAccess(Permissions permissions, RoleResolver roles) {
         this.permissions = permissions;
+        this.roles = roles;
     }
 
     public void requireView(FamilyMember viewer) {
@@ -43,12 +47,14 @@ public class RewardAccess {
     }
 
     public void requireRedeem(FamilyMember viewer, String memberId) {
-        if (viewer.id().equals(memberId)) {
-            permissions.require(viewer, PUNKTE, VORSCHLAGEN, Scope.EIGEN, "Keine Berechtigung, Belohnungen einzulösen.");
-        } else {
-            permissions.require(viewer, PUNKTE, VORSCHLAGEN, Scope.FAMILIE,
-                    "Du darfst Belohnungen nur für dich selbst einlösen.");
+        if (!viewer.id().equals(memberId)) {
+            throw ApiException.forbidden("Du darfst Belohnungen nur für dich selbst einlösen.");
         }
+        if (!roles.effectiveRole(viewer).countsAsChild()) {
+            throw ApiException.forbidden("Nur Kinder und Jugendliche dürfen Belohnungen einlösen.");
+        }
+        permissions.require(viewer, PUNKTE, VORSCHLAGEN, Scope.EIGEN,
+                "Keine Berechtigung, Belohnungen einzulösen.");
     }
 
     public boolean mayDecide(FamilyMember viewer) {

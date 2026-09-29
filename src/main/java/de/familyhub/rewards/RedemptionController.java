@@ -29,8 +29,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-// Belohnungen einlösen (Entscheidungen vom 28.09.2026): Die Punkte werden beim Einlösen sofort abgezogen. Eltern
-// genehmigen oder lehnen ab; beim Ablehnen und beim Zurückziehen einer offenen Einlösung kommen sie zurück.
+// Kinder und Jugendliche lösen Belohnungen für sich selbst ein. Die Punkte werden sofort abgezogen; Eltern
+// genehmigen oder lehnen ab. Beim Ablehnen und Zurückziehen einer offenen Einlösung kommen sie zurück.
 @RestController
 @RequestMapping("/api/redemptions")
 @Tag(name = "Belohnungen")
@@ -58,7 +58,7 @@ public class RedemptionController {
 
     public record RedeemRequest(
             @NotBlank(message = "Belohnung fehlt") String rewardId,
-            @Schema(description = "Für wen (nur Administratoren für andere); ohne Angabe für sich selbst")
+            @Schema(description = "Familienmitglied (muss der angemeldeten Person entsprechen)")
             String memberId) {
     }
 
@@ -91,8 +91,8 @@ public class RedemptionController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Belohnung einlösen",
-            description = "Zieht die Punkte sofort ab. Die Einlösung wartet auf die Eltern; lösen Administratoren ein "
-                    + "(auch für ein Kind), ist sie sofort genehmigt.")
+            description = "Kinder und Jugendliche lösen für sich selbst ein. Die Punkte werden sofort abgezogen "
+                    + "und die Einlösung wartet auf die Eltern.")
     public Redemption redeem(@Valid @RequestBody RedeemRequest request) {
         FamilyMember viewer = currentMember.get();
         String memberId = request.memberId() == null ? viewer.id() : request.memberId();
