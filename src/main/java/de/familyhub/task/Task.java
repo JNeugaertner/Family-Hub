@@ -27,10 +27,10 @@ public record Task(
         @Size(max = 1000, message = "Beschreibung darf höchstens 1000 Zeichen lang sein")
         String description,
 
-        @NotBlank(message = "Aufgabe muss einem Familienmitglied zugewiesen sein")
+        @Schema(description = "Zugewiesenes Familienmitglied; leer bei einer offenen Bonus-Aufgabe")
         String assigneeId,
 
-        @NotNull(message = "Fälligkeit ist Pflicht")
+        @Schema(description = "Fälligkeit; bei Bonus-Aufgaben optional")
         LocalDate dueDate,
 
         @NotNull(message = "Priorität ist Pflicht")
@@ -56,18 +56,40 @@ public record Task(
         LocalDateTime confirmedAt,
 
         @Schema(accessMode = Schema.AccessMode.READ_ONLY, description = "Id des Administrators, der bestätigt hat")
-        String confirmedBy) {
+        String confirmedBy,
+
+        @Schema(description = "Bonus-Aufgabe: offen für alle Kinder und Jugendlichen, wer sie übernimmt, bekommt die Punkte")
+        Boolean bonus,
+
+        @Schema(description = "Nur bei Bonus-Aufgaben: nach der Bestätigung automatisch wieder offen")
+        Boolean repeatable) {
 
     @PersistenceCreator
     public Task {
         points = points == null ? 0 : points;
         status = status == null ? TaskStatus.TODO : status;
+        bonus = Boolean.TRUE.equals(bonus);
+        repeatable = bonus && Boolean.TRUE.equals(repeatable);
+        assigneeId = assigneeId == null || assigneeId.isBlank() ? null : assigneeId;
+    }
+
+    public Task(String id, String title, String description, String assigneeId, LocalDate dueDate,
+            TaskPriority priority, TaskCategory category, Integer points, TaskStatus status, String createdBy,
+            LocalDateTime confirmedAt, String confirmedBy) {
+        this(id, title, description, assigneeId, dueDate, priority, category, points, status, createdBy, confirmedAt,
+                confirmedBy, false, false);
     }
 
     public Task(String id, String title, String description, String assigneeId, LocalDate dueDate,
             TaskPriority priority, TaskCategory category, int points) {
         this(id, title, description, assigneeId, dueDate, priority, category, points, TaskStatus.TODO, null, null,
                 null);
+    }
+
+    // Bonus-Aufgabe, die noch niemand übernommen hat
+    @JsonIgnore
+    public boolean isOpenBonus() {
+        return bonus && assigneeId == null;
     }
 
     // Wartet auf die Bestätigung durch einen Administrator (erledigt und mit Punkten)
@@ -84,11 +106,22 @@ public record Task(
 
     public Task withStatus(TaskStatus newStatus) {
         return new Task(id, title, description, assigneeId, dueDate, priority, category, points, newStatus, createdBy,
-                confirmedAt, confirmedBy);
+                confirmedAt, confirmedBy, bonus, repeatable);
+    }
+
+    public Task withAssignee(String newAssigneeId, TaskStatus newStatus) {
+        return new Task(id, title, description, newAssigneeId, dueDate, priority, category, points, newStatus,
+                createdBy, confirmedAt, confirmedBy, bonus, repeatable);
     }
 
     public Task confirmed(LocalDateTime at, String by) {
         return new Task(id, title, description, assigneeId, dueDate, priority, category, points, TaskStatus.CONFIRMED,
-                createdBy, at, by);
+                createdBy, at, by, bonus, repeatable);
+    }
+
+    // Wiederkehrende Bonus-Aufgabe: nach der Bestätigung eine neue, offene Aufgabe ohne Frist
+    public Task nextRound() {
+        return new Task(null, title, description, null, null, priority, category, points, TaskStatus.TODO, createdBy,
+                null, null, true, true);
     }
 }
