@@ -107,7 +107,7 @@ public class GoogleCalendarSync {
     }
 
     private void apply(String memberId, Map<String, CalendarEvent> wanted) {
-        Map<String, CalendarEvent> existing = events.findByMemberIdAndExternalIsNotNull(memberId).stream()
+        Map<String, CalendarEvent> existing = events.findImportedByMember(memberId).stream()
                 .collect(Collectors.toMap(e -> e.external().key(), Function.identity(), (a, b) -> a));
 
         List<CalendarEvent> changed = new ArrayList<>();
@@ -128,7 +128,7 @@ public class GoogleCalendarSync {
     }
 
     private static CalendarEvent withId(CalendarEvent e, String id) {
-        return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberId(), e.category(), e.location(),
+        return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberIds(), e.category(), e.location(),
                 e.description(), e.privateEvent(), e.status(), e.createdBy(), e.external());
     }
 }

@@ -6,7 +6,8 @@ export interface ApiEvent {
   title: string;
   start: string;
   end: string;
-  memberId: string;
+  // Beteiligte, mindestens eine Person
+  memberIds: string[];
   category: EventCategory;
   location: string | null;
   description: string | null;
@@ -21,7 +22,7 @@ export interface EventInput {
   title: string;
   start: string | null;
   end: string | null;
-  memberId: string;
+  memberIds: string[];
   category: EventCategory;
   location: string | null;
   description: string | null;

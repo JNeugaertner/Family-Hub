@@ -46,7 +46,7 @@ class GoogleEventMapperTest {
         assertThat(result.title()).isEqualTo("Training");
         assertThat(result.location()).isEqualTo("Sporthalle");
         assertThat(result.description()).isEqualTo("Halle 2");
-        assertThat(result.memberId()).isEqualTo("lucas-id");
+        assertThat(result.memberIds()).containsExactly("lucas-id");
         assertThat(result.createdBy()).isEqualTo("lucas-id");
         assertThat(result.category()).isEqualTo(EventCategory.SPORTS);
         assertThat(result.status()).isEqualTo(EventStatus.APPROVED);

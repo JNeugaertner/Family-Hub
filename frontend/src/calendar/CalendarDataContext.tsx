@@ -51,7 +51,7 @@ function toEvent(e: api.ApiEvent): CalendarEvent {
     date: e.start.slice(0, 10),
     time: e.start.slice(11, 16),
     endTime: e.end.slice(11, 16),
-    memberId: e.memberId,
+    memberIds: e.memberIds,
     category: e.category,
     location: e.location ?? undefined,
     description: e.description ?? undefined,

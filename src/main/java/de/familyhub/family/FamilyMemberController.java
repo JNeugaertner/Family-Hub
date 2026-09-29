@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import de.familyhub.achievements.AchievementService;
+import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
 import de.familyhub.google.GoogleAccountService;
 import de.familyhub.permission.Action;
@@ -132,8 +133,9 @@ public class FamilyMemberController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Familienmitglied löschen",
-            description = "Nur für Administratoren und nur, wenn dem Mitglied keine Termine mehr zugeordnet sind. "
-                    + "Aus Google importierte Termine und die Google-Verbindung werden mitgelöscht.")
+            description = "Nur für Administratoren und nur, wenn das Mitglied an keinem Termin allein beteiligt ist. "
+                    + "Aus gemeinsamen Terminen wird es ausgetragen; aus Google importierte Termine und die "
+                    + "Google-Verbindung werden mitgelöscht.")
     public void delete(@PathVariable String id) {
         FamilyMember admin = requireManager();
         FamilyMember member = find(id);
@@ -141,7 +143,8 @@ public class FamilyMemberController {
             requireRightsManager(admin, "Nur Administratoren dürfen Administratoren löschen.");
         }
         rules.checkAdministratorRemains(member, null);
-        long eventCount = events.countByMemberIdAndExternalIsNull(id);
+        List<CalendarEvent> ownEvents = events.findOwnByMember(id);
+        long eventCount = ownEvents.stream().filter(e -> e.isOnlyFor(id)).count();
         if (eventCount > 0) {
             String termine = eventCount == 1 ? "einen Termin" : eventCount + " Termine";
             throw ApiException.conflict("Das Familienmitglied hat noch " + termine
@@ -157,6 +160,7 @@ public class FamilyMemberController {
             throw ApiException.conflict("Das Familienmitglied hat noch offene Einlösungen von Belohnungen. "
                     + "Bitte zuerst genehmigen oder ablehnen.");
         }
+        events.saveAll(ownEvents.stream().map(e -> e.withoutMember(id)).toList());
         googleAccounts.forgetMember(id);
         achievements.forgetMember(id);
         members.deleteById(id);

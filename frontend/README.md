@@ -35,7 +35,7 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 |---|---|
 | Anmelden, Abmelden, Familie einrichten | Backend: `/api/auth/...` (Sitzungs-Cookie) |
 | Kalender (Monat, Woche, Tag), Personenfilter | Backend: `/api/members`, `/api/events` |
-| Termine anlegen, ändern, löschen, Vorschläge freigeben oder ablehnen | Backend, Formular `src/components/EventFormModal.tsx` |
+| Termine anlegen (für eine oder mehrere Personen, auch „Ganze Familie“), ändern, löschen, Vorschläge freigeben oder ablehnen | Backend, Formular `src/components/EventFormModal.tsx` |
 | Dashboard: Mini-Kalender und „Heute“ (nur freigegebene Termine) | Backend |
 | Profile: Mitglieder, Rollen, Einzelrechte, Freigaben für Gäste, eigenes Passwort | Backend: `/api/members`, `/api/roles`, `/api/settings`, `/api/auth/password` |
 | Aufgaben: anlegen, abhaken, bestätigen oder zurückgeben; Dashboard „Dringende Aufgaben“ | Backend: `/api/tasks` |
@@ -113,19 +113,23 @@ zeigt Formulare schreibgeschützt; geprüft wird jede Aktion im Backend.
 | Rolle | Kalender | Profile |
 |---|---|---|
 | Administrator | alles, auch private Termine; gibt Vorschläge frei | Mitglieder, Rollen, Einzelrechte und Gäste-Freigaben verwalten |
-| Jugendliche | eigene Termine direkt, für andere als Vorschlag | ansehen, eigenes Passwort |
+| Jugendliche | eigene Termine direkt, mit anderen Beteiligten als Vorschlag | ansehen, eigenes Passwort |
 | Kind | nur ansehen | ansehen, eigenes Passwort |
 | Gast | nur freigegebene Kategorien ansehen | ansehen, eigenes Passwort |
 
-Private Termine sehen nur die Person selbst, wer sie angelegt hat, und
-Administratoren. Offene Vorschläge sehen nur die vorschlagende Person und
+Ein Termin kann mehrere Beteiligte haben; „Ganze Familie“ wählt alle außer
+Gästen. Gemeinsame Termine haben im Kalender eine eigene Farbe (Indigo, bei
+keinem Mitglied vergeben; Legende „Mehrere Personen“ beim Filter), der
+Personenfilter findet sie für jede beteiligte Person. Als „eigener“ Termin zählt nur einer, an dem man allein
+beteiligt ist. Private Termine sehen nur die Beteiligten, wer sie angelegt hat,
+und Administratoren. Offene Vorschläge sehen nur die vorschlagende Person und
 Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 
 ## Aufbau
 
 - `src/api/client.ts`: gemeinsamer Aufruf ans Backend (Cookies, CSRF-Header, Fehler als `ApiError` mit Feldfehlern)
 - `src/auth/`: Anmeldung (`AuthContext` mit `useAuth()`/`useMe()`), Anmelde- und Einrichtungsseite
-- `src/calendar/`: Termin-API, `CalendarDataContext` (lädt Mitglieder und Termine für Kalender und Dashboard), `permissions.ts` (was die angemeldete Person im Kalender darf)
+- `src/calendar/`: Termin-API, `CalendarDataContext` (lädt Mitglieder und Termine für Kalender und Dashboard), `permissions.ts` (was die angemeldete Person im Kalender darf), `eventStyle.ts` und `ParticipantAvatars.tsx` (Farbe und Beteiligte gemeinsamer Termine)
 - `src/family/`: API für Mitglieder, Rollen und Einstellungen, Farbpalette
 - `src/tasks/`: Aufgaben-API, `TaskDataContext` (lädt Aufgaben und Punktestände), `permissions.ts` (was die angemeldete Person bei Aufgaben darf)
 - `src/points/`: Punkte-API, Punktestände je Kind, Belohnungsanimation und Hinweis auf neue Punkte
