@@ -1,6 +1,7 @@
 import { json, request } from '../api/client';
 import type { EventCategory } from '../components/data';
 import type { Permission, RoleId } from '../roles';
+import type { WeatherLocation } from '../weather/api';
 
 export interface ApiMember {
   id: string;
@@ -41,6 +42,8 @@ export interface Settings {
   guestCategories: EventCategory[];
   // Alter, ab dem ein Kind automatisch Jugendlicher wird (nur lesbar, aus der Backend-Konfiguration)
   teenAge: number;
+  // Wohnort für das Wetter, ändern über weather/api
+  weatherLocation: WeatherLocation | null;
 }
 
 export const listMembers = () => request<ApiMember[]>('/api/members');

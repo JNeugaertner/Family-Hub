@@ -14,6 +14,8 @@ export function useCalendarPermissions() {
   const mayEditFamily = can('kalender', 'bearbeiten', 'familie');
 
   const isOwn = (memberId: string) => memberId === me.id;
+  // Nur ich bin beteiligt: dann gelten die Rechte für eigene Termine, sonst die für Familientermine
+  const onlyMe = (memberIds: string[]) => memberIds.length === 1 && isOwn(memberIds[0]);
 
   return {
     me,
@@ -23,22 +25,22 @@ export function useCalendarPermissions() {
     // Darf nichts selbst anlegen, nur Termine für andere vorschlagen
     onlyProposals: !mayCreateOwn && !mayCreateFamily && mayPropose,
 
-    // Für wen darf ich einen Termin eintragen (direkt oder als Vorschlag)?
+    // Wen darf ich zu einem Termin eintragen (direkt oder als Vorschlag)?
     canAssignTo: (memberId: string) =>
       isOwn(memberId) ? mayCreateOwn : mayCreateFamily || mayPropose,
 
-    // Termine für andere werden zum Vorschlag, wenn ich dort nur vorschlagen darf.
-    becomesProposal: (memberId: string) => !isOwn(memberId) && !mayCreateFamily && mayPropose,
+    // Termine mit anderen werden zum Vorschlag, wenn ich dort nur vorschlagen darf.
+    becomesProposal: (memberIds: string[]) => !onlyMe(memberIds) && !mayCreateFamily && mayPropose,
 
     // Google-Termine sind für alle schreibgeschützt; geändert wird in Google.
     canEdit: (event: CalendarEvent) =>
       !event.source && (event.status === 'proposed'
         ? (event.createdBy === me.id && mayPropose) || mayEditFamily
-        : can('kalender', 'bearbeiten', isOwn(event.memberId) ? 'eigen' : 'familie')),
+        : can('kalender', 'bearbeiten', onlyMe(event.memberIds) ? 'eigen' : 'familie')),
 
     canDelete: (event: CalendarEvent) =>
       !event.source && (event.status === 'proposed'
         ? event.createdBy === me.id || mayDecide
-        : can('kalender', 'loeschen', isOwn(event.memberId) ? 'eigen' : 'familie')),
+        : can('kalender', 'loeschen', onlyMe(event.memberIds) ? 'eigen' : 'familie')),
   };
 }

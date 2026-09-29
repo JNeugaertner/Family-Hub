@@ -25,6 +25,9 @@ import de.familyhub.calendar.EventCategory;
 import de.familyhub.calendar.EventStatus;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.meals.DishRepository;
+import de.familyhub.meals.MealEntry;
+import de.familyhub.meals.MealEntryRepository;
 import de.familyhub.permission.Role;
 import de.familyhub.points.PointEntry;
 import de.familyhub.points.PointEntryRepository;
@@ -63,6 +66,12 @@ class SampleDataLoaderTest {
     @Autowired
     private ShoppingItemRepository shoppingRepository;
 
+    @Autowired
+    private DishRepository dishRepository;
+
+    @Autowired
+    private MealEntryRepository mealRepository;
+
     private static final PasswordEncoder PASSWORD_ENCODER = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 
     // Mittwoch, 07.10.2026: Die Beispielwoche beginnt am Montag, 05.10.2026
@@ -79,8 +88,34 @@ class SampleDataLoaderTest {
         pointRepository.deleteAll();
         rewardRepository.deleteAll();
         shoppingRepository.deleteAll();
+        dishRepository.deleteAll();
+        mealRepository.deleteAll();
         loader = new SampleDataLoader(memberRepository, eventRepository, settingsRepository, taskRepository,
-                pointRepository, rewardRepository, shoppingRepository, PASSWORD_ENCODER, CLOCK);
+                pointRepository, rewardRepository, shoppingRepository, dishRepository, mealRepository,
+                PASSWORD_ENCODER, CLOCK);
+    }
+
+    @Test
+    void loadsSampleMealPlanForTheCurrentWeekWithOneWishOnlyOnce() {
+        loader.load();
+        loader.load();
+
+        assertThat(dishRepository.findAll()).hasSize(12)
+                .allSatisfy(d -> assertThat(d.ingredients()).isNotEmpty());
+        List<MealEntry> plan = mealRepository.findAll();
+        assertThat(plan).hasSize(22).allSatisfy(m -> assertThat(m.date())
+                .isBetween(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 11)));
+        String lucasId = memberRepository.findByUsername("lucas").orElseThrow().id();
+        assertThat(plan).filteredOn(MealEntry::isProposal)
+                .singleElement()
+                .satisfies(m -> {
+                    assertThat(m.name()).isEqualTo("Pfannkuchen mit Apfelmus");
+                    assertThat(m.createdBy()).isEqualTo(lucasId);
+                    assertThat(m.dishId()).isNotNull();
+                });
+        assertThat(plan).filteredOn(m -> m.name().equals("Essen bei Oma"))
+                .singleElement()
+                .satisfies(m -> assertThat(m.dishId()).isNull());
     }
 
     @Test
@@ -194,7 +229,7 @@ class SampleDataLoaderTest {
                 .collect(Collectors.toSet());
         List<CalendarEvent> events = eventRepository.findAll();
 
-        assertThat(events).extracting(CalendarEvent::memberId).allMatch(memberIds::contains);
+        assertThat(events).flatExtracting(CalendarEvent::memberIds).allMatch(memberIds::contains);
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             assertThat(events).allSatisfy(e -> assertThat(factory.getValidator().validate(e)).isEmpty());
         }

@@ -16,6 +16,8 @@ export function useTaskPermissions() {
   const mayConfirm = can('punkte', 'freigeben', 'familie');
 
   const isAssigned = (task: ApiTask) => task.assigneeId === me.id;
+  // Bonus-Aufgaben übernehmen Kinder und Jugendliche (wie TaskAccess.canClaim)
+  const mayClaim = (me.effectiveRole === 'kind' || me.effectiveRole === 'jugendlicher') && mayTickOwn;
   const isOwnTask = (task: ApiTask) => isAssigned(task) && task.createdBy === me.id;
 
   return {
@@ -27,7 +29,12 @@ export function useTaskPermissions() {
     canAdd: mayCreateOwn || mayCreateFamily,
     canAssignTo: (memberId: string) => (memberId === me.id ? mayCreateOwn : mayCreateFamily),
     canEdit: (task: ApiTask) => task.status !== 'confirmed' && (isOwnTask(task) ? mayCreateOwn : mayCreateFamily),
-    canTick: (task: ApiTask) => task.status !== 'confirmed' && (isAssigned(task) ? mayTickOwn : mayTickFamily),
+    canTick: (task: ApiTask) => task.status !== 'confirmed' && task.assigneeId !== null
+      && (isAssigned(task) ? mayTickOwn : mayTickFamily),
+    mayClaim,
+    // Zurückgeben: wer sie übernommen hat, oder ein Administrator, solange sie nicht erledigt ist
+    canRelease: (task: ApiTask) => task.bonus && task.assigneeId !== null
+      && (task.status === 'todo' || task.status === 'inprogress') && (isAssigned(task) || mayConfirm),
     canDelete: (task: ApiTask) => (isOwnTask(task) ? mayDeleteOwn : mayDeleteFamily),
   };
 }

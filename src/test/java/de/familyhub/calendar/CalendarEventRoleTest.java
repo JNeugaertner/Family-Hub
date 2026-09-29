@@ -80,7 +80,7 @@ class CalendarEventRoleTest {
 
     private static String json(String title, FamilyMember member, int hour) {
         return """
-                {"title": "%s", "start": "2026-09-26T%02d:00", "end": "2026-09-26T%02d:00", "memberId": "%s",
+                {"title": "%s", "start": "2026-09-26T%02d:00", "end": "2026-09-26T%02d:00", "memberIds": ["%s"],
                  "category": "sports"}
                 """.formatted(title, hour, hour + 1, member.id());
     }
@@ -243,7 +243,7 @@ class CalendarEventRoleTest {
     void teenagerCanMarkOwnEventPrivate() throws Exception {
         mvc.perform(post("/api/events").with(as(emma)).contentType(APPLICATION_JSON).content("""
                         {"title": "Arzt", "start": "2026-09-26T09:00", "end": "2026-09-26T10:00",
-                         "memberId": "%s", "category": "appointment", "private": true}
+                         "memberIds": ["%s"], "category": "appointment", "private": true}
                         """.formatted(emma.id())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.private").value(true));

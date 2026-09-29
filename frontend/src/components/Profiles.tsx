@@ -12,6 +12,7 @@ import {
 } from '../family/api';
 import { FAMILY_COLORS } from '../family/colors';
 import GoogleCalendarCard from '../google/GoogleCalendarCard';
+import WeatherLocationCard from '../weather/WeatherLocationCard';
 import { hasPermission, permissionKey, ROLE_NAMES, type Permission, type RoleId } from '../roles';
 
 function ShieldLock({ size = 16, className = '' }: { size?: number; className?: string }) {
@@ -37,7 +38,9 @@ const PERMISSION_DISPLAY: (Permission & { label: string; icon: string })[] = [
   { module: 'einkauf', action: 'ansehen', scope: 'familie', label: 'Einkaufsliste ansehen', icon: '🧾' },
   { module: 'einkauf', action: 'vorschlagen', scope: 'familie', label: 'Artikel vorschlagen', icon: '💡' },
   { module: 'einkauf', action: 'bearbeiten', scope: 'familie', label: 'Einkaufsliste bearbeiten', icon: '🛒' },
-  { module: 'essen', action: 'vorschlagen', scope: 'familie', label: 'Essenswünsche einreichen', icon: '🍽️' },
+  { module: 'essen', action: 'ansehen', scope: 'familie', label: 'Essensplan ansehen', icon: '🍽️' },
+  { module: 'essen', action: 'vorschlagen', scope: 'familie', label: 'Essenswünsche einreichen', icon: '💡' },
+  { module: 'essen', action: 'bearbeiten', scope: 'familie', label: 'Essensplan und Gerichte bearbeiten', icon: '🍳' },
   { module: 'punkte', action: 'ansehen', scope: 'familie', label: 'Punktestände der Familie sehen', icon: '⭐' },
   { module: 'punkte', action: 'vorschlagen', scope: 'eigen', label: 'Belohnungen einlösen', icon: '🛍️' },
   { module: 'punkte', action: 'freigeben', scope: 'familie', label: 'Punkte vergeben, Einlösungen genehmigen', icon: '🎁' },
@@ -569,6 +572,7 @@ export default function Profiles({ onNavigate }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {mayManageRights && <GuestSettingsCard />}
+        {mayManageRights && <WeatherLocationCard />}
         <PasswordCard />
         {mayConnectGoogle && <GoogleCalendarCard />}
       </div>

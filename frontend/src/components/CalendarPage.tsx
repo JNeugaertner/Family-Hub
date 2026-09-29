@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   GARBAGE_PICKUPS,
   CalendarEvent, type GarbagePickup,
@@ -11,7 +11,10 @@ import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
 import { useCalendarPermissions } from '../calendar/permissions';
 import EventFormModal from './EventFormModal';
 import { addDays, fromDateKey, startOfToday, toDateKey } from '../calendar/dates';
+import { SHARED_COLOR, blockBackground, cardBackground, dotBackground, memberColors, participantLabel, proposalStyle } from '../calendar/eventStyle';
 import GoogleBadge from '../google/GoogleBadge';
+import ParticipantAvatars from '../calendar/ParticipantAvatars';
+import { useFlashFocus, useFocus } from '../navigation/focus';
 
 type SelectEvent = (event: CalendarEvent) => void;
 
@@ -84,21 +87,20 @@ const sourceNote = (event: CalendarEvent) => (event.source === 'google' ? ' (Goo
 const timeRange = (event: CalendarEvent) =>
   event.allDay ? 'Ganztägig' : `${event.time}${event.endTime ? ` – ${event.endTime}` : ''}`;
 
-const proposalStyle = (event: CalendarEvent, color: string) =>
-  event.status === 'proposed'
-    ? { backgroundColor: `${color}33`, color, border: `1px dashed ${color}` }
-    : { backgroundColor: color };
+// Farbige Terminblöcke: eine Person in ihrer Farbe, gemeinsame Termine in der Farbe für mehrere (calendar/eventStyle)
+const blockStyle = (event: CalendarEvent, colors: string[]) =>
+  event.status === 'proposed' ? proposalStyle(colors) : { background: blockBackground(colors) };
 
 function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent; compact?: boolean; onSelect: SelectEvent }) {
-  const { memberById } = useCalendarData();
-  const member = memberById(event.memberId);
-  const color  = member?.color || CATEGORY_COLORS[event.category] || '#94A3B8';
+  const { members, memberById } = useCalendarData();
+  const colors = memberColors(event.memberIds, memberById);
+  const shared = event.memberIds.length > 1;
 
   if (compact) {
     return (
       <div
         className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md truncate flex items-center gap-0.5 cursor-pointer hover:opacity-80 ${event.status === 'proposed' ? '' : 'text-white'} ${event.travelConflict ? 'ring-1 ring-[#EF4444]' : ''}`}
-        style={proposalStyle(event, color)}
+        style={blockStyle(event, colors)}
         title={`${eventMarker(event)}${event.title}${event.status === 'proposed' ? ' (Vorschlag)' : ''}${sourceNote(event)}`}
         onClick={e => { e.stopPropagation(); onSelect(event); }}
       >
@@ -112,8 +114,9 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
 
   return (
     <div
+      data-focus-id={event.id}
       className={`flex items-start gap-2.5 p-3 rounded-xl cursor-pointer border transition-all hover:shadow-sm ${event.travelConflict ? 'border-[#FECACA] bg-[#FEF2F2]' : 'border-transparent hover:border-slate-100'}`}
-      style={{ borderLeft: `3px solid ${event.travelConflict ? '#EF4444' : color}`, background: event.travelConflict ? undefined : `${color}10` }}
+      style={event.travelConflict ? { borderLeft: '3px solid #EF4444' } : { background: cardBackground(colors) }}
       onClick={() => onSelect(event)}
     >
       <div className="flex-1 min-w-0">
@@ -149,6 +152,7 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
               {event.location}
             </span>
           )}
+          {shared && <span>👥 {participantLabel(event.memberIds, members)}</span>}
         </div>
         {/* Departure info */}
         {event.travelTime && (
@@ -161,13 +165,7 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
           </div>
         )}
       </div>
-      <div
-        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-        style={{ backgroundColor: member?.color || '#94A3B8' }}
-        title={member?.name}
-      >
-        {member?.initials[0]}
-      </div>
+      <ParticipantAvatars memberIds={event.memberIds} size={28} />
     </div>
   );
 }
@@ -297,16 +295,13 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
               </div>
               {/* dots + conflict */}
               <div className="flex justify-center items-center gap-0.5 mt-1 min-h-[8px]">
-                {events.slice(0, 3).map(ev => {
-                  const m = memberById(ev.memberId);
-                  return (
-                    <div
-                      key={ev.id}
-                      className={`w-1.5 h-1.5 rounded-full ${ev.travelConflict ? 'ring-1 ring-[#EF4444]' : ''}`}
-                      style={{ backgroundColor: m?.color }}
-                    />
-                  );
-                })}
+                {events.slice(0, 3).map(ev => (
+                  <div
+                    key={ev.id}
+                    className={`w-1.5 h-1.5 rounded-full ${ev.travelConflict ? 'ring-1 ring-[#EF4444]' : ''}`}
+                    style={{ background: dotBackground(memberColors(ev.memberIds, memberById)) }}
+                  />
+                ))}
                 {hasConflict && <AlertTriangleIcon size={9} className="text-[#EF4444] ml-0.5" />}
               </div>
               {/* Garbage reminder badge */}
@@ -324,7 +319,7 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
                   type="button"
                   onClick={() => onSelect(ev)}
                   className="block w-[calc(100%-8px)] text-left text-[9px] font-medium text-white mx-1 mt-1 px-1 py-0.5 rounded truncate hover:opacity-80"
-                  style={{ backgroundColor: memberById(ev.memberId)?.color ?? '#94A3B8' }}
+                  style={{ background: blockBackground(memberColors(ev.memberIds, memberById)) }}
                   title={`${eventMarker(ev)}${ev.title} (ganztägig)${sourceNote(ev)}`}
                 >
                   {ev.source === 'google' && <GoogleBadge className="mr-0.5" />}{eventMarker(ev)}{ev.title}
@@ -365,7 +360,7 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
                 <div key={di} className="border-r border-slate-50 p-0.5 space-y-0.5 relative">
                   {/* Regular event blocks */}
                   {hourEvents.map(ev => {
-                    const member = memberById(ev.memberId);
+                    const colors = memberColors(ev.memberIds, memberById);
                     const hasTravel = !!ev.travelTime;
                     const hasTravelConflict = ev.travelConflict;
 
@@ -377,9 +372,7 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
                           backgroundColor: '#FEF2F2',
                           color: '#DC2626',
                           borderLeft: '2px solid #EF4444',
-                        } : ev.status === 'proposed'
-                          ? proposalStyle(ev, member?.color || '#94A3B8')
-                          : { backgroundColor: member?.color || '#94A3B8', color: 'white' }}
+                        } : { ...blockStyle(ev, colors), ...(ev.status === 'proposed' ? {} : { color: 'white' }) }}
                         title={`${eventMarker(ev)}${ev.title} at ${ev.time}${sourceNote(ev)}`}
                         onClick={() => onSelect(ev)}
                       >
@@ -399,16 +392,16 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
 
                   {/* Departure-only markers (when departure is in a different hour than the event) */}
                   {departureEvents.map(ev => {
-                    const member = memberById(ev.memberId);
+                    const color = memberColors(ev.memberIds, memberById)[0];
                     const depMin = departureMins(ev)!;
                     return (
                       <div
                         key={`dep-${ev.id}`}
                         className="text-[9px] font-semibold px-1.5 py-1 rounded-lg border border-dashed flex items-center gap-1"
                         style={{
-                          borderColor: ev.travelConflict ? '#EF4444' : (member?.color || '#F97316'),
-                          color: ev.travelConflict ? '#EF4444' : (member?.color || '#F97316'),
-                          backgroundColor: ev.travelConflict ? '#FEF2F2' : `${member?.color || '#F97316'}10`,
+                          borderColor: ev.travelConflict ? '#EF4444' : color,
+                          color: ev.travelConflict ? '#EF4444' : color,
+                          backgroundColor: ev.travelConflict ? '#FEF2F2' : `${color}10`,
                         }}
                         title={`Abfahrt für: ${ev.title}`}
                       >
@@ -459,14 +452,24 @@ export default function CalendarPage({ onNavigate }: Props) {
   const [month, setMonth]             = useState(() => startOfToday().getMonth());
   const [weekOffset, setWeekOffset]   = useState(0);
   const [dayOffset, setDayOffset]     = useState(0);
+
+  // Sprung aus der Übersicht: Tagesansicht des Termins, der Termin leuchtet kurz auf
+  const { focus } = useFocus();
+  useEffect(() => {
+    if (focus?.kind !== 'event') return;
+    setView('day');
+    setDayOffset(Math.round((fromDateKey(focus.date).getTime() - startOfToday().getTime()) / 864e5));
+  }, [focus]);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null);
 
   const [decisionError, setDecisionError] = useState<string | null>(null);
 
   const { status, error, members, events, reload, memberById, approveEvent, rejectEvent } = useCalendarData();
+  useFlashFocus('event', status === 'ready' && view === 'day');
   const permissions = useCalendarPermissions();
-  const visibleEvents = selectedMember ? events.filter(e => e.memberId === selectedMember) : events;
+  // Personenfilter: alle Termine, an denen die Person beteiligt ist, auch gemeinsame
+  const visibleEvents = selectedMember ? events.filter(e => e.memberIds.includes(selectedMember)) : events;
   const proposals = events.filter(e => e.status === 'proposed');
   const openEditor = (event?: CalendarEvent) => setEditor({ event });
 
@@ -577,7 +580,7 @@ export default function CalendarPage({ onNavigate }: Props) {
                     {p.title}
                   </button>
                   <span className="text-xs text-slate-500">
-                    {p.date.split('-').reverse().join('.')} {p.time}–{p.endTime} · für {memberById(p.memberId)?.name}
+                    {p.date.split('-').reverse().join('.')} {p.time}–{p.endTime} · für {participantLabel(p.memberIds, members)}
                     {proposer && p.createdBy !== permissions.me.id ? ` · vorgeschlagen von ${proposer}` : ''}
                   </span>
                   {permissions.mayDecide && (
@@ -619,6 +622,10 @@ export default function CalendarPage({ onNavigate }: Props) {
             {m.name}
           </button>
         ))}
+        <span className="flex items-center gap-1.5 px-2 text-xs text-slate-500">
+          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: SHARED_COLOR }} />
+          Mehrere Personen
+        </span>
       </div>
 
       {/* Conflict + travel warning */}

@@ -111,7 +111,7 @@ class GoogleCalendarSyncTest {
     }
 
     private List<CalendarEvent> imported() {
-        return events.findByMemberIdAndExternalIsNotNull(emma.id());
+        return events.findImportedByMember(emma.id());
     }
 
     private CalendarEvent importedWithTitle(String title) {
@@ -217,7 +217,7 @@ class GoogleCalendarSyncTest {
         for (FamilyMember member : List.of(emma, sarah)) {
             mvc.perform(put("/api/events/" + imported.id()).with(as(member)).contentType(APPLICATION_JSON).content("""
                             {"title": "Geändert", "start": "2026-10-01T10:00", "end": "2026-10-01T11:00",
-                             "memberId": "%s", "category": "appointment"}
+                             "memberIds": ["%s"], "category": "appointment"}
                             """.formatted(emma.id())))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.detail").value(Matchers.startsWith("Google-Termine änderst du in Google.")));
@@ -232,7 +232,7 @@ class GoogleCalendarSyncTest {
     void newEventsCannotPretendToComeFromGoogle() throws Exception {
         mvc.perform(post("/api/events").with(as(emma)).contentType(APPLICATION_JSON).content("""
                         {"title": "Eigener", "start": "2026-10-01T10:00", "end": "2026-10-01T11:00",
-                         "memberId": "%s", "category": "family",
+                         "memberIds": ["%s"], "category": "family",
                          "external": {"provider": "google", "calendarId": "x", "eventId": "y"}}
                         """.formatted(emma.id())))
                 .andExpect(status().isCreated())

@@ -40,7 +40,8 @@ export interface CalendarEvent {
   date: string;
   time: string;
   endTime?: string;
-  memberId: string;
+  // Beteiligte; mehrere bei gemeinsamen Terminen
+  memberIds: string[];
   category: EventCategory;
   location?: string;
   description?: string;
@@ -84,16 +85,6 @@ export const INITIAL_TASKS: Task[] = [
   { id: 12, title: 'Set up recycling bins', assigneeId: 2, status: 'done', priority: 'low', dueDate: '2026-09-22', category: 'chores', points: 0 },
 ];
 
-export const MEALS: Record<string, { breakfast: string; lunch: string; dinner: string; snacks: string }> = {
-  Mon: { breakfast: 'Oatmeal with berries', lunch: 'Turkey sandwich & salad', dinner: 'Spaghetti Bolognese', snacks: 'Apple slices & peanut butter' },
-  Tue: { breakfast: 'Scrambled eggs on toast', lunch: 'Chicken Caesar wrap', dinner: 'Grilled salmon & veggies', snacks: 'Yogurt parfait' },
-  Wed: { breakfast: 'Banana pancakes', lunch: 'Tomato soup & grilled cheese', dinner: 'Chicken stir-fry & rice', snacks: 'Carrot sticks & hummus' },
-  Thu: { breakfast: 'Greek yogurt & granola', lunch: 'Tuna salad sandwich', dinner: 'Beef tacos', snacks: 'Banana & almond butter' },
-  Fri: { breakfast: 'Avocado toast & eggs', lunch: 'Pasta salad', dinner: '🍕 Pizza night!', snacks: 'Fruit smoothie' },
-  Sat: { breakfast: 'French toast & bacon', lunch: 'Picnic in the park', dinner: 'Homemade burgers', snacks: '🍦 Ice cream' },
-  Sun: { breakfast: '🥞 Big family brunch', lunch: 'Light leftovers', dinner: 'Roast chicken & roasties', snacks: '🍪 Cookies & milk' },
-};
-
 export interface Message {
   id: number;
   source: 'whatsapp' | 'telegram' | 'family';
@@ -114,17 +105,6 @@ export const MESSAGES: Message[] = [
   { id: 5, source: 'telegram', senderName: 'Emma Johnson', senderColor: '#8B5CF6', content: "Mum can you pick me up after practice? Coach said we might go till 6.", time: '16:10', unread: false, actionable: 'task', thread: 'Family Chat' },
   { id: 6, source: 'family', senderName: 'Lucas Johnson', senderColor: '#F97316', content: "I finished my homework!! Can I have extra screen time? 🙏", time: '18:20', unread: true, thread: 'Family Chat' },
 ];
-
-export const WEATHER = {
-  today: { temp: 18, condition: 'Partly Cloudy', icon: '⛅', humidity: 65, wind: 14, high: 21, low: 12 },
-  forecast: [
-    { day: 'Tue', icon: '🌤', high: 22, low: 13 },
-    { day: 'Wed', icon: '🌧', high: 16, low: 11 },
-    { day: 'Thu', icon: '⛅', high: 19, low: 12 },
-    { day: 'Fri', icon: '☀️', high: 24, low: 14 },
-    { day: 'Sat', icon: '☀️', high: 25, low: 15 },
-  ],
-};
 
 export type WasteType = 'Restmüll' | 'Biomüll' | 'Papier' | 'Gelber Sack';
 
@@ -147,67 +127,6 @@ export const GARBAGE_PICKUPS: GarbagePickup[] = [
   { id: 3, type: 'Biomüll',      date: thisWeek(7),  color: '#16A34A', bgColor: '#F0FDF4', icon: '🟢', reminderDayBefore: true },
   { id: 4, type: 'Restmüll',     date: thisWeek(14), color: '#6B7280', bgColor: '#F9FAFB', icon: '⚫', reminderDayBefore: true },
 ];
-
-export interface ClothingRecommendation {
-  icon: string;
-  label: string;
-  reason: string;
-}
-
-export type WeatherConditionKey = 'rain' | 'sun' | 'heat' | 'cold' | 'mild';
-
-export const CLOTHING_RECOMMENDATIONS: Record<WeatherConditionKey, { title: string; emoji: string; color: string; bg: string; border: string; items: ClothingRecommendation[] }> = {
-  rain: {
-    title: 'Regenausrüstung', emoji: '🌧️', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE',
-    items: [
-      { icon: '☂️', label: 'Regenschirm', reason: 'Regen ab 14 Uhr' },
-      { icon: '🧥', label: 'Regenjacke', reason: 'Windgeschwindigkeit 14 km/h' },
-      { icon: '🥾', label: 'Gummistiefel', reason: 'Nasse Straßen erwartet' },
-    ],
-  },
-  sun: {
-    title: 'Sonnenschutz', emoji: '☀️', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A',
-    items: [
-      { icon: '🧴', label: 'Sonnencreme', reason: 'UV-Index: hoch' },
-      { icon: '👒', label: 'Sonnenhut', reason: 'Direkte Sonneneinstrahlung' },
-      { icon: '💧', label: 'Trinkflasche', reason: 'Bleib hydratisiert' },
-    ],
-  },
-  heat: {
-    title: 'Hitzeschutz', emoji: '🌡️', color: '#DC2626', bg: '#FEF2F2', border: '#FECACA',
-    items: [
-      { icon: '👕', label: 'Leichte Kleidung', reason: 'Über 30°C erwartet' },
-      { icon: '💧', label: 'Viel Wasser', reason: 'Mindestens 2 Liter trinken' },
-      { icon: '🧴', label: 'Sonnenschutz', reason: 'UV-Index: sehr hoch' },
-    ],
-  },
-  cold: {
-    title: 'Kälteschutz', emoji: '🥶', color: '#0369A1', bg: '#F0F9FF', border: '#BAE6FD',
-    items: [
-      { icon: '🧥', label: 'Winterjacke', reason: 'Unter 8°C' },
-      { icon: '🧣', label: 'Schal', reason: 'Kalter Wind' },
-      { icon: '🧢', label: 'Mütze', reason: 'Wärmeverlust über Kopf' },
-      { icon: '🧤', label: 'Handschuhe', reason: 'Frostgefahr' },
-    ],
-  },
-  mild: {
-    title: 'Gemischtes Wetter', emoji: '⛅', color: '#0F766E', bg: '#F0FDFA', border: '#99F6E4',
-    items: [
-      { icon: '🧥', label: 'Leichte Jacke', reason: 'Wechselhaftes Wetter' },
-      { icon: '👟', label: 'Feste Schuhe', reason: 'Evtl. nasse Wege' },
-      { icon: '💧', label: 'Trinkflasche', reason: 'Aktiver Tag' },
-    ],
-  },
-};
-
-export function getWeatherCondition(temp: number, condition: string): WeatherConditionKey {
-  const lower = condition.toLowerCase();
-  if (lower.includes('rain') || lower.includes('shower') || lower.includes('drizzle')) return 'rain';
-  if (temp >= 30) return 'heat';
-  if (temp <= 8) return 'cold';
-  if (temp >= 22 && (lower.includes('sun') || lower.includes('clear'))) return 'sun';
-  return 'mild';
-}
 
 export const NOTIFICATIONS = [
   { id: 1, type: 'conflict', message: 'Schedule conflict on Sep 24: Piano lesson overlaps with parent-teacher conf.', time: '2m ago', read: false },

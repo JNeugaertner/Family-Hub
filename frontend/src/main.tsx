@@ -7,6 +7,8 @@ import { CalendarDataProvider } from './calendar/CalendarDataContext'
 import { TaskDataProvider } from './tasks/TaskDataContext'
 import { RewardDataProvider } from './rewards/RewardDataContext'
 import { ShoppingDataProvider } from './shopping/ShoppingDataContext'
+import { MealDataProvider } from './meals/MealDataContext'
+import { ProfileCardProvider } from './profiles/ProfileCard'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -17,7 +19,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <TaskDataProvider>
             <RewardDataProvider>
               <ShoppingDataProvider>
-                <App />
+                <MealDataProvider>
+                  <ProfileCardProvider>
+                    <App />
+                  </ProfileCardProvider>
+                </MealDataProvider>
               </ShoppingDataProvider>
             </RewardDataProvider>
           </TaskDataProvider>

@@ -15,6 +15,7 @@ import de.familyhub.permission.Permissions;
 import de.familyhub.permission.RoleResolver;
 import de.familyhub.permission.Scope;
 import de.familyhub.security.CurrentMember;
+import de.familyhub.weather.WeatherLocation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,11 +52,11 @@ public class SettingsController {
     public SettingsResponse update(@Valid @RequestBody SettingsRequest request) {
         permissions.require(currentMember.get(), Module.SYSTEM, Action.VERWALTEN, Scope.FAMILIE,
                 "Nur Administratoren dürfen die Einstellungen ändern.");
-        return response(settings.save(new FamilySettings(FamilySettings.ID, request.guestCategories())));
+        return response(settings.save(settings.current().withGuestCategories(request.guestCategories())));
     }
 
     private SettingsResponse response(FamilySettings current) {
-        return new SettingsResponse(current.guestCategories(), roleResolver.teenAge());
+        return new SettingsResponse(current.guestCategories(), roleResolver.teenAge(), current.weatherLocation());
     }
 
     public record SettingsRequest(
@@ -68,6 +69,9 @@ public class SettingsController {
             Set<EventCategory> guestCategories,
             @Schema(description = "Alter, ab dem ein Kind automatisch Jugendlicher wird "
                     + "(Konfiguration familyhub.roles.teen-age, nur lesbar)")
-            int teenAge) {
+            int teenAge,
+            @Schema(description = "Wohnort für das Wetter (ändern über /api/weather/location), null wenn nicht "
+                    + "eingestellt")
+            WeatherLocation weatherLocation) {
     }
 }
