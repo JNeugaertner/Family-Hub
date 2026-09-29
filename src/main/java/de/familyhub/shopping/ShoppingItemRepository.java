@@ -9,4 +9,7 @@ public interface ShoppingItemRepository extends MongoRepository<ShoppingItem, St
     List<ShoppingItem> findAllByOrderByCreatedAtAsc();
 
     List<ShoppingItem> findByCheckedTrueAndStatus(ShoppingItemStatus status);
+
+    // offene Vorschläge eines gelöschten Mitglieds entfernen
+    long deleteByCreatedByAndStatus(String createdBy, ShoppingItemStatus status);
 }
