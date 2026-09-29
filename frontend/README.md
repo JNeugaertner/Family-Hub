@@ -79,6 +79,14 @@ lassen sich nur ansehen. Administratoren räumen mit „Erledigte löschen“ in
 Spalte Done auf: Das entfernt bestätigte Aufgaben und erledigte ohne Punkte,
 wartende Bestätigungen bleiben stehen, die Punkte-Historie bleibt erhalten.
 
+**Bonus-Aufgaben:** Eltern legen Aufgaben ohne feste Person an (Punkte Pflicht,
+Frist optional, auf Wunsch wiederkehrend). Sie stehen oben auf der Aufgabenseite
+im Bereich „⭐ Bonus-Aufgaben“; Kinder und Jugendliche übernehmen sie mit einem
+Klick (wer zuerst kommt). Danach stehen sie mit „⭐ Bonus“ im Board der Person
+und laufen wie jede Aufgabe: abhaken, Eltern bestätigen, Punkte. Zurückgeben geht,
+solange sie nicht erledigt sind. Wiederkehrende sind nach der Bestätigung wieder
+offen.
+
 **Belohnungen:** Kinder und Jugendliche lösen im Belohnungsshop Punkte für
 sich selbst ein; die Punkte werden sofort abgezogen und die Einlösung wartet
 auf die Eltern. Eltern genehmigen oder lehnen (mit optionalem Grund) ab; beim

@@ -191,7 +191,7 @@ function TodayAgenda({ onNavigate }: { onNavigate: Navigate }) {
 function QuickTasks({ onNavigate }: { onNavigate: Navigate }) {
   const { tasks } = useTaskData();
   const { memberById } = useCalendarData();
-  const urgent = tasks.filter(t => t.status !== 'done' && t.status !== 'confirmed' && t.priority === 'high').slice(0, 4);
+  const urgent = tasks.filter(t => t.assigneeId !== null && t.status !== 'done' && t.status !== 'confirmed' && t.priority === 'high').slice(0, 4);
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-4">
@@ -204,7 +204,7 @@ function QuickTasks({ onNavigate }: { onNavigate: Navigate }) {
       <div className="space-y-2">
         {urgent.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Keine dringenden Aufgaben 🎉</p>}
         {urgent.map(t => {
-          const member = memberById(t.assigneeId);
+          const member = memberById(t.assigneeId ?? '');
           const c = t.status === 'inprogress' ? '#2563EB' : '#F97316';
           const open = () => onNavigate('tasks', { kind: 'task', id: t.id });
           return (
@@ -214,7 +214,7 @@ function QuickTasks({ onNavigate }: { onNavigate: Navigate }) {
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c }} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-slate-800 truncate">{t.title}</div>
-                <div className="text-xs text-slate-400">Fällig {t.dueDate.split('-').slice(1).join('/')}</div>
+                <div className="text-xs text-slate-400">{t.dueDate ? `Fällig ${t.dueDate.split('-').slice(1).join('/')}` : 'Ohne Frist'}</div>
               </div>
               <AvatarButton member={member} size={24} />
             </div>

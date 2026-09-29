@@ -9,8 +9,10 @@ export interface ApiTask {
   id: string;
   title: string;
   description: string | null;
-  assigneeId: string;
-  dueDate: string;
+  // null bei einer offenen Bonus-Aufgabe (noch niemand hat sie übernommen)
+  assigneeId: string | null;
+  // bei Bonus-Aufgaben optional
+  dueDate: string | null;
   priority: TaskPriority;
   category: TaskCategory;
   points: number;
@@ -18,16 +20,21 @@ export interface ApiTask {
   createdBy: string | null;
   confirmedAt: string | null;
   confirmedBy: string | null;
+  // Bonus-Aufgabe: offen für alle Kinder und Jugendlichen; repeatable: nach der Bestätigung wieder offen
+  bonus: boolean;
+  repeatable: boolean;
 }
 
 export interface TaskInput {
   title: string;
   description: string | null;
-  assigneeId: string;
+  assigneeId: string | null;
   dueDate: string | null;
   priority: TaskPriority;
   category: TaskCategory;
   points: number;
+  bonus: boolean;
+  repeatable: boolean;
 }
 
 export const listTasks = () => request<ApiTask[]>('/api/tasks');
@@ -50,3 +57,8 @@ export const deleteCompletedTasks = () =>
 export const confirmTask =(id: string) => request<ApiTask>(`/api/tasks/${id}/confirm`, { method: 'POST' });
 
 export const reopenTask = (id: string) => request<ApiTask>(`/api/tasks/${id}/reopen`, { method: 'POST' });
+
+// Bonus-Aufgaben: übernehmen (wer zuerst kommt) und zurückgeben, solange sie nicht erledigt sind
+export const claimTask = (id: string) => request<ApiTask>(`/api/tasks/${id}/claim`, { method: 'POST' });
+
+export const releaseTask = (id: string) => request<ApiTask>(`/api/tasks/${id}/release`, { method: 'POST' });
