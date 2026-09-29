@@ -7,6 +7,8 @@ import { useMealData } from '../meals/MealDataContext';
 import { useShoppingData } from '../shopping/ShoppingDataContext';
 import GoogleBadge from '../google/GoogleBadge';
 import { startOfToday, toDateKey } from '../calendar/dates';
+import { cardBackground, dotBackground, memberColors } from '../calendar/eventStyle';
+import ParticipantAvatars from '../calendar/ParticipantAvatars';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { usePointHolders } from '../points/usePointHolders';
 import WeatherWidget from '../weather/WeatherWidget';
@@ -80,10 +82,9 @@ function MiniCalendar({ onNavigate }: { onNavigate: (p: Page) => void }) {
               </span>
               {events.length > 0 && !isToday && (
                 <div className="flex gap-0.5 mt-0.5">
-                  {events.slice(0, 3).map((ev, ei) => {
-                    const m = memberById(ev.memberId);
-                    return <div key={ei} className="w-1 h-1 rounded-full" style={{ backgroundColor: m?.color || '#94A3B8' }} />;
-                  })}
+                  {events.slice(0, 3).map((ev, ei) => (
+                    <div key={ei} className="w-1 h-1 rounded-full" style={{ background: dotBackground(memberColors(ev.memberIds, memberById)) }} />
+                  ))}
                 </div>
               )}
               {hasConflict && !isToday && (
@@ -131,13 +132,12 @@ function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
       ) : (
         <div className="space-y-2.5">
           {todayEvents.map(ev => {
-            const member = memberById(ev.memberId);
             const dep    = departureStr(ev);
             return (
               <div
                 key={ev.id}
                 className={`flex items-start gap-3 p-3 rounded-xl transition-colors cursor-pointer ${ev.travelConflict ? 'bg-[#FEF2F2]' : 'hover:bg-slate-50'}`}
-                style={{ borderLeft: `3px solid ${ev.travelConflict ? '#EF4444' : (member?.color || '#94A3B8')}` }}
+                style={ev.travelConflict ? { borderLeft: '3px solid #EF4444' } : { background: cardBackground(memberColors(ev.memberIds, memberById)) }}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -161,13 +161,7 @@ function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
                     </div>
                   )}
                 </div>
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 mt-0.5"
-                  style={{ backgroundColor: member?.color }}
-                  title={member?.name}
-                >
-                  {member?.initials[0]}
-                </div>
+                <div className="mt-0.5"><ParticipantAvatars memberIds={ev.memberIds} /></div>
               </div>
             );
           })}

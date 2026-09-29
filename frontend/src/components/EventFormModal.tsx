@@ -5,6 +5,7 @@ import { useCalendarPermissions } from '../calendar/permissions';
 import { ApiError } from '../api/client';
 import { CATEGORY_OPTIONS } from '../calendar/categories';
 import GoogleBadge from '../google/GoogleBadge';
+import { memberColors } from '../calendar/eventStyle';
 
 // Das Backend meldet "Ende nach Beginn" unter endAfterStart; im Formular gehört es zum Feld "Ende".
 const FIELD_ALIASES: Record<string, string> = { endAfterStart: 'end' };
@@ -41,15 +42,16 @@ export default function EventFormModal({ event, defaultDate, onClose }: Props) {
   // Bestehende, freigegebene Termine darf nur umhängen, wer Familientermine bearbeiten darf.
   const canReassign = !isEdit || isProposal || permissions.mayEditFamily;
 
-  const assignable = members.filter(m => m.effectiveRole !== 'gast' && (
-    m.id === event?.memberId || (canReassign ? permissions.canAssignTo(m.id) : m.id === me.id)));
-  const initialMember = event?.memberId
-    ?? (permissions.canAssignTo(me.id) ? me.id : assignable[0]?.id ?? '');
+  // Wen ich eintragen darf; Gäste nie. Bereits Beteiligte bleiben wählbar, damit man sie austragen kann.
+  const assignable = members.filter(m => event?.memberIds.includes(m.id) || (m.effectiveRole !== 'gast'
+    && (canReassign ? permissions.canAssignTo(m.id) : m.id === me.id)));
+  const initialMembers = event?.memberIds
+    ?? (permissions.canAssignTo(me.id) ? [me.id] : assignable[0] ? [assignable[0].id] : []);
 
   const [title, setTitle] = useState(event?.title ?? '');
   const [start, setStart] = useState(event?.start.slice(0, 16) ?? `${defaultDate}T09:00`);
   const [end, setEnd] = useState(event?.end.slice(0, 16) ?? `${defaultDate}T10:00`);
-  const [memberId, setMemberId] = useState(initialMember);
+  const [memberIds, setMemberIds] = useState<string[]>(initialMembers);
   const [category, setCategory] = useState<EventCategory>(event?.category ?? 'family');
   const [location, setLocation] = useState(event?.location ?? '');
   const [description, setDescription] = useState(event?.description ?? '');
@@ -66,8 +68,19 @@ export default function EventFormModal({ event, defaultDate, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [busy, onClose]);
 
-  const color = memberById(memberId)?.color ?? '#2563EB';
-  const willBeProposal = !readOnly && (isProposal || (!isEdit && permissions.becomesProposal(memberId)));
+  const colors = memberIds.length ? memberColors(memberIds, memberById) : ['#2563EB'];
+  const headerBackground = colors.length === 1
+    ? `linear-gradient(135deg, ${colors[0]}, ${colors[0]}BB)`
+    : `linear-gradient(135deg, ${colors.join(', ')})`;
+  const willBeProposal = !readOnly && (isProposal || (!isEdit && permissions.becomesProposal(memberIds)));
+
+  // "Ganze Familie" = alle, die ich eintragen darf, außer Gästen
+  const familyIds = assignable.filter(m => m.effectiveRole !== 'gast').map(m => m.id);
+  const wholeFamily = familyIds.length > 1 && familyIds.every(id => memberIds.includes(id));
+  const toggle = (id: string) => {
+    const next = memberIds.includes(id) ? memberIds.filter(x => x !== id) : [...memberIds, id];
+    setMemberIds(members.map(m => m.id).filter(x => next.includes(x)));
+  };
   const proposer = event?.createdBy ? memberById(event.createdBy)?.name : undefined;
 
   const fieldProps = (name: string) => ({
@@ -108,7 +121,7 @@ export default function EventFormModal({ event, defaultDate, onClose }: Props) {
       title,
       start: start || null,
       end: end || null,
-      memberId,
+      memberIds,
       category,
       location: location.trim() || null,
       description: description.trim() || null,
@@ -137,7 +150,7 @@ export default function EventFormModal({ event, defaultDate, onClose }: Props) {
       >
         <div
           className="h-20 rounded-t-2xl relative flex items-end p-5"
-          style={{ background: `linear-gradient(135deg, ${color}, ${color}BB)` }}
+          style={{ background: headerBackground }}
         >
           <h2 id="event-form-title" className="text-white font-bold text-lg">{heading}</h2>
           <button type="button" onClick={onClose} className="absolute top-3 right-3 text-white/80 hover:text-white text-xl" aria-label="Schließen">
@@ -153,8 +166,8 @@ export default function EventFormModal({ event, defaultDate, onClose }: Props) {
           )}
           {!isEdit && willBeProposal && (
             <div className="bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] text-sm rounded-xl p-3">
-              Für andere Familienmitglieder wird der Termin als <strong>Vorschlag</strong> gespeichert. Er gilt erst,
-              wenn ein Administrator ihn freigibt.
+              Mit anderen Familienmitgliedern wird der Termin als <strong>Vorschlag</strong> gespeichert. Er gilt
+              erst, wenn ein Administrator ihn freigibt.
             </div>
           )}
           {event?.source === 'google' ? (
@@ -182,20 +195,38 @@ export default function EventFormModal({ event, defaultDate, onClose }: Props) {
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field id="event-memberId" label="Familienmitglied" error={fieldErrors.memberId}>
-              <select {...fieldProps('memberId')} value={memberId} onChange={e => setMemberId(e.target.value)}>
-                {(readOnly ? members.filter(m => m.id === memberId) : assignable).map(m => (
-                  <option key={m.id} value={m.id}>{m.name}{m.id === me.id ? ' (ich)' : ''}</option>
-                ))}
-              </select>
-            </Field>
-            <Field id="event-category" label="Kategorie" error={fieldErrors.category}>
-              <select {...fieldProps('category')} value={category} onChange={e => setCategory(e.target.value as EventCategory)}>
-                {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-            </Field>
-          </div>
+          <fieldset aria-describedby={fieldErrors.memberIds ? 'event-memberIds-error' : undefined}>
+            <legend className="text-xs font-semibold text-slate-600 mb-1.5">Wer ist dabei?</legend>
+            <div className="flex flex-wrap gap-2">
+              {(readOnly ? members.filter(m => memberIds.includes(m.id)) : assignable).map(m => {
+                const on = memberIds.includes(m.id);
+                return (
+                  <button key={m.id} type="button" aria-pressed={on} disabled={readOnly || busy} onClick={() => toggle(m.id)}
+                    className={`flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full text-xs font-semibold border transition-colors disabled:cursor-default ${on ? 'text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                    style={on ? { backgroundColor: m.color } : undefined}>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] text-white"
+                      style={{ backgroundColor: on ? 'rgba(255,255,255,0.3)' : m.color }}>
+                      {on ? '✓' : m.initials[0]}
+                    </span>
+                    {m.name}{m.id === me.id ? ' (ich)' : ''}
+                  </button>
+                );
+              })}
+              {!readOnly && familyIds.length > 1 && (
+                <button type="button" disabled={busy} onClick={() => setMemberIds(wholeFamily ? [] : familyIds)}
+                  className="px-2.5 py-1 rounded-full text-xs font-semibold border border-dashed border-slate-300 text-slate-600 hover:bg-slate-50">
+                  {wholeFamily ? 'Auswahl aufheben' : '👨‍👩‍👧‍👦 Ganze Familie'}
+                </button>
+              )}
+            </div>
+            {fieldErrors.memberIds && <p id="event-memberIds-error" className="text-xs text-[#DC2626] mt-1">{fieldErrors.memberIds}</p>}
+          </fieldset>
+
+          <Field id="event-category" label="Kategorie" error={fieldErrors.category}>
+            <select {...fieldProps('category')} value={category} onChange={e => setCategory(e.target.value as EventCategory)}>
+              {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </Field>
 
           <Field id="event-location" label="Ort (optional)" error={fieldErrors.location}>
             <input {...fieldProps('location')} value={location} onChange={e => setLocation(e.target.value)} />
@@ -215,7 +246,7 @@ export default function EventFormModal({ event, defaultDate, onClose }: Props) {
             />
             <span>
               🔒 Privat
-              <span className="block text-xs text-slate-400">Nur für die Person selbst, wer den Termin anlegt, und Administratoren sichtbar.</span>
+              <span className="block text-xs text-slate-400">Nur für die Beteiligten, wer den Termin anlegt, und Administratoren sichtbar.</span>
             </span>
           </label>
 

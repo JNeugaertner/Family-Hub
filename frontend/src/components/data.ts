@@ -40,7 +40,8 @@ export interface CalendarEvent {
   date: string;
   time: string;
   endTime?: string;
-  memberId: string;
+  // Beteiligte; mehrere bei gemeinsamen Terminen
+  memberIds: string[];
   category: EventCategory;
   location?: string;
   description?: string;
