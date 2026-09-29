@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
+import { useFlashFocus } from '../navigation/focus';
 import { PlusIcon, ClockIcon, AlertTriangleIcon, PencilIcon } from './Icons';
 import { ApiError } from '../api/client';
 import { useCalendarData, type CalendarMember } from '../calendar/CalendarDataContext';
@@ -56,6 +57,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
   return (
     <div className={`bg-white rounded-xl border border-slate-100 p-3.5 shadow-sm hover:shadow-md hover:shadow-slate-100 transition-all group ${onEdit ? 'cursor-pointer' : ''}`}
       data-task={task.title}
+      data-focus-id={task.id}
       onClick={onEdit}>
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -316,6 +318,8 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly,
 
 export default function Tasks({ onNavigate }: Props) {
   const { status, error, tasks, reload, changeStatus, confirmTask, reopenTask, removeCompletedTasks } = useTaskData();
+  // Sprung aus der Übersicht: die angeklickte Aufgabe leuchtet kurz auf
+  useFlashFocus('task', status === 'ready');
   const { members, memberById } = useCalendarData();
   const perms = useTaskPermissions();
   const [editor, setEditor] = useState<{ task?: ApiTask } | null>(null);

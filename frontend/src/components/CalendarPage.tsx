@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   GARBAGE_PICKUPS,
   CalendarEvent, type GarbagePickup,
@@ -14,6 +14,7 @@ import { addDays, fromDateKey, startOfToday, toDateKey } from '../calendar/dates
 import { SHARED_COLOR, blockBackground, cardBackground, dotBackground, memberColors, participantLabel, proposalStyle } from '../calendar/eventStyle';
 import GoogleBadge from '../google/GoogleBadge';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
+import { useFlashFocus, useFocus } from '../navigation/focus';
 
 type SelectEvent = (event: CalendarEvent) => void;
 
@@ -113,6 +114,7 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
 
   return (
     <div
+      data-focus-id={event.id}
       className={`flex items-start gap-2.5 p-3 rounded-xl cursor-pointer border transition-all hover:shadow-sm ${event.travelConflict ? 'border-[#FECACA] bg-[#FEF2F2]' : 'border-transparent hover:border-slate-100'}`}
       style={event.travelConflict ? { borderLeft: '3px solid #EF4444' } : { background: cardBackground(colors) }}
       onClick={() => onSelect(event)}
@@ -450,12 +452,21 @@ export default function CalendarPage({ onNavigate }: Props) {
   const [month, setMonth]             = useState(() => startOfToday().getMonth());
   const [weekOffset, setWeekOffset]   = useState(0);
   const [dayOffset, setDayOffset]     = useState(0);
+
+  // Sprung aus der Übersicht: Tagesansicht des Termins, der Termin leuchtet kurz auf
+  const { focus } = useFocus();
+  useEffect(() => {
+    if (focus?.kind !== 'event') return;
+    setView('day');
+    setDayOffset(Math.round((fromDateKey(focus.date).getTime() - startOfToday().getTime()) / 864e5));
+  }, [focus]);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null);
 
   const [decisionError, setDecisionError] = useState<string | null>(null);
 
   const { status, error, members, events, reload, memberById, approveEvent, rejectEvent } = useCalendarData();
+  useFlashFocus('event', status === 'ready' && view === 'day');
   const permissions = useCalendarPermissions();
   // Personenfilter: alle Termine, an denen die Person beteiligt ist, auch gemeinsame
   const visibleEvents = selectedMember ? events.filter(e => e.memberIds.includes(selectedMember)) : events;

@@ -133,3 +133,23 @@ body {
   .points-pop { animation: none; transform: translateX(-50%); }
   .star-burst { display: none; }
 }
+
+/* Sprungziel aus der Übersicht: Termin bzw. Aufgabe leuchtet dreimal auf (navigation/focus.ts) */
+@keyframes focus-flash {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.6), 0 0 18px 4px rgba(37, 99, 235, 0.35); }
+}
+
+.focus-flash {
+  animation: focus-flash 0.8s ease-in-out 3;
+}
+
+/* Ohne Bewegung: ein ruhiger Rahmen für gut zwei Sekunden */
+@keyframes focus-steady {
+  0%, 99% { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.6); }
+  100% { box-shadow: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-flash { animation: focus-steady 2.4s steps(1) 1; }
+}

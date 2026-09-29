@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Dashboard from './components/Dashboard';
 import CalendarPage from './components/CalendarPage';
 import Tasks from './components/Tasks';
@@ -24,6 +24,7 @@ import { useRewardData } from './rewards/RewardDataContext';
 import { useShoppingData } from './shopping/ShoppingDataContext';
 import { useMealData } from './meals/MealDataContext';
 import { ROLE_NAMES } from './roles';
+import { FocusContext, type Focus } from './navigation/focus';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
 
@@ -85,8 +86,13 @@ export default function App() {
 
   const unreadCount = NOTIFICATIONS.filter(n => !n.read).length;
 
-  const navigate = (p: Page) => {
+  // Sprungziel für die nächste Seite (z. B. Termin aus der Übersicht); ein normaler Seitenwechsel löscht es
+  const [focus, setFocus] = useState<Focus | null>(null);
+  const clearFocus = useCallback(() => setFocus(null), []);
+
+  const navigate = (p: Page, target?: Focus) => {
     setPage(p);
+    setFocus(target ?? null);
     setSidebarOpen(false);
   };
 
@@ -328,7 +334,9 @@ export default function App() {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
-          <PageComponent onNavigate={navigate} />
+          <FocusContext.Provider value={{ focus, clear: clearFocus }}>
+            <PageComponent onNavigate={navigate} />
+          </FocusContext.Provider>
         </main>
         <NewPointsNotice />
 

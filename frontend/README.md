@@ -53,6 +53,13 @@ daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem
 heutigen Datum; Beispieltermine und -aufgaben legt das Backend relativ zum
 heutigen Datum an.
 
+**Übersicht:** Ein Klick auf einen Termin unter „Heute“ öffnet den Kalender in der
+Tagesansicht dieses Tages, ein Klick auf eine dringende Aufgabe die Aufgabenseite;
+der Termin bzw. die Aufgabe leuchtet dort kurz auf (`src/navigation/focus.ts`,
+Klasse `focus-flash`; bei „Bewegung reduzieren“ ein ruhiger Rahmen). Wer die
+Einkaufsliste bearbeiten darf, hakt Artikel direkt in der Übersicht ab; gerade
+Abgehaktes bleibt durchgestrichen stehen und lässt sich zurücknehmen.
+
 **Aufgaben und Punkte:** Eltern (Administratoren) legen Aufgaben mit Punkten an.
 Das Kind hakt ab, die Aufgabe wartet dann auf Bestätigung. Erst wenn ein
 Administrator bestätigt, werden die Punkte gutgeschrieben, genau einmal. Beim
