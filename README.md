@@ -130,6 +130,17 @@ nächsten vier Tage und eine Kleidungsempfehlung). Die Daten kommen von
 Das Backend fragt OpenWeather höchstens alle zehn Minuten
 (`familyhub.weather.cache-duration`).
 
+## Als App installieren
+
+FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im
+Startmenü bzw. auf dem Startbildschirm). In Edge oder Chrome
+`http://localhost:5173` öffnen und in der Adressleiste auf „App installieren“
+klicken (Edge: Menü „Apps“ → „Diese Website als App installieren“).
+
+Auf dem Handy funktioniert das erst, wenn FamilyHub dort über HTTPS erreichbar
+ist, also auf einem Server läuft; im lokalen Entwicklungsbetrieb ist die
+Oberfläche nur auf dem eigenen Rechner erreichbar.
+
 ## Projektstruktur
 
 ```
