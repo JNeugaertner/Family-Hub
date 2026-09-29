@@ -118,9 +118,9 @@ zeigt Formulare schreibgeschützt; geprüft wird jede Aktion im Backend.
 | Gast | nur freigegebene Kategorien ansehen | ansehen, eigenes Passwort |
 
 Ein Termin kann mehrere Beteiligte haben; „Ganze Familie“ wählt alle außer
-Gästen. Gemeinsame Termine haben im Kalender eine neutrale Grundfarbe mit einem
-Streifen aus den Farben aller Beteiligten, der Personenfilter findet sie für
-jede beteiligte Person. Als „eigener“ Termin zählt nur einer, an dem man allein
+Gästen. Gemeinsame Termine haben im Kalender eine eigene Farbe (Indigo, bei
+keinem Mitglied vergeben; Legende „Mehrere Personen“ beim Filter), der
+Personenfilter findet sie für jede beteiligte Person. Als „eigener“ Termin zählt nur einer, an dem man allein
 beteiligt ist. Private Termine sehen nur die Beteiligten, wer sie angelegt hat,
 und Administratoren. Offene Vorschläge sehen nur die vorschlagende Person und
 Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
@@ -129,7 +129,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 
 - `src/api/client.ts`: gemeinsamer Aufruf ans Backend (Cookies, CSRF-Header, Fehler als `ApiError` mit Feldfehlern)
 - `src/auth/`: Anmeldung (`AuthContext` mit `useAuth()`/`useMe()`), Anmelde- und Einrichtungsseite
-- `src/calendar/`: Termin-API, `CalendarDataContext` (lädt Mitglieder und Termine für Kalender und Dashboard), `permissions.ts` (was die angemeldete Person im Kalender darf), `eventStyle.ts` und `ParticipantAvatars.tsx` (Farben und Beteiligte gemeinsamer Termine)
+- `src/calendar/`: Termin-API, `CalendarDataContext` (lädt Mitglieder und Termine für Kalender und Dashboard), `permissions.ts` (was die angemeldete Person im Kalender darf), `eventStyle.ts` und `ParticipantAvatars.tsx` (Farbe und Beteiligte gemeinsamer Termine)
 - `src/family/`: API für Mitglieder, Rollen und Einstellungen, Farbpalette
 - `src/tasks/`: Aufgaben-API, `TaskDataContext` (lädt Aufgaben und Punktestände), `permissions.ts` (was die angemeldete Person bei Aufgaben darf)
 - `src/points/`: Punkte-API, Punktestände je Kind, Belohnungsanimation und Hinweis auf neue Punkte

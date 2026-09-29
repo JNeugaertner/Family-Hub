@@ -1,9 +1,9 @@
 import type { CalendarMember } from './CalendarDataContext';
 
-// Darstellung von Terminen mit mehreren Beteiligten (Entscheidung vom 29.09.2026): Termine einer Person tragen ihre
-// Farbe, gemeinsame Termine eine neutrale Grundfarbe mit einem Streifen aus den Farben aller Beteiligten.
+// Farben von Terminen (Entscheidung vom 29.09.2026): Termine einer Person tragen ihre Farbe, Termine mit mehreren
+// Beteiligten eine eigene Farbe, die bei keinem Familienmitglied vorkommt (siehe family/colors.ts).
 
-export const SHARED_BASE = '#475569';
+export const SHARED_COLOR = '#3730A3';
 const FALLBACK = '#94A3B8';
 
 export function memberColors(memberIds: string[], memberById: (id: string) => CalendarMember | undefined): string[] {
@@ -11,41 +11,26 @@ export function memberColors(memberIds: string[], memberById: (id: string) => Ca
   return colors.length ? colors : [FALLBACK];
 }
 
-// Harte Farbübergänge: jede Person bekommt ein gleich großes Stück
-export function stripe(colors: string[], angle = 180): string {
-  const step = 100 / colors.length;
-  return `linear-gradient(${angle}deg, ${colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`).join(', ')})`;
-}
+// Die eine Farbe eines Termins: bei einer Person ihre, bei mehreren die Farbe für gemeinsame Termine
+export const eventColor = (colors: string[]) => (colors.length === 1 ? colors[0] : SHARED_COLOR);
 
 // Hintergrund eines farbigen Terminblocks (weiße Schrift)
-export function blockBackground(colors: string[], stripeWidth = 4): string {
-  if (colors.length === 1) return colors[0];
-  return `${stripe(colors)} left / ${stripeWidth}px 100% no-repeat, ${SHARED_BASE}`;
-}
+export const blockBackground = (colors: string[]) => eventColor(colors);
 
 // Heller Hintergrund einer Terminkarte mit Farbkante links
 export function cardBackground(colors: string[]): string {
-  const edge = colors.length === 1 ? colors[0] : stripe(colors);
-  const tint = colors.length === 1 ? `${colors[0]}10` : '#F1F5F9';
-  return `${colors.length === 1 ? `linear-gradient(${edge}, ${edge})` : edge} left / 3px 100% no-repeat, ${tint}`;
+  const color = eventColor(colors);
+  return `linear-gradient(${color}, ${color}) left / 3px 100% no-repeat, ${color}10`;
 }
 
-// Vorschläge: gestrichelt und blass, gemeinsame mit Farbstreifen
+// Vorschläge: gestrichelt und blass
 export function proposalStyle(colors: string[]) {
-  const color = colors.length === 1 ? colors[0] : SHARED_BASE;
-  return {
-    background: colors.length === 1 ? `${color}33` : `${stripe(colors)} left / 4px 100% no-repeat, ${SHARED_BASE}22`,
-    color,
-    border: `1px dashed ${color}`,
-  };
+  const color = eventColor(colors);
+  return { background: `${color}33`, color, border: `1px dashed ${color}` };
 }
 
-// Punkt in der Monats- und Wochenübersicht: bei mehreren Beteiligten ein kleines Tortendiagramm
-export function dotBackground(colors: string[]): string {
-  if (colors.length === 1) return colors[0];
-  const step = 360 / colors.length;
-  return `conic-gradient(${colors.map((c, i) => `${c} ${i * step}deg ${(i + 1) * step}deg`).join(', ')})`;
-}
+// Punkt in der Monats- und Wochenübersicht
+export const dotBackground = (colors: string[]) => eventColor(colors);
 
 // "Ganze Familie", wenn alle außer Gästen dabei sind, sonst die Vornamen
 export function participantLabel(memberIds: string[], members: CalendarMember[]): string {

@@ -11,7 +11,7 @@ import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
 import { useCalendarPermissions } from '../calendar/permissions';
 import EventFormModal from './EventFormModal';
 import { addDays, fromDateKey, startOfToday, toDateKey } from '../calendar/dates';
-import { blockBackground, cardBackground, dotBackground, memberColors, participantLabel, proposalStyle } from '../calendar/eventStyle';
+import { SHARED_COLOR, blockBackground, cardBackground, dotBackground, memberColors, participantLabel, proposalStyle } from '../calendar/eventStyle';
 import GoogleBadge from '../google/GoogleBadge';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
 
@@ -86,7 +86,7 @@ const sourceNote = (event: CalendarEvent) => (event.source === 'google' ? ' (Goo
 const timeRange = (event: CalendarEvent) =>
   event.allDay ? 'Ganztägig' : `${event.time}${event.endTime ? ` – ${event.endTime}` : ''}`;
 
-// Farbige Terminblöcke: eine Person in ihrer Farbe, gemeinsame Termine mit Farbstreifen (calendar/eventStyle)
+// Farbige Terminblöcke: eine Person in ihrer Farbe, gemeinsame Termine in der Farbe für mehrere (calendar/eventStyle)
 const blockStyle = (event: CalendarEvent, colors: string[]) =>
   event.status === 'proposed' ? proposalStyle(colors) : { background: blockBackground(colors) };
 
@@ -317,7 +317,7 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
                   type="button"
                   onClick={() => onSelect(ev)}
                   className="block w-[calc(100%-8px)] text-left text-[9px] font-medium text-white mx-1 mt-1 px-1 py-0.5 rounded truncate hover:opacity-80"
-                  style={{ background: blockBackground(memberColors(ev.memberIds, memberById), 3) }}
+                  style={{ background: blockBackground(memberColors(ev.memberIds, memberById)) }}
                   title={`${eventMarker(ev)}${ev.title} (ganztägig)${sourceNote(ev)}`}
                 >
                   {ev.source === 'google' && <GoogleBadge className="mr-0.5" />}{eventMarker(ev)}{ev.title}
@@ -611,6 +611,10 @@ export default function CalendarPage({ onNavigate }: Props) {
             {m.name}
           </button>
         ))}
+        <span className="flex items-center gap-1.5 px-2 text-xs text-slate-500">
+          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: SHARED_COLOR }} />
+          Mehrere Personen
+        </span>
       </div>
 
       {/* Conflict + travel warning */}

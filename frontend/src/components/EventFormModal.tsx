@@ -5,7 +5,7 @@ import { useCalendarPermissions } from '../calendar/permissions';
 import { ApiError } from '../api/client';
 import { CATEGORY_OPTIONS } from '../calendar/categories';
 import GoogleBadge from '../google/GoogleBadge';
-import { memberColors } from '../calendar/eventStyle';
+import { eventColor, memberColors } from '../calendar/eventStyle';
 
 // Das Backend meldet "Ende nach Beginn" unter endAfterStart; im Formular gehört es zum Feld "Ende".
 const FIELD_ALIASES: Record<string, string> = { endAfterStart: 'end' };
@@ -68,10 +68,8 @@ export default function EventFormModal({ event, defaultDate, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [busy, onClose]);
 
-  const colors = memberIds.length ? memberColors(memberIds, memberById) : ['#2563EB'];
-  const headerBackground = colors.length === 1
-    ? `linear-gradient(135deg, ${colors[0]}, ${colors[0]}BB)`
-    : `linear-gradient(135deg, ${colors.join(', ')})`;
+  const color = memberIds.length ? eventColor(memberColors(memberIds, memberById)) : '#2563EB';
+  const headerBackground = `linear-gradient(135deg, ${color}, ${color}BB)`;
   const willBeProposal = !readOnly && (isProposal || (!isEdit && permissions.becomesProposal(memberIds)));
 
   // "Ganze Familie" = alle, die ich eintragen darf, außer Gästen
