@@ -475,7 +475,7 @@ export default function Tasks({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* Kanban board */}
+      {/* Alle Aufgaben board */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {columns.map(col => {
           const colTasks = filtered.filter(t => (col.id === 'done' ? isFinished(t) : t.status === col.id));

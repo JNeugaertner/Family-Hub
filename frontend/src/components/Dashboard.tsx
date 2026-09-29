@@ -184,7 +184,7 @@ function QuickTasks({ onNavigate }: { onNavigate: (p: Page) => void }) {
           <CheckSquareIcon size={16} className="text-[#F97316]" />
           Dringende Aufgaben
         </h2>
-        <button onClick={() => onNavigate('tasks')} className="text-xs text-[#2563EB] font-medium hover:underline">Kanban →</button>
+        <button onClick={() => onNavigate('tasks')} className="text-xs text-[#2563EB] font-medium hover:underline">Alle Aufgaben →</button>
       </div>
       <div className="space-y-2">
         {urgent.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Keine dringenden Aufgaben 🎉</p>}
