@@ -6,7 +6,7 @@ import type { MealType } from '../meals/api';
 import { useMealData } from '../meals/MealDataContext';
 import { useShoppingData } from '../shopping/ShoppingDataContext';
 import GoogleBadge from '../google/GoogleBadge';
-import { startOfToday, toDateKey } from '../calendar/dates';
+import { MONTHS, WEEKDAYS_SHORT, formatDayMonth, startOfToday, toDateKey, weekdayIndex } from '../calendar/dates';
 import { cardBackground, dotBackground, memberColors } from '../calendar/eventStyle';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
 import AvatarButton from '../profiles/AvatarButton';
@@ -30,9 +30,6 @@ const onEnter = (open: () => void) => (e: KeyboardEvent) => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
 };
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-
 const TRANSPORT_ICONS: Record<string, string> = {
   car: '🚗', transit: '🚌', bike: '🚲', walk: '🚶',
 };
@@ -45,7 +42,7 @@ function MiniCalendar({ onNavigate }: { onNavigate: Navigate }) {
   const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const year     = viewDate.getFullYear();
   const month    = viewDate.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
+  const firstDay = weekdayIndex(new Date(year, month, 1));
   const daysInM  = new Date(year, month + 1, 0).getDate();
   const daysInP  = new Date(year, month, 0).getDate();
 
@@ -64,13 +61,13 @@ function MiniCalendar({ onNavigate }: { onNavigate: Navigate }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-bold text-slate-800 text-base">{MONTHS[month]} {year}</h2>
         <div className="flex gap-1">
-          <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" aria-label="Prev month"><ChevronLeftIcon size={16} /></button>
-          <button onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" aria-label="Next month"><ChevronRightIcon size={16} /></button>
+          <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" aria-label="Vorheriger Monat"><ChevronLeftIcon size={16} /></button>
+          <button onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" aria-label="Nächster Monat"><ChevronRightIcon size={16} /></button>
         </div>
       </div>
 
       <div className="grid grid-cols-7 mb-2">
-        {DAYS.map(d => <div key={d} className="text-center text-[10px] font-semibold text-slate-400 py-1 uppercase tracking-wide">{d}</div>)}
+        {WEEKDAYS_SHORT.map(d =><div key={d} className="text-center text-[10px] font-semibold text-slate-400 py-1 uppercase tracking-wide">{d}</div>)}
       </div>
 
       <div className="grid grid-cols-7 gap-y-0.5">
@@ -199,7 +196,7 @@ function QuickTasks({ onNavigate }: { onNavigate: Navigate }) {
           <CheckSquareIcon size={16} className="text-[#F97316]" />
           Dringende Aufgaben
         </h2>
-        <button onClick={() => onNavigate('tasks')} className="text-xs text-[#2563EB] font-medium hover:underline">Kanban →</button>
+        <button onClick={() => onNavigate('tasks')} className="text-xs text-[#2563EB] font-medium hover:underline">Alle →</button>
       </div>
       <div className="space-y-2">
         {urgent.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Keine dringenden Aufgaben 🎉</p>}
@@ -214,7 +211,7 @@ function QuickTasks({ onNavigate }: { onNavigate: Navigate }) {
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c }} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-slate-800 truncate">{t.title}</div>
-                <div className="text-xs text-slate-400">{t.dueDate ? `Fällig ${t.dueDate.split('-').slice(1).join('/')}` : 'Ohne Frist'}</div>
+                <div className="text-xs text-slate-400">{t.dueDate ? `Fällig ${formatDayMonth(t.dueDate)}` : 'Ohne Frist'}</div>
               </div>
               <AvatarButton member={member} size={24} />
             </div>
@@ -383,7 +380,7 @@ function AIBanner({ onNavigate }: { onNavigate: Navigate }) {
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-sm">FamilyHub KI</div>
         <div className="text-white/80 text-xs mt-0.5 truncate">
-          Lucas hat Mathe noch nicht begonnen · Soccer 16:30 · Morgen: Gelber Sack rausstellen ♻️
+          Lucas hat Mathe noch nicht begonnen · Fußball 16:30 · Morgen: Gelber Sack rausstellen ♻️
         </div>
       </div>
       <button onClick={() => onNavigate('assistant')} className="flex-shrink-0 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">

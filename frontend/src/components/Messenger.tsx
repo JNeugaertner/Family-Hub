@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MESSAGES, FAMILY_MEMBERS, Message } from './data';
+import { MESSAGES, Message } from './data';
 import { SendIcon, PlusIcon, ShoppingCartIcon, CalendarIcon, CheckSquareIcon, SearchIcon } from './Icons';
 
 interface Props { onNavigate: (p: any) => void; }

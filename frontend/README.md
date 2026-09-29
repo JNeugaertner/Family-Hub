@@ -46,7 +46,7 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Einkaufsliste: hinzufügen, vorschlagen, abhaken, bearbeiten, Vorschläge übernehmen; Dashboard „Einkaufsliste“ | Backend: `/api/shopping` |
 | Essensplan: Wochenplan, Gerichte-Sammlung, Wünsche der Kinder, Zutaten auf die Einkaufsliste; Dashboard „Mahlzeiten heute“ | Backend: `/api/meals`, `/api/dishes` |
 | Wetter mit Kleidungsempfehlung (Dashboard); Wohnort einstellen (Karte unter „Familie“, Admins) | Backend: `/api/weather` |
-| Nachrichten, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
+| Nachrichten, Benachrichtigungen, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
 daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem

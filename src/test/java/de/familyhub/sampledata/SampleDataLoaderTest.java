@@ -155,7 +155,7 @@ class SampleDataLoaderTest {
         assertThat(taskRepository.count()).isEqualTo(12);
         assertThat(balancesByUsername()).containsExactlyInAnyOrderEntriesOf(Map.of("emma", 420, "lucas", 285, "lily", 190));
 
-        Task feedTheDog = taskRepository.findAll().stream().filter(t -> t.title().equals("Feed the dog")).findFirst()
+        Task feedTheDog = taskRepository.findAll().stream().filter(t -> t.title().equals("Hund füttern")).findFirst()
                 .orElseThrow();
         assertThat(feedTheDog.status()).isEqualTo(TaskStatus.CONFIRMED);
         assertThat(pointRepository.findAll()).filteredOn(e -> feedTheDog.id().equals(e.taskId()))
@@ -163,8 +163,8 @@ class SampleDataLoaderTest {
                 .satisfies(e -> assertThat(e.amount()).isEqualTo(10));
         assertThat(taskRepository.findAll()).filteredOn(Task::isAwaitingConfirmation)
                 .extracting(Task::title)
-                .containsExactly("Practice piano");
-        assertThat(taskRepository.findAll()).filteredOn(t -> t.title().equals("Take out trash"))
+                .containsExactly("Klavier üben");
+        assertThat(taskRepository.findAll()).filteredOn(t -> t.title().equals("Müll rausbringen"))
                 .singleElement()
                 .satisfies(t -> assertThat(t.dueDate()).isEqualTo(LocalDate.of(2026, 10, 7)));
     }
@@ -179,7 +179,7 @@ class SampleDataLoaderTest {
         assertThat(memberRepository.count()).isEqualTo(2);
         assertThat(eventRepository.count()).isZero();
         assertThat(taskRepository.findAll()).extracting(Task::title).containsExactlyInAnyOrder(
-                "Clean bedroom", "Water the plants", "Take out trash", "Math homework");
+                "Zimmer aufräumen", "Blumen gießen", "Müll rausbringen", "Mathe-Hausaufgaben");
         assertThat(balancesByUsername()).containsExactlyInAnyOrderEntriesOf(Map.of("emma", 420, "lucas", 285));
     }
 
@@ -188,7 +188,7 @@ class SampleDataLoaderTest {
         loader.load();
 
         List<CalendarEvent> events = eventRepository.findAll();
-        assertThat(events).filteredOn(e -> e.title().equals("School pickup"))
+        assertThat(events).filteredOn(e -> e.title().equals("Abholen von der Schule"))
                 .singleElement()
                 .satisfies(e -> assertThat(e.start()).isEqualTo(LocalDateTime.of(2026, 10, 5, 15, 0)));
         assertThat(events).allSatisfy(e -> assertThat(e.start().toLocalDate())
@@ -240,7 +240,7 @@ class SampleDataLoaderTest {
         loader.load();
 
         CalendarEvent bookClub = eventRepository.findAll().stream()
-                .filter(e -> e.title().equals("Book club"))
+                .filter(e -> e.title().equals("Lesekreis"))
                 .findFirst()
                 .orElseThrow();
 
@@ -258,7 +258,7 @@ class SampleDataLoaderTest {
                 .satisfies(e -> assertThat(e.createdBy()).isEqualTo(emmaId));
         assertThat(events).filteredOn(CalendarEvent::privateEvent)
                 .extracting(CalendarEvent::title)
-                .containsExactly("Book club");
+                .containsExactly("Lesekreis");
         assertThat(events).filteredOn(e -> e.status() == EventStatus.APPROVED).hasSize(16);
         assertThat(settingsRepository.current().guestCategories())
                 .containsExactlyInAnyOrder(EventCategory.FAMILY, EventCategory.SCHOOL);
