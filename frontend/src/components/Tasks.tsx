@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
+import { useFlashFocus } from '../navigation/focus';
+import AvatarButton from '../profiles/AvatarButton';
 import { PlusIcon, ClockIcon, AlertTriangleIcon, PencilIcon } from './Icons';
 import { ApiError } from '../api/client';
 import { useCalendarData, type CalendarMember } from '../calendar/CalendarDataContext';
@@ -28,7 +30,10 @@ const CATEGORY_ICONS: Record<TaskCategory, string> = {
 type BoardStatus = Exclude<TaskStatus, 'confirmed'>;
 
 const isFinished = (task: ApiTask) => task.status === 'done' || task.status === 'confirmed';
-const isOverdue = (task: ApiTask, todayKey: string) => !isFinished(task) && task.dueDate < todayKey;
+const isOverdue = (task: ApiTask, todayKey: string) => !isFinished(task) && !!task.dueDate && task.dueDate < todayKey;
+// Bonus-Aufgabe, die noch niemand übernommen hat (steht im Bereich "Bonus-Aufgaben", nicht im Board)
+const isOpenBonus = (task: ApiTask) => task.bonus && task.assigneeId === null;
+const dueLabel = (dueDate: string | null) => (dueDate ? dueDate.split('-').slice(1).join('/') : 'ohne Frist');
 const awaitsConfirmation = (task: ApiTask) => task.status === 'done' && task.points > 0;
 
 function errorText(err: unknown) {
@@ -38,7 +43,7 @@ function errorText(err: unknown) {
 // ─── Karte ───────────────────────────────────────────────────────────────────
 
 // onEdit öffnet das Formular; mayEdit = false heißt nur ansehen (z. B. bestätigte Aufgaben, Löschen bleibt möglich).
-function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, onReopen }: {
+function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, onReopen, onRelease }: {
   task: ApiTask;
   member?: CalendarMember;
   todayKey: string;
@@ -47,6 +52,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
   onEdit?: () => void;
   onConfirm?: () => void;
   onReopen?: () => void;
+  onRelease?: () => void;
 }) {
   const pri = PRIORITY_COLORS[task.priority];
   const overdue = isOverdue(task, todayKey);
@@ -56,6 +62,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
   return (
     <div className={`bg-white rounded-xl border border-slate-100 p-3.5 shadow-sm hover:shadow-md hover:shadow-slate-100 transition-all group ${onEdit ? 'cursor-pointer' : ''}`}
       data-task={task.title}
+      data-focus-id={task.id}
       onClick={onEdit}>
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -66,6 +73,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
             {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
           </span>
           <span className="text-xs text-slate-400">{CATEGORY_ICONS[task.category] || '📋'} {task.category}</span>
+          {task.bonus && <BonusBadge repeatable={task.repeatable} />}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {task.points > 0 && (
@@ -102,18 +110,12 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
 
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-1.5">
-          <div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
-            style={{ backgroundColor: member?.color ?? '#94A3B8' }}
-            title={member?.name}
-          >
-            {member?.initials[0]}
-          </div>
+          <AvatarButton member={member} size={24} />
           <span className="text-xs text-slate-500">{member?.name}</span>
         </div>
         <div className={`flex items-center gap-1 text-xs font-medium ${overdue ? 'text-[#EF4444]' : 'text-slate-400'}`}>
           <ClockIcon size={10} />
-          {overdue ? 'Overdue' : task.dueDate.split('-').slice(1).join('/')}
+          {overdue ? 'Overdue' : dueLabel(task.dueDate)}
         </div>
       </div>
 
@@ -129,6 +131,13 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
             Bestätigen +{task.points} ⭐
           </button>
         </div>
+      )}
+
+      {onRelease && (
+        <button onClick={only(onRelease)}
+          className="mt-2.5 w-full py-1.5 rounded-lg text-[11px] font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50">
+          Bonus-Aufgabe zurückgeben
+        </button>
       )}
 
       {/* Status ändern */}
@@ -156,6 +165,52 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
   );
 }
 
+function BonusBadge({ repeatable }: { repeatable: boolean }) {
+  return (
+    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]"
+      title={repeatable ? 'Bonus-Aufgabe, nach der Bestätigung wieder offen' : 'Bonus-Aufgabe'}>
+      ⭐ Bonus{repeatable ? ' ↻' : ''}
+    </span>
+  );
+}
+
+// Offene Bonus-Aufgabe: noch niemand hat sie übernommen
+function BonusCard({ task, todayKey, onClaim, onEdit, busy }: {
+  task: ApiTask;
+  todayKey: string;
+  onClaim?: () => void;
+  onEdit?: () => void;
+  busy: boolean;
+}) {
+  const overdue = isOverdue(task, todayKey);
+  return (
+    <div data-bonus={task.title} data-focus-id={task.id}
+      className={`bg-white rounded-xl border border-[#FDE68A] p-3.5 shadow-sm flex flex-col gap-2 ${onEdit ? 'cursor-pointer hover:shadow-md' : ''}`}
+      onClick={onEdit}>
+      <div className="flex items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-slate-800 text-sm leading-snug">{task.title}</h3>
+          {task.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{task.description}</p>}
+        </div>
+        <span className="text-lg font-bold text-[#D97706] flex-shrink-0">⭐ {task.points}</span>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+        <span>{CATEGORY_ICONS[task.category] || '📋'} {task.category}</span>
+        {task.repeatable && <span title="Nach der Bestätigung wieder offen">↻ wiederkehrend</span>}
+        <span className={`flex items-center gap-1 ml-auto ${overdue ? 'text-[#EF4444]' : ''}`}>
+          <ClockIcon size={10} />{dueLabel(task.dueDate)}
+        </span>
+      </div>
+      {onClaim && (
+        <button type="button" disabled={busy} onClick={e => { e.stopPropagation(); onClaim(); }}
+          className="py-1.5 rounded-lg text-xs font-semibold bg-[#F59E0B] text-white hover:bg-[#D97706] disabled:opacity-50">
+          Übernehmen
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Formular ────────────────────────────────────────────────────────────────
 
 const INPUT = 'w-full border rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2';
@@ -173,8 +228,10 @@ function Field({ id, label, error, children }: { id: string; label: string; erro
 }
 
 // readOnly: nur ansehen (z. B. bestätigte Aufgaben), Löschen bleibt möglich, wenn erlaubt
-function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly, todayKey, onClose }: {
+function TaskFormModal({ task, bonusDefault = false, assignable, mayAssignPoints, mayDelete, readOnly, todayKey, onClose }: {
   task?: ApiTask;
+  // neue Aufgabe direkt als Bonus-Aufgabe (Knopf im Bereich "Bonus-Aufgaben")
+  bonusDefault?: boolean;
   assignable: CalendarMember[];
   mayAssignPoints: boolean;
   mayDelete: boolean;
@@ -188,7 +245,10 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly,
   const [assigneeId, setAssigneeId] = useState(task?.assigneeId ?? assignable[0]?.id ?? '');
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'medium');
   const [category, setCategory] = useState<TaskCategory>(task?.category ?? 'chores');
-  const [dueDate, setDueDate] = useState(task?.dueDate ?? todayKey);
+  // Ob Bonus-Aufgabe, lässt sich nur beim Anlegen wählen
+  const [bonus, setBonus] = useState(task?.bonus ?? bonusDefault);
+  const [repeatable, setRepeatable] = useState(task?.repeatable ?? false);
+  const [dueDate, setDueDate] = useState(task ? task.dueDate ?? '' : bonusDefault ? '' : todayKey);
   const [points, setPoints] = useState(task?.points ?? (mayAssignPoints ? 15 : 0));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -217,11 +277,13 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly,
     run(() => saveTask({
       title,
       description: description.trim() || null,
-      assigneeId,
+      assigneeId: bonus ? null : assigneeId,
       dueDate: dueDate || null,
       priority,
       category,
       points: mayAssignPoints ? points : task?.points ?? 0,
+      bonus,
+      repeatable: bonus && repeatable,
     }, task?.id));
   };
 
@@ -236,7 +298,7 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly,
       <form onSubmit={submit} noValidate role="dialog" aria-modal="true" aria-labelledby="task-form-title"
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <h2 id="task-form-title" className="font-bold text-slate-800 text-lg mb-5">
-          {readOnly ? 'Aufgabe' : task ? 'Aufgabe bearbeiten' : 'Neue Aufgabe'}
+          {readOnly ? 'Aufgabe' : task ? (bonus ? 'Bonus-Aufgabe bearbeiten' : 'Aufgabe bearbeiten') : bonus ? 'Neue Bonus-Aufgabe' : 'Neue Aufgabe'}
         </h2>
         {formError && <div role="alert" className="mb-4 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{formError}</div>}
         {readOnly && task?.status === 'confirmed' && (
@@ -252,13 +314,32 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly,
             <textarea id="task-description" className={`${inputClass(!!errors.description)} resize-none`} rows={2}
               value={description} onChange={e => setDescription(e.target.value)} />
           </Field>
+          {mayAssignPoints && !task && (
+            <label className="flex items-start gap-2.5 text-sm text-slate-700 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-3">
+              <input type="checkbox" className="mt-0.5 w-4 h-4 accent-[#F59E0B]" checked={bonus}
+                onChange={e => { setBonus(e.target.checked); if (e.target.checked && dueDate === todayKey) setDueDate(''); }} />
+              <span>
+                ⭐ Bonus-Aufgabe
+                <span className="block text-xs text-slate-500">Für alle Kinder und Jugendlichen offen: wer sie zuerst übernimmt und erledigt, bekommt die Punkte.</span>
+              </span>
+            </label>
+          )}
           <div className="grid grid-cols-2 gap-3">
-            <Field id="task-assignee" label="Zuständig" error={errors.assigneeId}>
-              <select id="task-assignee" className={inputClass(!!errors.assigneeId)} value={assigneeId}
-                onChange={e => setAssigneeId(e.target.value)}>
-                {assignable.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-            </Field>
+            {bonus ? (
+              <div>
+                <span className="text-xs font-semibold text-slate-600 mb-1.5 block">Zuständig</span>
+                <p className="text-sm text-slate-500 py-2.5">
+                  {task?.assigneeId ? `übernommen von ${assignable.find(m => m.id === task.assigneeId)?.name ?? 'jemandem'}` : 'wer sie übernimmt'}
+                </p>
+              </div>
+            ) : (
+              <Field id="task-assignee" label="Zuständig" error={errors.assigneeId}>
+                <select id="task-assignee" className={inputClass(!!errors.assigneeId)} value={assigneeId ?? ''}
+                  onChange={e => setAssigneeId(e.target.value)}>
+                  {assignable.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+              </Field>
+            )}
             <Field id="task-priority" label="Priorität" error={errors.priority}>
               <select id="task-priority" className={inputClass(!!errors.priority)} value={priority}
                 onChange={e => setPriority(e.target.value as TaskPriority)}>
@@ -269,7 +350,7 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly,
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field id="task-dueDate" label="Fällig am" error={errors.dueDate}>
+            <Field id="task-dueDate" label={bonus ? 'Fällig am (optional)' : 'Fällig am'} error={errors.dueDate}>
               <input id="task-dueDate" type="date" className={inputClass(!!errors.dueDate)} value={dueDate}
                 onChange={e => setDueDate(e.target.value)} />
             </Field>
@@ -284,9 +365,19 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly,
           </div>
           {mayAssignPoints && (
             <Field id="task-points" label="Punkte nach Bestätigung ⭐" error={errors.points}>
-              <input id="task-points" type="number" min={0} max={1000} className={inputClass(!!errors.points)}
+              <input id="task-points" type="number" min={bonus ? 1 : 0} max={1000} className={inputClass(!!errors.points)}
                 value={points} onChange={e => setPoints(Number(e.target.value))} />
             </Field>
+          )}
+          {bonus && mayAssignPoints && (
+            <label className="flex items-start gap-2.5 text-sm text-slate-700">
+              <input type="checkbox" className="mt-0.5 w-4 h-4 accent-[#F59E0B]" checked={repeatable}
+                onChange={e => setRepeatable(e.target.checked)} />
+              <span>
+                ↻ Wiederkehrend
+                <span className="block text-xs text-slate-400">Nach der Bestätigung ist sie automatisch wieder offen (ohne Frist).</span>
+              </span>
+            </label>
           )}
         </fieldset>
         <div className="flex flex-wrap gap-3 mt-6">
@@ -315,10 +406,13 @@ function TaskFormModal({ task, assignable, mayAssignPoints, mayDelete, readOnly,
 // ─── Seite ───────────────────────────────────────────────────────────────────
 
 export default function Tasks({ onNavigate }: Props) {
-  const { status, error, tasks, reload, changeStatus, confirmTask, reopenTask, removeCompletedTasks } = useTaskData();
+  const { status, error, tasks, reload, changeStatus, confirmTask, reopenTask, removeCompletedTasks, claimTask, releaseTask } = useTaskData();
+  // Sprung aus der Übersicht: die angeklickte Aufgabe leuchtet kurz auf
+  useFlashFocus('task', status === 'ready');
   const { members, memberById } = useCalendarData();
   const perms = useTaskPermissions();
-  const [editor, setEditor] = useState<{ task?: ApiTask } | null>(null);
+  const [editor, setEditor] = useState<{ task?: ApiTask; bonus?: boolean } | null>(null);
+  const [claiming, setClaiming] = useState<string | null>(null);
   const [filterMember, setFilterMember] = useState<string | null>(null);
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [actionError, setActionError] = useState<string | null>(null);
@@ -345,13 +439,23 @@ export default function Tasks({ onNavigate }: Props) {
 
   const confirm = (task: ApiTask) => act(async () => {
     await confirmTask(task.id);
-    setCelebration(`+${task.points} Punkte für ${memberById(task.assigneeId)?.name ?? 'das Kind'}!`);
+    setCelebration(`+${task.points} Punkte für ${memberById(task.assigneeId ?? '')?.name ?? 'das Kind'}!`);
   });
 
   const assignableFor = (task?: ApiTask) => members.filter(m => m.effectiveRole !== 'gast'
     && (m.id === task?.assigneeId || perms.canAssignTo(m.id)));
 
+  const openBonus = tasks.filter(isOpenBonus);
+  const claim = (task: ApiTask) => {
+    setClaiming(task.id);
+    act(async () => {
+      await claimTask(task.id);
+      setClearedMessage(`„${task.title}“ gehört jetzt dir. Viel Erfolg – es gibt ${task.points} Punkte!`);
+    }).finally(() => setClaiming(null));
+  };
+
   const filtered = tasks.filter(t => {
+    if (isOpenBonus(t)) return false;
     if (filterMember !== null && t.assigneeId !== filterMember) return false;
     if (filterPriority !== 'all' && t.priority !== filterPriority) return false;
     return true;
@@ -364,7 +468,7 @@ export default function Tasks({ onNavigate }: Props) {
   ];
 
   const stats = {
-    total: tasks.length,
+    total: tasks.length - openBonus.length,
     done: tasks.filter(isFinished).length,
     overdue: tasks.filter(t => isOverdue(t, todayKey)).length,
   };
@@ -475,7 +579,36 @@ export default function Tasks({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* Alle Aufgaben board */}
+      {/* Bonus-Aufgaben: für alle Kinder und Jugendlichen offen, wer zuerst kommt */}
+      {(openBonus.length > 0 || perms.mayConfirm) && (
+        <section aria-labelledby="bonus-title" className="mb-5 bg-[#FFFBEB] border border-[#FDE68A] rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <h2 id="bonus-title" className="font-bold text-[#92400E] text-sm">⭐ Bonus-Aufgaben</h2>
+            <span className="text-xs text-[#B45309]">
+              {perms.mayClaim ? 'Wer zuerst übernimmt, bekommt die Punkte.' : 'Offen für alle Kinder und Jugendlichen.'}
+            </span>
+            {perms.mayConfirm && (
+              <button onClick={() => setEditor({ bonus: true })}
+                className="ml-auto flex items-center gap-1 text-xs font-semibold text-[#92400E] bg-white border border-[#FDE68A] px-3 py-1.5 rounded-full hover:bg-[#FEF3C7]">
+                <PlusIcon size={12} /> Bonus-Aufgabe
+              </button>
+            )}
+          </div>
+          {openBonus.length === 0 ? (
+            <p className="text-xs text-[#B45309]">Gerade gibt es keine offene Bonus-Aufgabe.</p>
+          ) : (
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {openBonus.map(task => (
+                <BonusCard key={task.id} task={task} todayKey={todayKey} busy={claiming === task.id}
+                  onClaim={perms.mayClaim ? () => claim(task) : undefined}
+                  onEdit={perms.canEdit(task) || perms.canDelete(task) ? () => setEditor({ task }) : undefined} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Alle Aufgaben */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {columns.map(col => {
           const colTasks = filtered.filter(t => (col.id === 'done' ? isFinished(t) : t.status === col.id));
@@ -516,13 +649,14 @@ export default function Tasks({ onNavigate }: Props) {
                   <TaskCard
                     key={task.id}
                     task={task}
-                    member={memberById(task.assigneeId)}
+                    member={memberById(task.assigneeId ?? '')}
                     todayKey={todayKey}
                     mayEdit={perms.canEdit(task)}
                     onTick={perms.canTick(task) ? s => act(() => changeStatus(task.id, s)) : undefined}
                     onEdit={perms.canEdit(task) || perms.canDelete(task) ? () => setEditor({ task }) : undefined}
                     onConfirm={perms.mayConfirm ? () => confirm(task) : undefined}
                     onReopen={perms.mayConfirm ? () => act(() => reopenTask(task.id)) : undefined}
+                    onRelease={perms.canRelease(task) ? () => act(() => releaseTask(task.id)) : undefined}
                   />
                 ))}
                 {colTasks.length === 0 && (
@@ -548,6 +682,7 @@ export default function Tasks({ onNavigate }: Props) {
       {editor && (
         <TaskFormModal
           task={editor.task}
+          bonusDefault={editor.bonus}
           assignable={assignableFor(editor.task)}
           mayAssignPoints={perms.mayConfirm}
           mayDelete={editor.task ? perms.canDelete(editor.task) : false}

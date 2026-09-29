@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import type { CalendarEvent } from './data';
 import { useAuth } from '../auth/AuthContext';
 import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
@@ -9,17 +9,26 @@ import GoogleBadge from '../google/GoogleBadge';
 import { startOfToday, toDateKey } from '../calendar/dates';
 import { cardBackground, dotBackground, memberColors } from '../calendar/eventStyle';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
+import AvatarButton from '../profiles/AvatarButton';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { usePointHolders } from '../points/usePointHolders';
 import WeatherWidget from '../weather/WeatherWidget';
+import type { Focus } from '../navigation/focus';
 import {
   CalendarIcon, CheckSquareIcon, ShoppingCartIcon, UtensilsIcon,
   StarIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon,
-  MapPinIcon, AlertTriangleIcon, SparklesIcon,
+  MapPinIcon, AlertTriangleIcon, SparklesIcon, CheckIcon,
 } from './Icons';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
-interface Props { onNavigate: (p: Page) => void; }
+// focus: Sprungziel auf der nächsten Seite (Termin am Tag im Kalender, Aufgabe auf der Aufgabenseite)
+type Navigate = (p: Page, focus?: Focus) => void;
+interface Props { onNavigate: Navigate; }
+
+// Klickbare Zeilen auch per Tastatur öffnen
+const onEnter = (open: () => void) => (e: KeyboardEvent) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+};
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
@@ -30,7 +39,7 @@ const TRANSPORT_ICONS: Record<string, string> = {
 
 // ─── mini calendar ───────────────────────────────────────────────────────────
 
-function MiniCalendar({ onNavigate }: { onNavigate: (p: Page) => void }) {
+function MiniCalendar({ onNavigate }: { onNavigate: Navigate }) {
   const { events: calendarEvents, memberById } = useCalendarData();
   const today    = startOfToday();
   const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
@@ -111,7 +120,7 @@ function departureStr(ev: CalendarEvent): string | null {
   return `${String(Math.floor(total / 60)).padStart(2,'0')}:${String(total % 60).padStart(2,'0')}`;
 }
 
-function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
+function TodayAgenda({ onNavigate }: { onNavigate: Navigate }) {
   const { events, memberById } = useCalendarData();
   const todayEvents = events
     .filter(e => occursOn(e, toDateKey(startOfToday())) && e.status === 'approved')
@@ -133,10 +142,16 @@ function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
         <div className="space-y-2.5">
           {todayEvents.map(ev => {
             const dep    = departureStr(ev);
+            const open = () => onNavigate('calendar', { kind: 'event', id: ev.id, date: ev.date });
             return (
               <div
                 key={ev.id}
-                className={`flex items-start gap-3 p-3 rounded-xl transition-colors cursor-pointer ${ev.travelConflict ? 'bg-[#FEF2F2]' : 'hover:bg-slate-50'}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`${ev.title} im Kalender zeigen`}
+                onClick={open}
+                onKeyDown={onEnter(open)}
+                className={`flex items-start gap-3 p-3 rounded-xl transition-colors cursor-pointer hover:shadow-sm focus-visible:outline-2 focus-visible:outline-[#2563EB] ${ev.travelConflict ? 'bg-[#FEF2F2]' : 'hover:bg-slate-50'}`}
                 style={ev.travelConflict ? { borderLeft: '3px solid #EF4444' } : { background: cardBackground(memberColors(ev.memberIds, memberById)) }}
               >
                 <div className="flex-1 min-w-0">
@@ -173,10 +188,10 @@ function TodayAgenda({ onNavigate }: { onNavigate: (p: Page) => void }) {
 
 // ─── quick tasks ──────────────────────────────────────────────────────────────
 
-function QuickTasks({ onNavigate }: { onNavigate: (p: Page) => void }) {
+function QuickTasks({ onNavigate }: { onNavigate: Navigate }) {
   const { tasks } = useTaskData();
   const { memberById } = useCalendarData();
-  const urgent = tasks.filter(t => t.status !== 'done' && t.status !== 'confirmed' && t.priority === 'high').slice(0, 4);
+  const urgent = tasks.filter(t => t.assigneeId !== null && t.status !== 'done' && t.status !== 'confirmed' && t.priority === 'high').slice(0, 4);
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-4">
@@ -189,16 +204,19 @@ function QuickTasks({ onNavigate }: { onNavigate: (p: Page) => void }) {
       <div className="space-y-2">
         {urgent.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Keine dringenden Aufgaben 🎉</p>}
         {urgent.map(t => {
-          const member = memberById(t.assigneeId);
+          const member = memberById(t.assigneeId ?? '');
           const c = t.status === 'inprogress' ? '#2563EB' : '#F97316';
+          const open = () => onNavigate('tasks', { kind: 'task', id: t.id });
           return (
-            <div key={t.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer">
+            <div key={t.id} role="button" tabIndex={0} aria-label={`${t.title} bei den Aufgaben zeigen`}
+              onClick={open} onKeyDown={onEnter(open)}
+              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB]">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c }} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-slate-800 truncate">{t.title}</div>
-                <div className="text-xs text-slate-400">Fällig {t.dueDate.split('-').slice(1).join('/')}</div>
+                <div className="text-xs text-slate-400">{t.dueDate ? `Fällig ${t.dueDate.split('-').slice(1).join('/')}` : 'Ohne Frist'}</div>
               </div>
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0" style={{ backgroundColor: member?.color }}>{member?.initials[0]}</div>
+              <AvatarButton member={member} size={24} />
             </div>
           );
         })}
@@ -212,7 +230,7 @@ function QuickTasks({ onNavigate }: { onNavigate: (p: Page) => void }) {
 
 // ─── meal widget ──────────────────────────────────────────────────────────────
 
-function MealWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
+function MealWidget({ onNavigate }: { onNavigate: Navigate }) {
   const { can } = useAuth();
   const { today } = useMealData();
   if (!can('essen', 'ansehen', 'familie')) return null;
@@ -245,14 +263,33 @@ function MealWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
 
 // ─── shopping widget ──────────────────────────────────────────────────────────
 
-function ShoppingWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
+function ShoppingWidget({ onNavigate }: { onNavigate: Navigate }) {
   const { can } = useAuth();
-  const { items } = useShoppingData();
+  const { items, setChecked } = useShoppingData();
   const { memberById } = useCalendarData();
-  const remaining = items.filter(i => i.status === 'approved' && !i.checked)
+  const mayCheck = can('einkauf', 'bearbeiten', 'familie');
+  // Gerade Abgehaktes bleibt durchgestrichen stehen, bis man die Übersicht verlässt (so kann man es zurücknehmen)
+  const [justChecked, setJustChecked] = useState<Set<string>>(() => new Set());
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const remaining = items.filter(i => i.status === 'approved' && !i.checked);
+  const shown = items.filter(i => i.status === 'approved' && (!i.checked || justChecked.has(i.id)))
     .sort((a, b) => Number(b.urgent) - Number(a.urgent));
   const urgent    = remaining.filter(i => i.urgent);
   if (!can('einkauf', 'ansehen', 'familie')) return null;
+
+  const toggle = async (id: string, checked: boolean) => {
+    setBusyId(id);
+    setError(null);
+    try {
+      await setChecked(id, checked);
+      setJustChecked(s => new Set(s).add(id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-3">
@@ -268,19 +305,28 @@ function ShoppingWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
         </div>
       )}
       <div className="space-y-1.5">
-        {remaining.length === 0 && <div className="text-sm text-slate-400 py-2">Alles erledigt 🎉</div>}
-        {remaining.slice(0, 5).map(item => {
+        {error && <p role="alert" className="text-xs text-[#DC2626]">{error}</p>}
+        {shown.length === 0 && <div className="text-sm text-slate-400 py-2">Alles erledigt 🎉</div>}
+        {shown.slice(0, 5).map(item => {
           const member = memberById(item.createdBy);
           return (
             <div key={item.id} className="flex items-center gap-2 text-sm">
-              <div className="w-4 h-4 rounded border-2 border-slate-200 flex-shrink-0" />
-              <span className={`flex-1 text-slate-700 ${item.urgent ? 'font-semibold' : ''}`}>{item.name}</span>
-              {item.urgent && <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium">Dringend</span>}
+              {mayCheck ? (
+                <button type="button" onClick={() => toggle(item.id, !item.checked)} disabled={busyId === item.id}
+                  aria-label={item.checked ? `${item.name} nicht gekauft` : `${item.name} gekauft`} aria-pressed={item.checked}
+                  className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors disabled:opacity-50 ${item.checked ? 'bg-[#22C55E] border-[#22C55E]' : 'border-slate-300 hover:border-[#22C55E]'}`}>
+                  {item.checked && <CheckIcon size={10} className="text-white" strokeWidth={3} />}
+                </button>
+              ) : (
+                <div className="w-4 h-4 rounded border-2 border-slate-200 flex-shrink-0" />
+              )}
+              <span className={`flex-1 ${item.checked ? 'line-through text-slate-400' : 'text-slate-700'} ${item.urgent && !item.checked ? 'font-semibold' : ''}`}>{item.name}</span>
+              {item.urgent && !item.checked && <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium">Dringend</span>}
               <div className="w-4 h-4 rounded-full" style={{ backgroundColor: member?.color }} title={member?.name} />
             </div>
           );
         })}
-        {remaining.length > 5 && <div className="text-xs text-slate-400 pl-6">+{remaining.length - 5} weitere</div>}
+        {shown.length > 5 && <div className="text-xs text-slate-400 pl-6">+{shown.length - 5} weitere</div>}
       </div>
       <button onClick={() => onNavigate('shopping')} className="mt-3 w-full py-2 text-[#22C55E] text-xs font-semibold hover:bg-[#F0FDF4] rounded-xl transition-colors">
         Einkaufsliste öffnen →
@@ -291,7 +337,7 @@ function ShoppingWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
 
 // ─── points widget ────────────────────────────────────────────────────────────
 
-function PointsWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
+function PointsWidget({ onNavigate }: { onNavigate: Navigate }) {
   const children  = usePointHolders();
   const maxPoints = Math.max(1, ...children.map(c => c.points));
   if (children.length === 0) return null;
@@ -328,7 +374,7 @@ function PointsWidget({ onNavigate }: { onNavigate: (p: Page) => void }) {
 
 // ─── AI banner ────────────────────────────────────────────────────────────────
 
-function AIBanner({ onNavigate }: { onNavigate: (p: Page) => void }) {
+function AIBanner({ onNavigate }: { onNavigate: Navigate }) {
   return (
     <div className="bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#14B8A6] rounded-2xl p-4 text-white flex items-center gap-4">
       <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">

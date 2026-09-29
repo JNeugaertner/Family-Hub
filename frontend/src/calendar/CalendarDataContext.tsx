@@ -9,6 +9,8 @@ export interface CalendarMember {
   name: string;
   color: string;
   initials: string;
+  // JJJJ-MM-TT, falls hinterlegt (Profil-Overlay zeigt daraus das Alter)
+  birthDate: string | null;
   effectiveRole: RoleId;
 }
 
@@ -31,7 +33,7 @@ interface CalendarData {
 const CalendarDataContext = createContext<CalendarData | null>(null);
 
 function toMember(m: ApiMember): CalendarMember {
-  return { id: m.id, name: m.name, color: m.color, initials: m.name.slice(0, 2).toUpperCase(), effectiveRole: m.effectiveRole };
+  return { id: m.id, name: m.name, color: m.color, initials: m.name.slice(0, 2).toUpperCase(), birthDate: m.birthDate, effectiveRole: m.effectiveRole };
 }
 
 // Liegt der Termin an diesem Tag (yyyy-MM-dd)? Ganztägige Termine gelten an jedem Tag bis vor ihr Ende.

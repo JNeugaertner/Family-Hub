@@ -19,6 +19,8 @@ interface TaskData {
   removeCompletedTasks: () => Promise<{ deleted: number }>;
   confirmTask: (id: string) => Promise<api.ApiTask>;
   reopenTask: (id: string) => Promise<void>;
+  claimTask: (id: string) => Promise<void>;
+  releaseTask: (id: string) => Promise<void>;
 }
 
 const TaskDataContext = createContext<TaskData | null>(null);
@@ -65,6 +67,8 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     removeCompletedTasks: afterChange(api.deleteCompletedTasks),
     confirmTask: afterChange(api.confirmTask),
     reopenTask: afterChange(async (id: string) => { await api.reopenTask(id); }),
+    claimTask: afterChange(async (id: string) => { await api.claimTask(id); }),
+    releaseTask: afterChange(async (id: string) => { await api.releaseTask(id); }),
   }), [status, error, tasks, balances, reload, afterChange]);
 
   return <TaskDataContext.Provider value={value}>{children}</TaskDataContext.Provider>;

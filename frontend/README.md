@@ -53,6 +53,20 @@ daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem
 heutigen Datum; Beispieltermine und -aufgaben legt das Backend relativ zum
 heutigen Datum an.
 
+**Übersicht:** Ein Klick auf einen Termin unter „Heute“ öffnet den Kalender in der
+Tagesansicht dieses Tages, ein Klick auf eine dringende Aufgabe die Aufgabenseite;
+der Termin bzw. die Aufgabe leuchtet dort kurz auf (`src/navigation/focus.ts`,
+Klasse `focus-flash`; bei „Bewegung reduzieren“ ein ruhiger Rahmen). Wer die
+Einkaufsliste bearbeiten darf, hakt Artikel direkt in der Übersicht ab; gerade
+Abgehaktes bleibt durchgestrichen stehen und lässt sich zurücknehmen.
+
+**Profil-Overlay:** Ein Klick auf einen Familien-Kreis in der Seitenleiste oder auf
+einen Avatar an Terminen und Aufgaben öffnet ein kleines Profil (Rolle, Farbe,
+Alter, bei Kindern und Jugendlichen Punkte und Erfolge mit dem nächsten Ziel).
+Punkte und Erfolge erscheinen nur, wenn die angemeldete Person sie sehen darf
+(Kinder nur die eigenen, Gäste keine). Esc, ein Klick daneben oder Scrollen
+schließt es (`src/profiles/`).
+
 **Aufgaben und Punkte:** Eltern (Administratoren) legen Aufgaben mit Punkten an.
 Das Kind hakt ab, die Aufgabe wartet dann auf Bestätigung. Erst wenn ein
 Administrator bestätigt, werden die Punkte gutgeschrieben, genau einmal. Beim
@@ -64,6 +78,14 @@ Stift (auch ein Klick auf die Karte öffnet das Formular); bestätigte Aufgaben
 lassen sich nur ansehen. Administratoren räumen mit „Erledigte löschen“ in der
 Spalte Done auf: Das entfernt bestätigte Aufgaben und erledigte ohne Punkte,
 wartende Bestätigungen bleiben stehen, die Punkte-Historie bleibt erhalten.
+
+**Bonus-Aufgaben:** Eltern legen Aufgaben ohne feste Person an (Punkte Pflicht,
+Frist optional, auf Wunsch wiederkehrend). Sie stehen oben auf der Aufgabenseite
+im Bereich „⭐ Bonus-Aufgaben“; Kinder und Jugendliche übernehmen sie mit einem
+Klick (wer zuerst kommt). Danach stehen sie mit „⭐ Bonus“ im Board der Person
+und laufen wie jede Aufgabe: abhaken, Eltern bestätigen, Punkte. Zurückgeben geht,
+solange sie nicht erledigt sind. Wiederkehrende sind nach der Bestätigung wieder
+offen.
 
 **Belohnungen:** Kinder und Jugendliche lösen im Belohnungsshop Punkte für
 sich selbst ein; die Punkte werden sofort abgezogen und die Einlösung wartet
@@ -139,6 +161,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/rewards/`: Belohnungs-API und `RewardDataContext` (Belohnungen und Einlösungen, lädt nach Änderungen auch die Punktestände neu)
 - `src/weather/`: Wetter-API, Kachel für die Übersicht, Karte „Wohnort für das Wetter“ für die Profilseite
 - `src/google/`: Google-API des Backends, Karte „Google Kalender“ für die Profilseite, „G“-Abzeichen
+- `src/profiles/`: Profil-Overlay (`ProfileCard`) und der klickbare Avatar (`AvatarButton`)
 - `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
 - `src/components/`: die Seiten (Dashboard, Calendar, Tasks, Rewards, Shopping, MealPlanning, AIAssistant, Messenger, Profiles)
 
