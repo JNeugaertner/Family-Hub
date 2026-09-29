@@ -7,9 +7,10 @@ Müllabfuhr, Fahrzeiten, Messenger-Eingaben und Sprachfunktionen in einer
 gemeinsamen Oberfläche. Leitprinzip: **Der Agent informiert und bereitet vor,
 die Eltern entscheiden.**
 
-**Status:** Proof of Concept. Umgesetzt sind der Familienkalender, Anmeldung,
-Rollen und Rechte, Aufgaben mit Punktesystem (Punkte nach Bestätigung
-durch die Eltern), ein Belohnungsshop (Punkte einlösen, Eltern genehmigen),
+**Status:** Proof of Concept (Version 0.4.0). Umgesetzt sind der Familienkalender
+(auch Termine für mehrere Personen), Anmeldung, Rollen und Rechte, Aufgaben mit
+Punktesystem (Punkte nach Bestätigung durch die Eltern, dazu Bonus-Aufgaben für
+alle Kinder), ein Belohnungsshop (Punkte einlösen, Eltern genehmigen),
 Erfolge mit Bonuspunkten, die Einkaufsliste (Kinder schlagen vor, Eltern
 übernehmen), der Essensplan mit Gerichte-Sammlung (Zutaten per Knopf auf die
 Einkaufsliste, Kinder äußern Wünsche), das Wetter am Wohnort mit
@@ -140,6 +141,8 @@ Das Backend fragt OpenWeather höchstens alle zehn Minuten
 ```
 
 ## Dokumentation
+
+Was sich in welcher Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 
 Die REST-Schnittstelle ist bei laufendem Backend in der Swagger UI beschrieben
 und lässt sich dort ausprobieren: **http://localhost:8080/swagger-ui.html**
