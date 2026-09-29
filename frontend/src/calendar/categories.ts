@@ -8,3 +8,6 @@ export const CATEGORY_OPTIONS: { value: EventCategory; label: string }[] = [
   { value: 'work', label: '💼 Arbeit' },
   { value: 'reminder', label: '🔔 Erinnerung' },
 ];
+
+export const CATEGORY_LABELS = Object.fromEntries(CATEGORY_OPTIONS.map(o => [o.value, o.label])) as
+  Record<EventCategory, string>;

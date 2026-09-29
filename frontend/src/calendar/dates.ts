@@ -1,8 +1,13 @@
 // Datums-Hilfen für Kalender und Dashboard. Termine tragen ihr Datum als Schlüssel "JJJJ-MM-TT" in Ortszeit.
 
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October',
-  'November', 'December'];
+// Index wie Date.getDay(): 0 = Sonntag
+const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+export const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober',
+  'November', 'Dezember'];
+// Kalenderwochen beginnen am Montag
+export const WEEKDAYS_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+// Position des Tages in der Woche: 0 = Montag … 6 = Sonntag
+export const weekdayIndex = (date: Date) => (date.getDay() + 6) % 7;
 
 export function startOfToday(): Date {
   const today = new Date();
@@ -26,8 +31,14 @@ export function fromDateKey(key: string): Date {
 }
 
 // Montag der Woche, in der das Datum liegt
-export const mondayOf = (date: Date) => addDays(date, -((date.getDay() + 6) % 7));
+export const mondayOf = (date: Date) => addDays(date, -weekdayIndex(date));
 
-// Kopfzeile im Stil des Figma-UI, z. B. "Friday, 25 September 2026"
+// Kopfzeile, z. B. "Dienstag, 29. September 2026"
 export const formatLongDate = (date: Date) =>
-  `${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+  `${WEEKDAYS[date.getDay()]}, ${date.getDate()}. ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+
+// "JJJJ-MM-TT" als Tag und Monat, z. B. "29.09."
+export const formatDayMonth = (key: string) => {
+  const [, month, day] = key.split('-');
+  return `${day}.${month}.`;
+};

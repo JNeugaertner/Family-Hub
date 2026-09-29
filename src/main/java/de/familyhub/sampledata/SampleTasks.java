@@ -20,7 +20,7 @@ import de.familyhub.task.TaskCategory;
 import de.familyhub.task.TaskPriority;
 import de.familyhub.task.TaskStatus;
 
-// Beispielaufgaben aus dem Figma-UI (frontend/src/components/data.ts) und eine Punkte-Historie, die die
+// Beispielaufgaben (ursprünglich aus dem Figma-UI) und eine Punkte-Historie, die die
 // Punktestände aus dem Figma-UI ergibt (Emma 420, Lucas 285, Lily 190).
 final class SampleTasks {
 
@@ -30,21 +30,21 @@ final class SampleTasks {
     }
 
     static final List<SampleTask> TASKS = List.of(
-            new SampleTask("Clean bedroom", "Tidy up, vacuum and dust surfaces", "emma", 1, MEDIUM, CHORES, 20, TODO),
-            new SampleTask("Take out trash", "Bins to the kerb before 8am", "lucas", 0, HIGH, CHORES, 15, TODO),
-            new SampleTask("Math homework", "Chapter 5 exercises 1–20", "lucas", 0, HIGH, SCHOOL, 25, IN_PROGRESS),
-            new SampleTask("Book dentist for Lucas", null, "sarah", -1, HIGH, HEALTH, 0, DONE),
-            new SampleTask("Grocery run", "Pick up items from shopping list", "mike", 0, MEDIUM, ERRANDS, 0,
+            new SampleTask("Zimmer aufräumen", "Aufräumen, staubsaugen und Staub wischen", "emma", 1, MEDIUM, CHORES, 20, TODO),
+            new SampleTask("Müll rausbringen", "Tonnen bis 8 Uhr an die Straße stellen", "lucas", 0, HIGH, CHORES, 15, TODO),
+            new SampleTask("Mathe-Hausaufgaben", "Kapitel 5, Aufgaben 1–20", "lucas", 0, HIGH, SCHOOL, 25, IN_PROGRESS),
+            new SampleTask("Zahnarzttermin für Lucas ausmachen", null, "sarah", -1, HIGH, HEALTH, 0, DONE),
+            new SampleTask("Wocheneinkauf", "Alles von der Einkaufsliste besorgen", "mike", 0, MEDIUM, ERRANDS, 0,
                     IN_PROGRESS),
-            new SampleTask("Feed the dog", null, "lily", 0, HIGH, CHORES, 10, CONFIRMED),
-            new SampleTask("Water the plants", null, "emma", 2, LOW, CHORES, 10, TODO),
-            new SampleTask("Read for 30 min", null, "lily", 0, MEDIUM, SCHOOL, 15, IN_PROGRESS),
-            new SampleTask("Plan weekend activities", null, "sarah", 3, LOW, FAMILY, 0, TODO),
-            new SampleTask("Fix garage light", null, "mike", 4, MEDIUM, HOME, 0, TODO),
-            new SampleTask("Practice piano", null, "lily", 0, MEDIUM, SCHOOL, 20, DONE),
-            new SampleTask("Set up recycling bins", null, "mike", 1, LOW, CHORES, 0, DONE));
+            new SampleTask("Hund füttern", null, "lily", 0, HIGH, CHORES, 10, CONFIRMED),
+            new SampleTask("Blumen gießen", null, "emma", 2, LOW, CHORES, 10, TODO),
+            new SampleTask("30 Minuten lesen", null, "lily", 0, MEDIUM, SCHOOL, 15, IN_PROGRESS),
+            new SampleTask("Wochenende planen", null, "sarah", 3, LOW, FAMILY, 0, TODO),
+            new SampleTask("Licht in der Garage reparieren", null, "mike", 4, MEDIUM, HOME, 0, TODO),
+            new SampleTask("Klavier üben", null, "lily", 0, MEDIUM, SCHOOL, 20, DONE),
+            new SampleTask("Wertstofftonnen aufstellen", null, "mike", 1, LOW, CHORES, 0, DONE));
 
-    // Frühere Gutschriften; die bestätigte Aufgabe "Feed the dog" kommt als eigene Buchung dazu.
+    // Frühere Gutschriften; die bestätigte Aufgabe "Hund füttern" kommt als eigene Buchung dazu.
     record SamplePoints(String username, int daysAgo, int amount, String reason) {
     }
 

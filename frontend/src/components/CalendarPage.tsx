@@ -10,7 +10,8 @@ import {
 import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
 import { useCalendarPermissions } from '../calendar/permissions';
 import EventFormModal from './EventFormModal';
-import { addDays, fromDateKey, startOfToday, toDateKey } from '../calendar/dates';
+import { MONTHS, WEEKDAYS_SHORT, addDays, fromDateKey, mondayOf, startOfToday, toDateKey, weekdayIndex } from '../calendar/dates';
+import { CATEGORY_LABELS } from '../calendar/categories';
 import { SHARED_COLOR, blockBackground, cardBackground, dotBackground, memberColors, participantLabel, proposalStyle } from '../calendar/eventStyle';
 import GoogleBadge from '../google/GoogleBadge';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
@@ -22,8 +23,6 @@ type Page = string;
 interface Props { onNavigate: (p: any) => void; }
 
 type View = 'month' | 'week' | 'day';
-const MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 const CATEGORY_COLORS: Record<string, string> = {
   school:      '#2563EB',
@@ -32,15 +31,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   family:      '#8B5CF6',
   work:        '#14B8A6',
   reminder:    '#94A3B8',
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  school:      '📚 School',
-  sports:      '⚽ Sports',
-  appointment: '🏥 Appointment',
-  family:      '👨‍👩‍👧‍👦 Family',
-  work:        '💼 Work',
-  reminder:    '🔔 Reminder',
 };
 
 const TRANSPORT_ICONS: Record<string, string> = {
@@ -173,7 +163,8 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
 // ─── month view ───────────────────────────────────────────────────────────────
 
 function MonthView({ year, month, events: allEvents, onSelect }: { year: number; month: number; events: CalendarEvent[]; onSelect: SelectEvent }) {
-  const firstDay    = new Date(year, month, 1).getDay();
+  // Leere Tage vor dem Ersten: die Woche beginnt am Montag
+  const firstDay    = weekdayIndex(new Date(year, month, 1));
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrev  = new Date(year, month, 0).getDate();
   const today       = startOfToday();
@@ -194,7 +185,7 @@ function MonthView({ year, month, events: allEvents, onSelect }: { year: number;
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <div className="grid grid-cols-7 border-b border-slate-100">
-        {DAYS_SHORT.map(d => (
+        {WEEKDAYS_SHORT.map(d => (
           <div key={d} className="text-center py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{d}</div>
         ))}
       </div>
@@ -204,7 +195,7 @@ function MonthView({ year, month, events: allEvents, onSelect }: { year: number;
           const events  = cell.type === 'curr' ? getEventsForDay(cell.day) : [];
           const isToday = cell.type === 'curr' && cell.day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
           const hasConflict = events.some(e => e.conflict || e.travelConflict);
-          const isWeekEnd   = i % 7 === 0 || i % 7 === 6;
+          const isWeekEnd   = i % 7 >= 5;
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`;
           const garbage = cell.type === 'curr' ? garbageByDate[dateStr] : undefined;
 
@@ -235,7 +226,7 @@ function MonthView({ year, month, events: allEvents, onSelect }: { year: number;
 
               <div className="space-y-0.5">
                 {events.slice(0, 3).map(ev => <EventPill key={ev.id} event={ev} compact onSelect={onSelect} />)}
-                {events.length > 3 && <div className="text-[9px] text-slate-400 px-1">+{events.length - 3} more</div>}
+                {events.length > 3 && <div className="text-[9px] text-slate-400 px-1">+{events.length - 3} weitere</div>}
               </div>
             </div>
           );
@@ -250,9 +241,7 @@ function MonthView({ year, month, events: allEvents, onSelect }: { year: number;
 function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events: CalendarEvent[]; onSelect: SelectEvent }) {
   const { memberById } = useCalendarData();
   const todayKey = toDateKey(startOfToday());
-  const startOfWeek = addDays(startOfToday(), weekOffset * 7);
-  const dow = startOfWeek.getDay();
-  startOfWeek.setDate(startOfWeek.getDate() - dow);
+  const startOfWeek = mondayOf(addDays(startOfToday(), weekOffset * 7));
 
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(startOfWeek);
@@ -260,7 +249,7 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
     return d;
   });
 
-  const hours = Array.from({ length: 15 }, (_, i) => i + 6); // 6am–8pm
+  const hours = Array.from({ length: 15 }, (_, i) => i + 6); // 6 bis 20 Uhr
 
   const garbageByDate: Record<string, GarbagePickup> = {};
   GARBAGE_PICKUPS.forEach(g => { garbageByDate[g.date] = g; });
@@ -288,7 +277,7 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
           return (
             <div key={d.toISOString()} className={`text-center py-2 border-r border-slate-50 ${isToday ? 'bg-[#EFF6FF]' : ''}`}>
               <div className={`text-[10px] font-semibold ${isToday ? 'text-[#2563EB]' : 'text-slate-400'} uppercase`}>
-                {DAYS_SHORT[d.getDay()]}
+                {WEEKDAYS_SHORT[weekdayIndex(d)]}
               </div>
               <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm mx-auto mt-1 ${isToday ? 'bg-[#2563EB] text-white' : 'text-slate-700'}`}>
                 {d.getDate()}
@@ -337,7 +326,7 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
             {/* Hour label */}
             <div className="border-r border-slate-100 py-1 pr-2 text-right flex-shrink-0">
               <span className="text-[10px] text-slate-400 font-medium">
-                {h > 12 ? h - 12 : h}{h >= 12 ? 'pm' : 'am'}
+                {String(h).padStart(2, '0')}:00
               </span>
             </div>
 
@@ -373,7 +362,7 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
                           color: '#DC2626',
                           borderLeft: '2px solid #EF4444',
                         } : { ...blockStyle(ev, colors), ...(ev.status === 'proposed' ? {} : { color: 'white' }) }}
-                        title={`${eventMarker(ev)}${ev.title} at ${ev.time}${sourceNote(ev)}`}
+                        title={`${eventMarker(ev)}${ev.title} um ${ev.time}${sourceNote(ev)}`}
                         onClick={() => onSelect(ev)}
                       >
                         <div className="truncate font-semibold">
@@ -498,7 +487,7 @@ export default function CalendarPage({ onNavigate }: Props) {
   const today = startOfToday();
   const todayKey = toDateKey(today);
   const shownDay = addDays(today, dayOffset);
-  const weekStart = addDays(today, weekOffset * 7 - today.getDay());
+  const weekStart = mondayOf(addDays(today, weekOffset * 7));
   const heading = view === 'day'
     ? shownDay.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
     : view === 'week' ? `${MONTHS[weekStart.getMonth()]} ${weekStart.getFullYear()}` : `${MONTHS[month]} ${year}`;
