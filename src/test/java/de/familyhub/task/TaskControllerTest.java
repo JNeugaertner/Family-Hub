@@ -90,8 +90,14 @@ class TaskControllerTest {
                         """.formatted(lucas.id())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.title").value("Titel darf nicht leer sein"))
-                .andExpect(jsonPath("$.errors.dueDate").value("Fälligkeit ist Pflicht"))
                 .andExpect(jsonPath("$.errors.points").value("Punkte dürfen nicht negativ sein"));
+
+        // Frist ist nur bei normalen Aufgaben Pflicht (Bonus-Aufgaben dürfen ohne sein)
+        mvc.perform(post("/api/tasks").with(as(sarah)).contentType(APPLICATION_JSON).content("""
+                        {"title": "Ohne Frist", "assigneeId": "%s", "priority": "high", "category": "chores"}
+                        """.formatted(lucas.id())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.dueDate").value("Fälligkeit ist Pflicht"));
 
         mvc.perform(post("/api/tasks").with(as(sarah)).contentType(APPLICATION_JSON).content("""
                         {"title": "Unbekannt", "assigneeId": "000000000000000000000000", "dueDate": "2026-09-30",

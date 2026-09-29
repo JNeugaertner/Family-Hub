@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.permission.Action;
 import de.familyhub.permission.Permissions;
+import de.familyhub.permission.Role;
+import de.familyhub.permission.RoleResolver;
 import de.familyhub.permission.Scope;
 import de.familyhub.web.ApiException;
 
@@ -24,19 +26,52 @@ import de.familyhub.web.ApiException;
 // - Anlegen, Inhalt ändern, löschen: mit "aufgaben/erstellen" bzw. "loeschen"; eigen = mir zugewiesen und von mir
 //   angelegt. Aufgaben, die mir jemand anderes zugewiesen hat, kann ich nur abhaken.
 // - Punkte festlegen und Erledigung bestätigen: nur mit "punkte/freigeben/familie" (Administratoren).
+// - Bonus-Aufgaben (Entscheidungen vom 29.09.2026): legen Administratoren an; offene sehen und übernehmen Kinder und
+//   Jugendliche ("aufgaben/bearbeiten/eigen"), zurückgeben dürfen sie sie, solange sie nicht erledigt sind.
 @Component
 public class TaskAccess {
 
     private final Permissions permissions;
+    private final RoleResolver roles;
 
-    public TaskAccess(Permissions permissions) {
+    public TaskAccess(Permissions permissions, RoleResolver roles) {
         this.permissions = permissions;
+        this.roles = roles;
     }
 
     public Predicate<Task> visibilityFor(FamilyMember viewer) {
         boolean family = permissions.can(viewer, AUFGABEN, ANSEHEN, Scope.FAMILIE);
         boolean own = permissions.can(viewer, AUFGABEN, ANSEHEN, Scope.EIGEN);
-        return task -> family || (own && isAssignedTo(viewer, task));
+        boolean claims = canClaim(viewer);
+        return task -> family || (own && isAssignedTo(viewer, task)) || (claims && task.isOpenBonus());
+    }
+
+    // Wer Punkte sammelt (Kinder und Jugendliche) und eigene Aufgaben abhaken darf, kann Bonus-Aufgaben übernehmen.
+    public boolean canClaim(FamilyMember viewer) {
+        Role role = roles.effectiveRole(viewer);
+        return (role == Role.KIND || role == Role.JUGENDLICHER)
+                && permissions.can(viewer, AUFGABEN, BEARBEITEN, Scope.EIGEN);
+    }
+
+    public void requireClaim(FamilyMember viewer, Task task) {
+        if (!canClaim(viewer)) {
+            throw ApiException.forbidden("Bonus-Aufgaben übernehmen nur Kinder und Jugendliche.");
+        }
+        if (!task.isOpenBonus() || task.status() != TaskStatus.TODO) {
+            throw ApiException.conflict("Diese Bonus-Aufgabe hat schon jemand übernommen.");
+        }
+    }
+
+    public void requireRelease(FamilyMember viewer, Task task) {
+        if (!task.bonus() || task.assigneeId() == null) {
+            throw ApiException.conflict("Nur übernommene Bonus-Aufgaben lassen sich zurückgeben.");
+        }
+        if (!isAssignedTo(viewer, task) && !permissions.can(viewer, PUNKTE, FREIGEBEN, Scope.FAMILIE)) {
+            throw ApiException.forbidden("Zurückgeben darf nur, wer die Bonus-Aufgabe übernommen hat.");
+        }
+        if (task.status() == TaskStatus.DONE || task.status() == TaskStatus.CONFIRMED) {
+            throw ApiException.conflict("Erledigte Bonus-Aufgaben lassen sich nicht mehr zurückgeben.");
+        }
     }
 
     public boolean canSee(FamilyMember viewer, Task task) {
@@ -44,6 +79,11 @@ public class TaskAccess {
     }
 
     public void requireCreate(FamilyMember viewer, Task task) {
+        if (task.bonus()) {
+            requireTaskRight(viewer, ERSTELLEN, Scope.FAMILIE, false, "Bonus-Aufgaben anzulegen", "anlegen");
+            requirePointsRight(viewer, true);
+            return;
+        }
         Scope scope = viewer.id().equals(task.assigneeId()) ? Scope.EIGEN : Scope.FAMILIE;
         requireTaskRight(viewer, ERSTELLEN, scope, false, "Aufgaben anzulegen", "anlegen");
         requirePointsRight(viewer, task.points() > 0);
@@ -59,6 +99,9 @@ public class TaskAccess {
 
     public void requireStatusChange(FamilyMember viewer, Task task) {
         requireNotConfirmed(task);
+        if (task.isOpenBonus()) {
+            throw ApiException.conflict("Eine Bonus-Aufgabe muss erst jemand übernehmen.");
+        }
         Scope scope = isAssignedTo(viewer, task) ? Scope.EIGEN : Scope.FAMILIE;
         requireTaskRight(viewer, BEARBEITEN, scope, false, "Aufgaben abzuhaken", "abhaken");
     }
