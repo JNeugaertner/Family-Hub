@@ -164,6 +164,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/profiles/`: Profil-Overlay (`ProfileCard`) und der klickbare Avatar (`AvatarButton`)
 - `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
 - `src/components/`: die Seiten (Dashboard, Calendar, Tasks, Rewards, Shopping, MealPlanning, AIAssistant, Messenger, Profiles)
+- `public/`: App-Symbole und `manifest.webmanifest`, damit sich FamilyHub als App installieren lässt (siehe README im Projektordner)
 
 Styling mit Tailwind CSS v4 über `@tailwindcss/vite`, keine separate
 Tailwind-Konfiguration.
