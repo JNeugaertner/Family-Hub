@@ -91,8 +91,8 @@ offen.
 sich selbst ein; die Punkte werden sofort abgezogen und die Einlösung wartet
 auf die Eltern. Eltern genehmigen oder lehnen (mit optionalem Grund) ab; beim
 Ablehnen und beim Zurückziehen einer offenen Einlösung kommen die Punkte
-zurück. Eltern können auch direkt für ein Kind einlösen, das gilt dann sofort
-als genehmigt. Je Belohnung ist einstellbar, ob sie mehrfach einlösbar ist.
+zurück. Eltern selbst lösen nichts ein, auch nicht für ein Kind. Je Belohnung
+ist einstellbar, ob sie mehrfach einlösbar ist.
 Offene Genehmigungen zählt ein Hinweis an „Belohnungen“ in der Seitenleiste.
 
 **Erfolge:** Kinder und Jugendliche erreichen automatisch Erfolge, z. B. „Erste

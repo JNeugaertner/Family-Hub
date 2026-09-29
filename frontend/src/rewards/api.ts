@@ -46,7 +46,7 @@ export const deleteReward = (id: string) => request<void>(`/api/rewards/${id}`, 
 
 export const listRedemptions = () => request<Redemption[]>('/api/redemptions');
 
-// Ohne memberId für sich selbst; Administratoren auch für ein Kind (dann sofort genehmigt)
+// Kinder und Jugendliche lösen nur für sich selbst ein (memberId weglassen)
 export const redeemReward = (rewardId: string, memberId?: string) =>
   request<Redemption>('/api/redemptions', { method: 'POST', body: json({ rewardId, memberId }) });
 
