@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 import org.springframework.stereotype.Component;
 
@@ -41,7 +42,7 @@ public class GoogleEventMapper {
         }
         String title = cut(event.summary(), 100);
         boolean privateEvent = "private".equals(event.visibility()) || "confidential".equals(event.visibility());
-        return new CalendarEvent(null, title == null ? NO_TITLE : title, start, end, memberId, calendar.category(),
+        return new CalendarEvent(null, title == null ? NO_TITLE : title, start, end, List.of(memberId), calendar.category(),
                 cut(event.location(), 200), cut(withoutHtml(event.description()), 1000), privateEvent,
                 EventStatus.APPROVED, memberId, new ExternalRef(ExternalRef.GOOGLE, calendar.calendarId(), event.id()));
     }

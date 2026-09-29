@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,16 +79,19 @@ public class SampleDataLoader implements ApplicationRunner {
             new SampleMember("Oma", "#64748B", Role.GAST, null));
 
     // day: Tag relativ zum Montag der aktuellen Woche (0 = Montag, 7 = Montag der Folgewoche), damit der Kalender
-    // beim ersten Start immer Termine rund um heute zeigt. privateEvent: nur Beteiligte und Administratoren sehen den
-    // Termin; proposedBy: offener Vorschlag dieser Person
+    // beim ersten Start immer Termine rund um heute zeigt. members: Vornamen der Beteiligten, mit Komma getrennt.
+    // privateEvent: nur Beteiligte und Administratoren sehen den Termin; proposedBy: offener Vorschlag dieser Person
     private record SampleEvent(String title, int day, String time, String endTime,
-            String member, EventCategory category, String location, boolean privateEvent, String proposedBy) {
+            String members, EventCategory category, String location, boolean privateEvent, String proposedBy) {
 
-        SampleEvent(String title, int day, String time, String endTime, String member, EventCategory category,
+        SampleEvent(String title, int day, String time, String endTime, String members, EventCategory category,
                 String location) {
-            this(title, day, time, endTime, member, category, location, false, null);
+            this(title, day, time, endTime, members, category, location, false, null);
         }
     }
+
+    // Familientermine: alle außer Gästen
+    private static final String WHOLE_FAMILY = "Sarah, Mike, Emma, Lucas, Lily";
 
     private static final List<SampleEvent> EVENTS = List.of(
             new SampleEvent("School pickup", 0, "15:00", "15:30", "Lucas", SCHOOL, "Lincoln Middle School"),
@@ -95,7 +99,7 @@ public class SampleDataLoader implements ApplicationRunner {
             new SampleEvent("Team standup", 1, "09:00", "09:30", "Mike", WORK, null),
             new SampleEvent("Piano lesson", 1, "15:30", "16:30", "Lily", SCHOOL, "Music Academy"),
             new SampleEvent("Dentist – Lucas", 2, "11:00", "12:00", "Lucas", APPOINTMENT, "Bright Smile Dental"),
-            new SampleEvent("Family dinner", 5, "18:00", "20:00", "Sarah", FAMILY, null),
+            new SampleEvent("Family dinner", 5, "18:00", "20:00", WHOLE_FAMILY, FAMILY, null),
             new SampleEvent("Parent-teacher conf.", 3, "14:00", "15:00", "Sarah", SCHOOL, "Lincoln Elementary"),
             new SampleEvent("Basketball game", 4, "10:00", "12:00", "Lucas", SPORTS, "Sports Center"),
             new SampleEvent("Doctor checkup", 7, "10:00", "11:00", "Lily", APPOINTMENT, null),
@@ -103,10 +107,10 @@ public class SampleDataLoader implements ApplicationRunner {
             new SampleEvent("Gymnastics", 3, "14:30", "15:30", "Lily", SPORTS, null),
             new SampleEvent("Book club", 6, "19:00", null, "Sarah", FAMILY, null, true, null),
             new SampleEvent("🗑️ Gelber Sack", 1, "07:00", null, "Mike", REMINDER, null),
-            new SampleEvent("Movie night", 4, "20:00", null, "Sarah", FAMILY, null),
+            new SampleEvent("Movie night", 4, "20:00", null, "Sarah, Mike, Emma", FAMILY, null),
             new SampleEvent("Grocery run", 2, "09:00", null, "Mike", FAMILY, null),
-            new SampleEvent("Park cycle tour", 6, "10:00", "12:00", "Sarah", FAMILY, null),
-            new SampleEvent("Kinoabend mit Lucas", 5, "19:00", "21:00", "Lucas", FAMILY, "Cinestar", false,
+            new SampleEvent("Park cycle tour", 6, "10:00", "12:00", WHOLE_FAMILY, FAMILY, null),
+            new SampleEvent("Kinoabend mit Lucas", 5, "19:00", "21:00", "Emma, Lucas", FAMILY, "Cinestar", false,
                     "Emma"));
 
     // Termine dieser Kategorien sehen Gäste (sofern nicht privat)
@@ -286,8 +290,9 @@ public class SampleDataLoader implements ApplicationRunner {
                 ? start.plus(DEFAULT_DURATION)
                 : date.atTime(LocalTime.parse(e.endTime()));
         boolean proposal = e.proposedBy() != null;
-        return new CalendarEvent(null, e.title(), start, end, idByName.get(e.member()), e.category(), e.location(),
-                null, e.privateEvent(), proposal ? EventStatus.PROPOSED : EventStatus.APPROVED,
-                idByName.get(proposal ? e.proposedBy() : "Sarah"));
+        List<String> memberIds = Arrays.stream(e.members().split(",\\s*")).map(idByName::get).toList();
+        return new CalendarEvent(null, e.title(), start, end, memberIds, e.category(), e.location(), null,
+                e.privateEvent(), proposal ? EventStatus.PROPOSED : EventStatus.APPROVED,
+                idByName.get(proposal ? e.proposedBy() : "Sarah"), null);
     }
 }

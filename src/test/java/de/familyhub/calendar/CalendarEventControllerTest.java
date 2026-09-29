@@ -56,7 +56,7 @@ class CalendarEventControllerTest {
 
     private static String json(String title, String start, String end, String memberId, String category) {
         return """
-                {"title": "%s", "start": "%s", "end": "%s", "memberId": "%s", "category": "%s"}
+                {"title": "%s", "start": "%s", "end": "%s", "memberIds": ["%s"], "category": "%s"}
                 """.formatted(title, start, end, memberId, category);
     }
 
@@ -80,7 +80,7 @@ class CalendarEventControllerTest {
         mvc.perform(post("/api/events").with(as(sarah)).contentType(APPLICATION_JSON)
                         .content(json("Basketball", "2026-09-25T10:00", "2026-09-25T12:00", "000000000000000000000000", "sports")))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.memberId").value("Familienmitglied existiert nicht"));
+                .andExpect(jsonPath("$.errors.memberIds").value("Familienmitglied existiert nicht"));
     }
 
     @Test
@@ -151,7 +151,7 @@ class CalendarEventControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(event.id()))
                 .andExpect(jsonPath("$.title").value("Basketball-Finale"))
-                .andExpect(jsonPath("$.memberId").value(emma.id()));
+                .andExpect(jsonPath("$.memberIds[0]").value(emma.id()));
 
         mvc.perform(put("/api/events/000000000000000000000000").with(as(sarah)).contentType(APPLICATION_JSON)
                         .content(json("X", "2026-09-25T11:00", "2026-09-25T13:00", emma.id(), "sports")))

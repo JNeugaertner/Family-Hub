@@ -91,7 +91,7 @@ class CalendarEventTest {
     void missingMemberAndCategoryAreRejected() {
         assertThat(errors(event("Training", START, START.plusHours(1), "", null)))
                 .containsExactlyInAnyOrder(
-                        "Termin muss einem Familienmitglied zugeordnet sein",
+                        "Termin muss mindestens einem Familienmitglied zugeordnet sein",
                         "Kategorie ist Pflicht");
     }
 
@@ -110,7 +110,7 @@ class CalendarEventTest {
     void jsonFromFrontendIsParsed() {
         String json = """
                 {"title":"Zahnarzt Lucas","start":"2026-09-23T11:00","end":"2026-09-23T12:00",
-                 "memberId":"4","category":"appointment","location":"Bright Smile Dental"}
+                 "memberIds":["4"],"category":"appointment","location":"Bright Smile Dental"}
                 """;
 
         CalendarEvent event = JSON.readValue(json, CalendarEvent.class);
@@ -124,7 +124,7 @@ class CalendarEventTest {
     void unknownCategoryIsRejectedWhenParsing() {
         String json = """
                 {"title":"Test","start":"2026-09-23T11:00","end":"2026-09-23T12:00",
-                 "memberId":"4","category":"party"}
+                 "memberIds":["4"],"category":"party"}
                 """;
 
         assertThatThrownBy(() -> JSON.readValue(json, CalendarEvent.class))

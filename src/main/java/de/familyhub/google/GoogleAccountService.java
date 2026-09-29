@@ -72,12 +72,12 @@ public class GoogleAccountService {
                     e.getMessage());
         }
         connections.deleteById(connection.id());
-        events.deleteByMemberIdAndExternalIsNotNull(connection.memberId());
+        events.deleteImportedByMember(connection.memberId());
     }
 
     // Beim Löschen eines Familienmitglieds: Verbindung trennen und importierte Termine entfernen.
     public void forgetMember(String memberId) {
         connections.findByMemberId(memberId).ifPresent(this::disconnect);
-        events.deleteByMemberIdAndExternalIsNotNull(memberId);
+        events.deleteImportedByMember(memberId);
     }
 }

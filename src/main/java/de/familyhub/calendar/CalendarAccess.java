@@ -21,8 +21,9 @@ import de.familyhub.permission.Scope;
 import de.familyhub.settings.FamilySettingsRepository;
 import de.familyhub.web.ApiException;
 
-// Wer welche Termine sehen und ändern darf. Eigene Termine (memberId = angemeldete Person) brauchen
-// Rechte im Geltungsbereich "eigen", Termine anderer Familienmitglieder im Bereich "familie".
+// Wer welche Termine sehen und ändern darf. Eigene Termine (nur die angemeldete Person ist beteiligt) brauchen
+// Rechte im Geltungsbereich "eigen", Termine mit anderen Familienmitgliedern im Bereich "familie" (Entscheidung
+// vom 29.09.2026: legen Jugendliche einen gemeinsamen Termin an, wird er ein Vorschlag).
 // Vorschläge sieht nur, wer sie gemacht hat oder freigeben darf; private Termine nur die Beteiligten und
 // Administratoren; Gäste nur Termine aus den freigegebenen Kategorien.
 @Component
@@ -49,7 +50,7 @@ public class CalendarAccess {
             if (event.isProposal()) {
                 return isCreator(viewer, event) || seesProposals;
             }
-            boolean mine = isOwn(viewer, event.memberId()) || isCreator(viewer, event);
+            boolean mine = event.involves(viewer.id()) || isCreator(viewer, event);
             if (event.privateEvent()) {
                 return (mine && own) || seesPrivate;
             }
@@ -66,7 +67,7 @@ public class CalendarAccess {
 
     // Termine für andere werden zum Vorschlag, wenn jemand dort nicht anlegen, aber vorschlagen darf.
     public EventStatus statusForNewEvent(FamilyMember viewer, CalendarEvent event) {
-        Scope scope = scopeOf(viewer, event.memberId());
+        Scope scope = scopeOf(viewer, event);
         if (can(viewer, ERSTELLEN, scope)) {
             return EventStatus.APPROVED;
         }
@@ -84,8 +85,7 @@ public class CalendarAccess {
             }
             throw ApiException.forbidden("Einen Vorschlag darf nur ändern, wer ihn gemacht hat, oder ein Administrator.");
         }
-        Scope scope = isOwn(viewer, existing.memberId()) && isOwn(viewer, changed.memberId())
-                ? Scope.EIGEN : Scope.FAMILIE;
+        Scope scope = existing.isOnlyFor(viewer.id()) && changed.isOnlyFor(viewer.id()) ? Scope.EIGEN : Scope.FAMILIE;
         if (!can(viewer, BEARBEITEN, scope)) {
             throw denied(viewer, BEARBEITEN, scope, "Termine zu ändern", "ändern");
         }
@@ -98,7 +98,7 @@ public class CalendarAccess {
             }
             throw ApiException.forbidden("Einen Vorschlag darf nur zurückziehen, wer ihn gemacht hat.");
         }
-        Scope scope = scopeOf(viewer, existing.memberId());
+        Scope scope = scopeOf(viewer, existing);
         if (!can(viewer, LOESCHEN, scope)) {
             throw denied(viewer, LOESCHEN, scope, "Termine zu löschen", "löschen");
         }
@@ -121,12 +121,8 @@ public class CalendarAccess {
         return permissions.can(viewer, KALENDER, action, scope);
     }
 
-    private static Scope scopeOf(FamilyMember viewer, String memberId) {
-        return isOwn(viewer, memberId) ? Scope.EIGEN : Scope.FAMILIE;
-    }
-
-    private static boolean isOwn(FamilyMember viewer, String memberId) {
-        return viewer.id().equals(memberId);
+    private static Scope scopeOf(FamilyMember viewer, CalendarEvent event) {
+        return event.isOnlyFor(viewer.id()) ? Scope.EIGEN : Scope.FAMILIE;
     }
 
     private static boolean isCreator(FamilyMember viewer, CalendarEvent event) {

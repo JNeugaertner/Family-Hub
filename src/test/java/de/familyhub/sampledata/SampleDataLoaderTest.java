@@ -229,7 +229,7 @@ class SampleDataLoaderTest {
                 .collect(Collectors.toSet());
         List<CalendarEvent> events = eventRepository.findAll();
 
-        assertThat(events).extracting(CalendarEvent::memberId).allMatch(memberIds::contains);
+        assertThat(events).flatExtracting(CalendarEvent::memberIds).allMatch(memberIds::contains);
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             assertThat(events).allSatisfy(e -> assertThat(factory.getValidator().validate(e)).isEmpty());
         }

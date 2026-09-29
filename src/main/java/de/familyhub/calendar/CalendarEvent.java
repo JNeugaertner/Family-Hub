@@ -1,6 +1,8 @@
 package de.familyhub.calendar;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.PersistenceCreator;
@@ -12,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -29,8 +32,9 @@ public record CalendarEvent(
         @NotNull(message = "Ende ist Pflicht")
         LocalDateTime end,
 
-        @NotBlank(message = "Termin muss einem Familienmitglied zugeordnet sein")
-        String memberId,
+        @NotEmpty(message = "Termin muss mindestens einem Familienmitglied zugeordnet sein")
+        @Schema(description = "Beteiligte Familienmitglieder, mindestens eines")
+        List<String> memberIds,
 
         @NotNull(message = "Kategorie ist Pflicht")
         EventCategory category,
@@ -42,7 +46,7 @@ public record CalendarEvent(
         String description,
 
         @JsonProperty("private")
-        @Schema(description = "Privat: nur für die Person selbst, wer ihn angelegt hat, und Administratoren sichtbar")
+        @Schema(description = "Privat: nur für die Beteiligten, wer ihn angelegt hat, und Administratoren sichtbar")
         Boolean privateEvent,
 
         @Schema(accessMode = Schema.AccessMode.READ_ONLY,
@@ -58,6 +62,9 @@ public record CalendarEvent(
 
     @PersistenceCreator
     public CalendarEvent {
+        // doppelte und leere Einträge fallen weg, die Reihenfolge bleibt
+        memberIds = memberIds == null ? List.of()
+                : memberIds.stream().filter(Objects::nonNull).filter(m -> !m.isBlank()).distinct().toList();
         privateEvent = Boolean.TRUE.equals(privateEvent);
         status = status == null ? EventStatus.APPROVED : status;
     }
@@ -65,12 +72,29 @@ public record CalendarEvent(
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
             EventCategory category, String location, String description, Boolean privateEvent, EventStatus status,
             String createdBy) {
-        this(id, title, start, end, memberId, category, location, description, privateEvent, status, createdBy, null);
+        this(id, title, start, end, List.of(memberId), category, location, description, privateEvent, status, createdBy,
+                null);
     }
 
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
             EventCategory category, String location, String description) {
         this(id, title, start, end, memberId, category, location, description, false, EventStatus.APPROVED, null);
+    }
+
+    @JsonIgnore
+    public boolean involves(String memberId) {
+        return memberIds.contains(memberId);
+    }
+
+    // Termin nur dieser einen Person (zählt für Rechte im Geltungsbereich "eigen")
+    @JsonIgnore
+    public boolean isOnlyFor(String memberId) {
+        return memberIds.size() == 1 && memberIds.get(0).equals(memberId);
+    }
+
+    public CalendarEvent withoutMember(String memberId) {
+        return new CalendarEvent(id, title, start, end, memberIds.stream().filter(m -> !m.equals(memberId)).toList(),
+                category, location, description, privateEvent, status, createdBy, external);
     }
 
     @JsonIgnore

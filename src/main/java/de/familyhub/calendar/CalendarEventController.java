@@ -58,7 +58,7 @@ public class CalendarEventController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @Parameter(description = "Ende des Zeitraums (exklusiv), z. B. 2026-09-28T00:00")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
-            @Parameter(description = "Nur Termine dieses Familienmitglieds")
+            @Parameter(description = "Nur Termine, an denen dieses Familienmitglied beteiligt ist")
             @RequestParam(required = false) String memberId,
             @Parameter(description = "Nur Termine mit diesem Status, z. B. proposed für offene Vorschläge")
             @RequestParam(required = false) EventStatus status) {
@@ -73,7 +73,7 @@ public class CalendarEventController {
         if (from == null) {
             result = memberId == null
                     ? events.findAll(Sort.by("start"))
-                    : events.findByMemberIdOrderByStartAsc(memberId);
+                    : events.findByMemberOrderByStartAsc(memberId);
         } else {
             result = memberId == null
                     ? events.findOverlapping(from, to)
@@ -94,11 +94,12 @@ public class CalendarEventController {
 
     @PostMapping
     @Operation(summary = "Termin anlegen", description = "Eine mitgeschickte id, status und createdBy werden ignoriert. "
-            + "Wer für andere nur Vorschläge machen darf (Jugendliche), legt einen Vorschlag an (status proposed).")
+            + "Wer für andere nur Vorschläge machen darf (Jugendliche), legt für Termine mit anderen Beteiligten "
+            + "einen Vorschlag an (status proposed).")
     public ResponseEntity<CalendarEvent> create(@Valid @RequestBody CalendarEvent event) {
         FamilyMember viewer = currentMember.get();
         EventStatus status = access.statusForNewEvent(viewer, event);
-        requireMember(event.memberId());
+        requireMembers(event.memberIds());
         CalendarEvent saved = events.save(copy(null, event, status, viewer.id(), null));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(saved);
@@ -111,7 +112,7 @@ public class CalendarEventController {
         CalendarEvent existing = findVisible(id, viewer);
         requireNotImported(existing);
         access.requireUpdate(viewer, existing, event);
-        requireMember(event.memberId());
+        requireMembers(event.memberIds());
         return events.save(copy(id, event, existing.status(), existing.createdBy(), null));
     }
 
@@ -167,16 +168,16 @@ public class CalendarEventController {
         }
     }
 
-    private void requireMember(String memberId) {
-        if (!members.existsById(memberId)) {
-            throw ApiException.invalidField("memberId", "Familienmitglied existiert nicht");
+    private void requireMembers(List<String> memberIds) {
+        if (memberIds.stream().anyMatch(id -> !members.existsById(id))) {
+            throw ApiException.invalidField("memberIds", "Familienmitglied existiert nicht");
         }
     }
 
     // Eine mitgeschickte Herkunft (external) wird nie übernommen; nur der Google-Abgleich setzt sie.
     private static CalendarEvent copy(String id, CalendarEvent e, EventStatus status, String createdBy,
             ExternalRef external) {
-        return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberId(), e.category(), e.location(),
+        return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberIds(), e.category(), e.location(),
                 e.description(), e.privateEvent(), status, createdBy, external);
     }
 }
