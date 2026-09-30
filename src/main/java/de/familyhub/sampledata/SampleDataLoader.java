@@ -193,7 +193,8 @@ public class SampleDataLoader implements ApplicationRunner {
         String creator = idByUsername.get("sarah");
         LocalDateTime now = LocalDateTime.now(clock);
         Map<String, Dish> dishByName = dishRepository.saveAll(SampleMeals.DISHES.stream()
-                        .map(d -> new Dish(null, d.name(), d.ingredients(), creator, now)).toList())
+                        .map(d -> new Dish(null, d.name(), d.ingredients(), d.instructions(), d.prepMinutes(),
+                                d.servings(), creator, now)).toList())
                 .stream().collect(Collectors.toMap(Dish::name, d -> d));
         LocalDate monday = now.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         List<MealEntry> plan = SampleMeals.PLAN.stream()
