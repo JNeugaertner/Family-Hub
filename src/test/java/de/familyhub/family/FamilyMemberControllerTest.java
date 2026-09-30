@@ -28,11 +28,19 @@ import org.springframework.test.web.servlet.MockMvc;
 import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
 import de.familyhub.calendar.EventCategory;
+import de.familyhub.meals.MealEntry;
+import de.familyhub.meals.MealEntryRepository;
+import de.familyhub.meals.MealStatus;
+import de.familyhub.meals.MealType;
 import de.familyhub.permission.Action;
 import de.familyhub.permission.Module;
 import de.familyhub.permission.Permission;
 import de.familyhub.permission.Role;
 import de.familyhub.permission.Scope;
+import de.familyhub.shopping.ShoppingCategory;
+import de.familyhub.shopping.ShoppingItem;
+import de.familyhub.shopping.ShoppingItemRepository;
+import de.familyhub.shopping.ShoppingItemStatus;
 import de.familyhub.task.Task;
 import de.familyhub.task.TaskCategory;
 import de.familyhub.task.TaskPriority;
@@ -57,6 +65,12 @@ class FamilyMemberControllerTest {
 
     @Autowired
     private TaskRepository tasks;
+
+    @Autowired
+    private MealEntryRepository meals;
+
+    @Autowired
+    private ShoppingItemRepository shopping;
 
     private FamilyMember sarah;
 
@@ -293,6 +307,28 @@ class FamilyMemberControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value(containsString("eine Aufgabe")));
         tasks.delete(task);
+    }
+
+    @Test
+    void deleteRemovesOpenWishesAndProposalsButKeepsAcceptedOnes() throws Exception {
+        meals.deleteAll();
+        shopping.deleteAll();
+        FamilyMember lucas = members.save(TestUsers.member("Lucas", Role.KIND));
+        LocalDate day = LocalDate.of(2026, 10, 1);
+        LocalDateTime now = LocalDateTime.of(2026, 9, 29, 12, 0);
+        meals.save(new MealEntry(null, day, MealType.ABENDESSEN, null, "Pizza", MealStatus.PROPOSED, lucas.id(), now));
+        meals.save(new MealEntry(null, day, MealType.MITTAGESSEN, null, "Nudeln", MealStatus.APPROVED, lucas.id(), now));
+        shopping.save(new ShoppingItem(null, "Schokolade", null, ShoppingCategory.SNACKS, false, false,
+                ShoppingItemStatus.PROPOSED, lucas.id(), now, null));
+        shopping.save(new ShoppingItem(null, "Milch", null, ShoppingCategory.MILCHPRODUKTE, false, false,
+                ShoppingItemStatus.APPROVED, lucas.id(), now, null));
+
+        mvc.perform(delete("/api/members/" + lucas.id()).with(as(sarah))).andExpect(status().isNoContent());
+
+        assertThat(meals.findAll()).extracting(MealEntry::name).containsExactly("Nudeln");
+        assertThat(shopping.findAll()).extracting(ShoppingItem::name).containsExactly("Milch");
+        meals.deleteAll();
+        shopping.deleteAll();
     }
 
     @Test
