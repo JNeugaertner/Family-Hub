@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { MicIcon, SendIcon, SparklesIcon, XIcon, CheckIcon } from './Icons';
 import { useAuth, useMe } from '../auth/AuthContext';
 import { Suggestion, createSuggestion, decide } from '../roles';
+import { PreviewBanner } from './Placeholder';
+import { PLACEHOLDER } from '../placeholders';
 
 interface Props { onNavigate: (p: any) => void; }
 
@@ -209,6 +211,7 @@ export default function AIAssistant({ onNavigate }: Props) {
 
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-120px)]">
+      {PLACEHOLDER.assistant && <PreviewBanner className="flex-shrink-0 mx-4 lg:mx-6 mt-4 mb-2" />}
       {/* AI header */}
       <div className="flex-shrink-0 px-4 lg:px-6 py-4 bg-gradient-to-r from-[#EFF6FF] to-[#F0FDFA] border-b border-slate-100">
         <div className="flex items-center gap-3 max-w-[900px] mx-auto">
