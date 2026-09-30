@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useAutoRefresh } from '../api/useAutoRefresh';
 import { useAuth } from '../auth/AuthContext';
 import { addDays, mondayOf, startOfToday, toDateKey } from '../calendar/dates';
 import { useShoppingData } from '../shopping/ShoppingDataContext';
@@ -72,6 +73,7 @@ export function MealDataProvider({ children }: { children: ReactNode }) {
   }, [mayView, from, to]);
 
   useEffect(() => { reload(); }, [reload]);
+  useAutoRefresh(reload, ['meals', 'dishes']);
 
   const afterChange = useCallback(<A extends unknown[], R>(action: (...args: A) => Promise<R>) =>
     async (...args: A) => {

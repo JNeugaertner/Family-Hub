@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useAutoRefresh } from '../api/useAutoRefresh';
 import { useAuth } from '../auth/AuthContext';
 import * as api from './api';
 
@@ -26,19 +27,28 @@ export function ShoppingDataProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ShoppingData['status']>('loading');
   const [error, setError] = useState<string | null>(null);
 
+  // Nur die zuletzt gestartete Abfrage zählt (Hintergrund-Aktualisierung und Neuladen nach Änderungen)
+  const latest = useRef(0);
+
   const reload = useCallback(async () => {
     if (!mayView) return;
+    const call = ++latest.current;
     try {
-      setItems(await api.listShopping());
+      const items = await api.listShopping();
+      if (call !== latest.current) return;
+      setItems(items);
       setError(null);
       setStatus('ready');
     } catch (err) {
+      if (call !== latest.current) return;
       setError(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
   }, [mayView]);
 
   useEffect(() => { reload(); }, [reload]);
+  // Der Essensplan legt Zutaten auf die Einkaufsliste
+  useAutoRefresh(reload, ['shopping', 'meals']);
 
   const afterChange = useCallback(<A extends unknown[], R>(action: (...args: A) => Promise<R>) =>
     async (...args: A) => {
