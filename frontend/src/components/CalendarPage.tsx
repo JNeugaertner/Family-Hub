@@ -16,6 +16,8 @@ import { SHARED_COLOR, blockBackground, cardBackground, dotBackground, memberCol
 import GoogleBadge from '../google/GoogleBadge';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
 import { useFlashFocus, useFocus } from '../navigation/focus';
+import { SoonBadge } from './Placeholder';
+import { PLACEHOLDER } from '../placeholders';
 
 type SelectEvent = (event: CalendarEvent) => void;
 type SelectDay = (date: Date) => void;
@@ -224,6 +226,7 @@ function MonthView({ year, month, events: allEvents, onSelect, onSelectDay }: { 
               {/* Garbage badge */}
               {garbage && (
                 <div
+                  title="Müllabfuhr: Beispieldaten, noch ein Platzhalter"
                   className="text-[8px] font-bold px-1 py-0.5 rounded mb-0.5 truncate"
                   style={{ backgroundColor: WASTE_STYLES[garbage.type]?.bg, color: WASTE_STYLES[garbage.type]?.dot }}
                 >
@@ -313,6 +316,7 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
               {/* Garbage reminder badge */}
               {garbage && (
                 <div
+                  title="Müllabfuhr: Beispieldaten, noch ein Platzhalter"
                   className="text-[8px] font-bold mx-1 mt-1 px-1 py-0.5 rounded truncate"
                   style={{ backgroundColor: WASTE_STYLES[garbage.type]?.bg, color: WASTE_STYLES[garbage.type]?.dot }}
                 >
@@ -672,7 +676,10 @@ export default function CalendarPage({ onNavigate }: Props) {
 
       {/* Garbage reminder strip */}
       {upcomingGarbage.length > 0 && (
-        <div className="mb-5 flex flex-wrap gap-2">
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            Müllabfuhr {PLACEHOLDER.wasteCollection && <SoonBadge label="Beispiel" />}
+          </span>
           {upcomingGarbage.map(g => {
             const ws  = WASTE_STYLES[g.type];
             const days  = Math.round((fromDateKey(g.date).getTime() - today.getTime()) / 86_400_000);
@@ -693,8 +700,8 @@ export default function CalendarPage({ onNavigate }: Props) {
         </div>
       )}
 
-      {/* Transport legend (week/day only) */}
-      {view !== 'month' && (
+      {/* Transport legend (week/day only); Platzhalter, solange Fahrzeiten nicht berechnet werden */}
+      {view !== 'month' && !PLACEHOLDER.travelTimes && (
         <div className="mb-4 flex flex-wrap gap-2 items-center">
           <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">Verkehrsmittel:</span>
           {Object.entries(TRANSPORT_ICONS).map(([mode, icon]) => (

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { MESSAGES, Message } from './data';
+import { PreviewBanner } from './Placeholder';
+import { PLACEHOLDER } from '../placeholders';
 import { SendIcon, PlusIcon, ShoppingCartIcon, CalendarIcon, CheckSquareIcon, SearchIcon } from './Icons';
 
 interface Props { onNavigate: (p: any) => void; }
@@ -237,6 +239,7 @@ export default function Messenger({ onNavigate }: Props) {
 
   return (
     <div className="p-4 lg:p-6 max-w-[1400px] mx-auto">
+      {PLACEHOLDER.messenger && <PreviewBanner className="mb-5" />}
       {/* Source legend */}
       <div className="flex flex-wrap gap-3 mb-5">
         {Object.entries(SOURCE_COLORS).map(([src, style]) => (

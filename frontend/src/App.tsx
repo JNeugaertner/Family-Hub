@@ -14,6 +14,8 @@ import {
   UsersIcon, BellIcon, MenuIcon, XIcon, SettingsIcon, MicIcon,
 } from './components/Icons';
 import { NOTIFICATIONS } from './components/data';
+import { SoonBadge } from './components/Placeholder';
+import { PLACEHOLDER } from './placeholders';
 import { useAuth, useMe } from './auth/AuthContext';
 import { useCalendarData } from './calendar/CalendarDataContext';
 import { formatLongDate, startOfToday } from './calendar/dates';
@@ -186,9 +188,9 @@ export default function App() {
                 <span className={`flex-shrink-0 ${active ? 'text-[#2563EB]' : 'text-slate-400'}`}>
                   <Icon size={18} />
                 </span>
-                <span className="text-sm">{label}</span>
-                {id === 'messenger' && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center">3</span>
+                <span className="text-sm whitespace-nowrap">{label}</span>
+                {((id === 'assistant' && PLACEHOLDER.assistant) || (id === 'messenger' && PLACEHOLDER.messenger)) && (
+                  <SoonBadge label="Bald" className="ml-auto" />
                 )}
                 {id === 'tasks' && taskBadge > 0 && (
                   <span className="ml-auto w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center"
@@ -277,6 +279,7 @@ export default function App() {
             >
               <SparklesIcon size={14} />
               <span>KI fragen</span>
+              {PLACEHOLDER.assistant && <SoonBadge onDark />}
             </button>
 
             {/* Notifications */}
@@ -284,10 +287,10 @@ export default function App() {
               <button
                 className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
                 onClick={() => setShowNotifications(!showNotifications)}
-                aria-label={`Benachrichtigungen (${unreadCount} ungelesen)`}
+                aria-label={PLACEHOLDER.notifications ? 'Benachrichtigungen (demnächst)' : `Benachrichtigungen (${unreadCount} ungelesen)`}
               >
                 <BellIcon size={20} />
-                {unreadCount > 0 && (
+                {!PLACEHOLDER.notifications && unreadCount > 0 && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#EF4444] rounded-full" />
                 )}
               </button>
@@ -296,13 +299,22 @@ export default function App() {
                 <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                     <span className="font-semibold text-sm text-slate-800">Benachrichtigungen</span>
-                    <span className="text-xs text-[#2563EB] font-medium cursor-pointer">Alle als gelesen markieren</span>
+                    {PLACEHOLDER.notifications
+                      ? <SoonBadge />
+                      : <span className="text-xs text-[#2563EB] font-medium cursor-pointer">Alle als gelesen markieren</span>}
                   </div>
+                  {PLACEHOLDER.notifications && (
+                    <p className="px-4 py-2 text-[11px] text-slate-500 bg-slate-50 border-b border-slate-100">
+                      Echte Benachrichtigungen folgen. So könnte es aussehen (Beispiele):
+                    </p>
+                  )}
                   <div className="max-h-80 overflow-y-auto">
                     {NOTIFICATIONS.map(n => (
-                      <div key={n.id} className={`px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer ${!n.read ? 'bg-[#EFF6FF]/40' : ''}`}>
+                      <div key={n.id} className={PLACEHOLDER.notifications
+                        ? 'px-4 py-3 border-b border-slate-50 opacity-60'
+                        : `px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer ${!n.read ? 'bg-[#EFF6FF]/40' : ''}`}>
                         <div className="flex items-start gap-2.5">
-                          <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.read ? 'bg-[#2563EB]' : 'bg-slate-200'}`} />
+                          <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.read && !PLACEHOLDER.notifications ? 'bg-[#2563EB]' : 'bg-slate-200'}`} />
                           <div>
                             <p className="text-xs text-slate-700 leading-relaxed">{n.message}</p>
                             <p className="text-[10px] text-slate-400 mt-0.5">{n.time}</p>
@@ -365,15 +377,17 @@ export default function App() {
         </nav>
       </div>
 
-      {/* Floating voice assistant button */}
-      <button
-        onClick={() => navigate('assistant')}
-        className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#2563EB] to-[#14B8A6] text-white shadow-lg shadow-blue-300/50 flex items-center justify-center hover:scale-110 transition-transform z-30"
-        aria-label="Sprachassistent"
-        title="Sprachassistent"
-      >
-        <MicIcon size={22} />
-      </button>
+      {/* Floating voice assistant button (Platzhalter: ausgeblendet, siehe placeholders.ts) */}
+      {!PLACEHOLDER.voice && (
+        <button
+          onClick={() => navigate('assistant')}
+          className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#2563EB] to-[#14B8A6] text-white shadow-lg shadow-blue-300/50 flex items-center justify-center hover:scale-110 transition-transform z-30"
+          aria-label="Sprachassistent"
+          title="Sprachassistent"
+        >
+          <MicIcon size={22} />
+        </button>
+      )}
     </div>
   );
 }

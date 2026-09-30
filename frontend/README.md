@@ -47,7 +47,7 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Essensplan: Wochenplan, Gerichte-Sammlung mit Kochanleitung (ein Schritt pro Zeile, Zubereitungszeit, Portionen), Wünsche der Kinder, Zutaten auf die Einkaufsliste; Dashboard „Mahlzeiten heute“ | Backend: `/api/meals`, `/api/dishes` |
 | Wetter mit Kleidungsempfehlung (Dashboard); Wohnort einstellen (Karte unter „Familie“, Admins) | Backend: `/api/weather` |
 | Live-Aktualisierung: Änderungen anderer Familienmitglieder erscheinen ohne Neuladen | Backend: `/api/live` (Server-Sent Events) |
-| Nachrichten, Benachrichtigungen, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
+| KI-Assistent, Nachrichten, Benachrichtigungen, Müllabfuhr | Platzhalter: feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite, in der Oberfläche mit „🚧 Demnächst“ bzw. „Vorschau“ gekennzeichnet (Schalter in `src/placeholders.ts`) |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
 daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem
@@ -166,6 +166,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/profiles/`: Profil-Overlay (`ProfileCard`) und der klickbare Avatar (`AvatarButton`)
 - `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
 - `src/components/`: die Seiten (Dashboard, Calendar, Tasks, Rewards, Shopping, MealPlanning, AIAssistant, Messenger, Profiles)
+- `src/placeholders.ts` und `components/Placeholder.tsx`: welche Funktionen noch Platzhalter sind und ihre Kennzeichnung; wird eine Funktion echt, ihren Schalter auf `false` setzen
 - `public/`: App-Symbole und `manifest.webmanifest`, damit sich FamilyHub als App installieren lässt (siehe README im Projektordner)
 
 Styling mit Tailwind CSS v4 über `@tailwindcss/vite`, keine separate

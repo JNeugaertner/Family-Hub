@@ -14,6 +14,8 @@ import { useTaskData } from '../tasks/TaskDataContext';
 import { usePointHolders } from '../points/usePointHolders';
 import WeatherWidget from '../weather/WeatherWidget';
 import type { Focus } from '../navigation/focus';
+import { SoonBadge } from './Placeholder';
+import { PLACEHOLDER } from '../placeholders';
 import {
   CalendarIcon, CheckSquareIcon, ShoppingCartIcon, UtensilsIcon,
   StarIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon,
@@ -381,13 +383,15 @@ function AIBanner({ onNavigate }: { onNavigate: Navigate }) {
         <SparklesIcon size={20} className="text-white" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-sm">FamilyHub KI</div>
+        <div className="font-semibold text-sm flex items-center gap-2">
+          FamilyHub KI {PLACEHOLDER.assistant && <SoonBadge onDark label="Vorschau" />}
+        </div>
         <div className="text-white/80 text-xs mt-0.5 truncate">
-          Lucas hat Mathe noch nicht begonnen · Fußball 16:30 · Morgen: Gelber Sack rausstellen ♻️
+          Bald: Tipps der KI für euren Tag, z. B. wer wann wohin muss und was noch fehlt
         </div>
       </div>
       <button onClick={() => onNavigate('assistant')} className="flex-shrink-0 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
-        KI fragen
+        {PLACEHOLDER.assistant ? 'Vorschau ansehen' : 'KI fragen'}
       </button>
     </div>
   );
