@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useAutoRefresh } from '../api/useAutoRefresh';
 import { useAuth } from '../auth/AuthContext';
 import { useTaskData } from '../tasks/TaskDataContext';
 import * as api from './api';
@@ -28,19 +29,26 @@ export function RewardDataProvider({ children }: { children: ReactNode }) {
   const [redemptions, setRedemptions] = useState<api.Redemption[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Nur die zuletzt gestartete Abfrage zählt (Hintergrund-Aktualisierung und Neuladen nach Änderungen)
+  const latest = useRef(0);
+
   const reload = useCallback(async () => {
     if (!mayView) return;
+    const call = ++latest.current;
     try {
       const [r, d] = await Promise.all([api.listRewards(), api.listRedemptions()]);
+      if (call !== latest.current) return;
       setRewards(r);
       setRedemptions(d);
       setError(null);
     } catch (err) {
+      if (call !== latest.current) return;
       setError(err instanceof Error ? err.message : String(err));
     }
   }, [mayView]);
 
   useEffect(() => { reload(); }, [reload]);
+  useAutoRefresh(reload, ['rewards', 'redemptions']);
 
   // Einlösungen ändern Punktestände, daher auch die Punkte neu laden
   const afterChange = useCallback(<A extends unknown[], R>(action: (...args: A) => Promise<R>) =>

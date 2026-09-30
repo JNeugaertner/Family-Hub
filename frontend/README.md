@@ -46,6 +46,7 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Einkaufsliste: hinzufügen, vorschlagen, abhaken, bearbeiten, Vorschläge übernehmen; Dashboard „Einkaufsliste“ | Backend: `/api/shopping` |
 | Essensplan: Wochenplan, Gerichte-Sammlung, Wünsche der Kinder, Zutaten auf die Einkaufsliste; Dashboard „Mahlzeiten heute“ | Backend: `/api/meals`, `/api/dishes` |
 | Wetter mit Kleidungsempfehlung (Dashboard); Wohnort einstellen (Karte unter „Familie“, Admins) | Backend: `/api/weather` |
+| Live-Aktualisierung: Änderungen anderer Familienmitglieder erscheinen ohne Neuladen | Backend: `/api/live` (Server-Sent Events) |
 | Nachrichten, Benachrichtigungen, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
@@ -150,6 +151,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 ## Aufbau
 
 - `src/api/client.ts`: gemeinsamer Aufruf ans Backend (Cookies, CSRF-Header, Fehler als `ApiError` mit Feldfehlern)
+- `src/api/live.ts` und `useAutoRefresh.ts`: Live-Verbindung zum Backend; jeder Datenbereich lädt neu, sobald das Backend eine Änderung in seinem Bereich meldet, beim Zurückkehren ins Fenster und zur Absicherung jede Minute
 - `src/auth/`: Anmeldung (`AuthContext` mit `useAuth()`/`useMe()`), Anmelde- und Einrichtungsseite
 - `src/calendar/`: Termin-API, `CalendarDataContext` (lädt Mitglieder und Termine für Kalender und Dashboard), `permissions.ts` (was die angemeldete Person im Kalender darf), `eventStyle.ts` und `ParticipantAvatars.tsx` (Farbe und Beteiligte gemeinsamer Termine)
 - `src/family/`: API für Mitglieder, Rollen und Einstellungen, Farbpalette
