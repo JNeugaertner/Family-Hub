@@ -100,8 +100,13 @@ class SampleDataLoaderTest {
         loader.load();
         loader.load();
 
-        assertThat(dishRepository.findAll()).hasSize(12)
-                .allSatisfy(d -> assertThat(d.ingredients()).isNotEmpty());
+        assertThat(dishRepository.findAll()).hasSize(12).allSatisfy(d -> {
+            assertThat(d.ingredients()).isNotEmpty();
+            // Beispielrezepte: mehrere Schritte, Zubereitungszeit und Portionen
+            assertThat(d.instructions()).contains("\n").doesNotEndWith("\n");
+            assertThat(d.prepMinutes()).isPositive();
+            assertThat(d.servings()).isEqualTo(4);
+        });
         List<MealEntry> plan = mealRepository.findAll();
         assertThat(plan).hasSize(22).allSatisfy(m -> assertThat(m.date())
                 .isBetween(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 11)));

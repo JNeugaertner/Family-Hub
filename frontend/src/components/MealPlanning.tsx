@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { PlusIcon, ShoppingCartIcon, ChevronLeftIcon, ChevronRightIcon, XIcon, PencilIcon } from './Icons';
+import { useEffect, useState } from 'react';
+import { PlusIcon, ShoppingCartIcon, ChevronLeftIcon, ChevronRightIcon, XIcon, PencilIcon, BookOpenIcon } from './Icons';
+import { ApiError } from '../api/client';
 import { useAuth, useMe } from '../auth/AuthContext';
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import { addDays, fromDateKey, mondayOf, startOfToday, toDateKey } from '../calendar/dates';
@@ -63,6 +64,82 @@ function IngredientChips({ ingredients }: { ingredients: Ingredient[] }) {
           {SHOPPING_CATEGORIES[ing.category].icon} {ing.name}{ing.quantity && <span className="text-slate-400"> · {ing.quantity}</span>}
         </span>
       ))}
+    </div>
+  );
+}
+
+// Kochanleitung: ein Schritt pro Zeile. Eingefügte Nummerierung ("1.", "-") fällt weg, die Ansicht nummeriert selbst.
+function recipeSteps(instructions?: string | null): string[] {
+  return (instructions ?? '').split('\n').map(line => line.replace(/^\s*(\d+[.)]|[-*•])\s*/, '').trim()).filter(Boolean);
+}
+
+const formatMinutes = (minutes: number) =>
+  minutes < 60 ? `${minutes} Min.` : `${Math.floor(minutes / 60)} Std.${minutes % 60 ? ` ${minutes % 60} Min.` : ''}`;
+
+function RecipeMeta({ dish }: { dish: Dish }) {
+  const parts = [
+    dish.prepMinutes ? `⏱ ${formatMinutes(dish.prepMinutes)}` : null,
+    dish.servings ? `🍽 ${dish.servings} ${dish.servings === 1 ? 'Portion' : 'Portionen'}` : null,
+  ].filter(Boolean);
+  if (parts.length === 0) return null;
+  return <p className="text-[11px] text-slate-500">{parts.join(' · ')}</p>;
+}
+
+// Rezept eines Gerichts: Zutaten und nummerierte Schritte, für alle, die den Essensplan sehen (auch zum Mitkochen)
+function RecipeView({ dish, onClose }: { dish: Dish; onClose: () => void }) {
+  const steps = recipeSteps(dish.instructions);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-labelledby="recipe-title"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start gap-3 mb-1">
+          <h2 id="recipe-title" className="font-bold text-slate-800 text-lg flex-1">📖 {dish.name}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1" aria-label="Rezept schließen">
+            <XIcon size={16} />
+          </button>
+        </div>
+        <RecipeMeta dish={dish} />
+        <div className="overflow-y-auto min-h-0 flex-1 mt-4 space-y-5">
+          <section aria-labelledby="recipe-ingredients">
+            <h3 id="recipe-ingredients" className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Zutaten</h3>
+            {dish.ingredients.length === 0 ? (
+              <p className="text-sm text-slate-400">Keine Zutaten hinterlegt.</p>
+            ) : (
+              <ul className="space-y-1">
+                {dish.ingredients.map((ing, i) => (
+                  <li key={i} className="text-sm text-slate-700 flex gap-2">
+                    <span>{SHOPPING_CATEGORIES[ing.category].icon}</span>
+                    <span className="flex-1">{ing.name}</span>
+                    {ing.quantity && <span className="text-slate-400">{ing.quantity}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section aria-labelledby="recipe-steps">
+            <h3 id="recipe-steps" className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Zubereitung</h3>
+            {steps.length === 0 ? (
+              <p className="text-sm text-slate-400">Noch keine Kochanleitung hinterlegt.</p>
+            ) : (
+              <ol className="space-y-2.5">
+                {steps.map((step, i) => (
+                  <li key={i} className="flex gap-3 text-sm text-slate-700 leading-relaxed">
+                    <span className="w-6 h-6 rounded-full bg-[#CCFBF1] text-[#0F766E] text-xs font-bold flex items-center justify-center flex-shrink-0">
+                      {i + 1}
+                    </span>
+                    <span className="pt-0.5">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
@@ -178,6 +255,9 @@ function DishForm({ dish, onClose, onDone }: { dish: Dish | null; onClose: () =>
   const [name, setName] = useState(dish?.name ?? '');
   const [rows, setRows] = useState<IngredientRow[]>(
     dish?.ingredients.map(i => ({ name: i.name, quantity: i.quantity ?? '', category: i.category })) ?? [{ name: '', quantity: '', category: 'vorrat' }]);
+  const [instructions, setInstructions] = useState(dish?.instructions ?? '');
+  const [prepMinutes, setPrepMinutes] = useState(dish?.prepMinutes ? String(dish.prepMinutes) : '');
+  const [servings, setServings] = useState(dish?.servings ? String(dish.servings) : '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -190,13 +270,17 @@ function DishForm({ dish, onClose, onDone }: { dish: Dish | null; onClose: () =>
     const input = {
       name: name.trim(),
       ingredients: rows.filter(r => r.name.trim()).map(r => ({ name: r.name.trim(), quantity: r.quantity.trim() || null, category: r.category })),
+      instructions: instructions.trim() || null,
+      prepMinutes: prepMinutes ? Number(prepMinutes) : null,
+      servings: servings ? Number(servings) : null,
     };
     try {
       if (dish) await updateDish(dish.id, input);
       else await addDish(input);
       onDone(dish ? `„${input.name}“ gespeichert.` : `„${input.name}“ zur Sammlung hinzugefügt.`);
     } catch (err) {
-      setError(errorText(err));
+      // Feldfehler des Servers (z. B. Zubereitungszeit) als Text zeigen
+      setError(err instanceof ApiError && err.problem.errors ? Object.values(err.problem.errors).join(' ') : errorText(err));
       setBusy(false);
     }
   };
@@ -209,8 +293,9 @@ function DishForm({ dish, onClose, onDone }: { dish: Dish | null; onClose: () =>
         <label htmlFor="dish-name" className="text-xs font-semibold text-slate-600 mb-1.5 block">Name</label>
         <input id="dish-name" className={INPUT} maxLength={60} value={name} onChange={e => setName(e.target.value)} autoFocus />
 
-        <div className="text-xs font-semibold text-slate-600 mt-4 mb-1.5">Zutaten</div>
-        <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
+        <div className="overflow-y-auto flex-1 min-h-0 mt-4 -mx-1 px-1">
+        <div className="text-xs font-semibold text-slate-600 mb-1.5">Zutaten</div>
+        <div className="space-y-2">
           {rows.map((row, i) => (
             <div key={i} className="flex flex-wrap gap-2 items-center">
               <input className={`${INPUT} flex-1 min-w-[120px] py-1.5`} maxLength={80} placeholder="Zutat" aria-label={`Zutat ${i + 1}`}
@@ -233,6 +318,27 @@ function DishForm({ dish, onClose, onDone }: { dish: Dish | null; onClose: () =>
               <PlusIcon size={12} /> Zutat hinzufügen
             </button>
           )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <div>
+            <label htmlFor="dish-prep" className="text-xs font-semibold text-slate-600 mb-1.5 block">Zubereitungszeit (Min.)</label>
+            <input id="dish-prep" type="number" min={1} max={1440} className={`${INPUT} w-full`} placeholder="z. B. 30"
+              value={prepMinutes} onChange={e => setPrepMinutes(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="dish-servings" className="text-xs font-semibold text-slate-600 mb-1.5 block">Portionen</label>
+            <input id="dish-servings" type="number" min={1} max={50} className={`${INPUT} w-full`} placeholder="z. B. 4"
+              value={servings} onChange={e => setServings(e.target.value)} />
+          </div>
+        </div>
+
+        <label htmlFor="dish-instructions" className="text-xs font-semibold text-slate-600 mt-4 mb-1.5 block">
+          Kochanleitung <span className="font-normal text-slate-400">(ein Schritt pro Zeile)</span>
+        </label>
+        <textarea id="dish-instructions" rows={6} maxLength={4000} className={`${INPUT} w-full resize-y`}
+          placeholder={'Nudeln in Salzwasser kochen\nHackfleisch anbraten\nTomaten dazugeben und 20 Minuten köcheln lassen'}
+          value={instructions} onChange={e => setInstructions(e.target.value)} />
         </div>
 
         {error && <div role="alert" className="mt-3 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{error}</div>}
@@ -258,6 +364,7 @@ function DishCollection({ onMessage }: { onMessage: (text: string, ok: boolean) 
   const perms = useMealPermissions();
   const { dishes, removeDish } = useMealData();
   const [editing, setEditing] = useState<Dish | null | 'new'>(null);
+  const [recipe, setRecipe] = useState<Dish | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const remove = async (dish: Dish) => {
@@ -307,6 +414,15 @@ function DishCollection({ onMessage }: { onMessage: (text: string, ok: boolean) 
               )}
             </div>
             <IngredientChips ingredients={dish.ingredients} />
+            <div className="flex items-center gap-2 mt-2.5 min-h-[20px]">
+              <RecipeMeta dish={dish} />
+              {recipeSteps(dish.instructions).length > 0 && (
+                <button onClick={() => setRecipe(dish)} aria-label={`Rezept für ${dish.name} ansehen`}
+                  className="ml-auto text-xs font-semibold text-[#0F766E] hover:underline flex items-center gap-1">
+                  <BookOpenIcon size={13} /> Rezept
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -314,6 +430,7 @@ function DishCollection({ onMessage }: { onMessage: (text: string, ok: boolean) 
         <DishForm dish={editing === 'new' ? null : editing} onClose={() => setEditing(null)}
           onDone={text => { setEditing(null); onMessage(text, true); }} />
       )}
+      {recipe && <RecipeView dish={recipe} onClose={() => setRecipe(null)} />}
     </div>
   );
 }
@@ -327,6 +444,7 @@ export default function MealPlanning({ onNavigate }: Props) {
   const { weekStart, setWeekStart, entries, wishes, dishes, status, error, reload, removeMeal, approve, reject,
     mealToShopping, weekToShopping } = useMealData();
   const [tab, setTab] = useState<'plan' | 'dishes'>('plan');
+  const [recipe, setRecipe] = useState<Dish | null>(null);
   const [editing, setEditing] = useState<{ date: string; type: MealType } | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean; shopping?: boolean } | null>(null);
@@ -342,7 +460,7 @@ export default function MealPlanning({ onNavigate }: Props) {
 
   const planned = (date: string, type: MealType) => entries.find(e => e.date === date && e.type === type && e.status === 'approved');
   const cellWishes = (date: string, type: MealType) => entries.filter(e => e.date === date && e.type === type && e.status === 'proposed');
-  const dishIds = new Set(dishes.map(d => d.id));
+  const dishById = new Map(dishes.map(d => [d.id, d]));
 
   const run = async (action: () => Promise<unknown>, success?: string | ((result: any) => string), shopping = false) => {
     setBusy(true);
@@ -463,6 +581,7 @@ export default function MealPlanning({ onNavigate }: Props) {
       )}
 
       {tab === 'dishes' && <DishCollection onMessage={(text, ok) => setMessage({ text, ok })} />}
+      {recipe && <RecipeView dish={recipe} onClose={() => setRecipe(null)} />}
 
       {tab === 'plan' && (
         <>
@@ -498,6 +617,9 @@ export default function MealPlanning({ onNavigate }: Props) {
                     </div>
                     {days.map(day => {
                       const entry = planned(day, type);
+                      const dish = entry?.dishId ? dishById.get(entry.dishId) : undefined;
+                      const hasRecipe = !!dish && recipeSteps(dish.instructions).length > 0;
+                      const hasCart = perms.mayShop && !!dish;
                       const wishesHere = cellWishes(day, type);
                       const canOpen = perms.mayEdit || perms.mayWish;
                       return (
@@ -511,17 +633,31 @@ export default function MealPlanning({ onNavigate }: Props) {
                               role={canOpen ? 'button' : undefined}
                               aria-label={canOpen ? `${style.label} am ${dayLabel(day)}: ${entry.name}${onlyWishes ? ', etwas anderes wünschen' : ', ändern'}` : undefined}
                             >
-                              <p className="text-xs font-medium leading-snug pr-5" style={{ color: style.text }}>{entry.name}</p>
-                              {perms.mayShop && entry.dishId && dishIds.has(entry.dishId) && (
-                                <button
-                                  onClick={e => { e.stopPropagation(); run(() => mealToShopping(entry.id), transferText, true); }}
-                                  disabled={busy}
-                                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-md bg-white/80 text-slate-400 hover:text-[#16A34A] flex items-center justify-center disabled:opacity-50"
-                                  aria-label={`Zutaten für ${entry.name} auf die Einkaufsliste`}
-                                  title="Zutaten auf die Einkaufsliste"
-                                >
-                                  <ShoppingCartIcon size={12} />
-                                </button>
+                              <p className="text-xs font-medium leading-snug break-words" style={{ color: style.text }}>{entry.name}</p>
+                              {(hasRecipe || hasCart) && (
+                                <div className="flex justify-end gap-1 mt-1.5">
+                                  {hasRecipe && dish && (
+                                    <button
+                                      onClick={e => { e.stopPropagation(); setRecipe(dish); }}
+                                      className="w-6 h-6 rounded-md bg-white/80 text-slate-400 hover:text-[#0F766E] flex items-center justify-center"
+                                      aria-label={`Rezept für ${entry.name}`}
+                                      title="Rezept ansehen"
+                                    >
+                                      <BookOpenIcon size={12} />
+                                    </button>
+                                  )}
+                                  {hasCart && (
+                                    <button
+                                      onClick={e => { e.stopPropagation(); run(() => mealToShopping(entry.id), transferText, true); }}
+                                      disabled={busy}
+                                      className="w-6 h-6 rounded-md bg-white/80 text-slate-400 hover:text-[#16A34A] flex items-center justify-center disabled:opacity-50"
+                                      aria-label={`Zutaten für ${entry.name} auf die Einkaufsliste`}
+                                      title="Zutaten auf die Einkaufsliste"
+                                    >
+                                      <ShoppingCartIcon size={12} />
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
                           ) : canOpen ? (

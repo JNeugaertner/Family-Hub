@@ -44,7 +44,7 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Belohnungen: Shop, einlösen, zurückziehen; Genehmigen/Ablehnen und Belohnungen verwalten (Admins) | Backend: `/api/rewards`, `/api/redemptions` |
 | Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter „Familie“) | Backend: `/api/google` |
 | Einkaufsliste: hinzufügen, vorschlagen, abhaken, bearbeiten, Vorschläge übernehmen; Dashboard „Einkaufsliste“ | Backend: `/api/shopping` |
-| Essensplan: Wochenplan, Gerichte-Sammlung, Wünsche der Kinder, Zutaten auf die Einkaufsliste; Dashboard „Mahlzeiten heute“ | Backend: `/api/meals`, `/api/dishes` |
+| Essensplan: Wochenplan, Gerichte-Sammlung mit Kochanleitung (ein Schritt pro Zeile, Zubereitungszeit, Portionen), Wünsche der Kinder, Zutaten auf die Einkaufsliste; Dashboard „Mahlzeiten heute“ | Backend: `/api/meals`, `/api/dishes` |
 | Wetter mit Kleidungsempfehlung (Dashboard); Wohnort einstellen (Karte unter „Familie“, Admins) | Backend: `/api/weather` |
 | Live-Aktualisierung: Änderungen anderer Familienmitglieder erscheinen ohne Neuladen | Backend: `/api/live` (Server-Sent Events) |
 | Nachrichten, Benachrichtigungen, Müllabfuhr | noch feste Beispieldaten in `src/components/data.ts` bzw. in der jeweiligen Seite |

@@ -13,6 +13,12 @@ export interface Dish {
   id: string;
   name: string;
   ingredients: Ingredient[];
+  // Kochanleitung, ein Schritt pro Zeile; fehlt, wenn keine hinterlegt ist
+  instructions?: string | null;
+  // Zubereitungszeit in Minuten
+  prepMinutes?: number | null;
+  // Für wie viele Personen die Zutatenmengen gedacht sind (nur Anzeige)
+  servings?: number | null;
   createdBy: string;
   createdAt: string;
 }
@@ -20,6 +26,9 @@ export interface Dish {
 export interface DishInput {
   name: string;
   ingredients: Ingredient[];
+  instructions?: string | null;
+  prepMinutes?: number | null;
+  servings?: number | null;
 }
 
 export interface MealEntry {
