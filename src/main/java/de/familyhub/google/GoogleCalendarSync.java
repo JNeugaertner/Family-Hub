@@ -19,6 +19,7 @@ import org.springframework.web.client.RestClientException;
 
 import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
+import de.familyhub.live.LiveUpdates;
 
 // Übernimmt die Termine der aktiven Google-Kalender einer Person (nur lesen). Abgeglichen wird das ganze Zeitfenster:
 // neue Termine anlegen, geänderte aktualisieren, in Google gelöschte (oder aus abgewählten Kalendern) entfernen.
@@ -38,9 +39,11 @@ public class GoogleCalendarSync {
     private final GoogleEventMapper mapper;
     private final TokenCipher cipher;
     private final Clock clock;
+    private final LiveUpdates live;
 
     public GoogleCalendarSync(GoogleApi google, GoogleProperties properties, GoogleConnectionRepository connections,
-            CalendarEventRepository events, GoogleEventMapper mapper, TokenCipher cipher, Clock clock) {
+            CalendarEventRepository events, GoogleEventMapper mapper, TokenCipher cipher, Clock clock,
+            LiveUpdates live) {
         this.google = google;
         this.properties = properties;
         this.connections = connections;
@@ -48,6 +51,7 @@ public class GoogleCalendarSync {
         this.mapper = mapper;
         this.cipher = cipher;
         this.clock = clock;
+        this.live = live;
     }
 
     public GoogleConnection sync(GoogleConnection connection) {
@@ -125,6 +129,10 @@ public class GoogleCalendarSync {
                 .map(Map.Entry::getValue)
                 .toList();
         events.deleteAll(removed);
+        // Der automatische Abgleich kommt nicht über die API: geänderte Termine selbst melden
+        if (!changed.isEmpty() || !removed.isEmpty()) {
+            live.publish("google");
+        }
     }
 
     private static CalendarEvent withId(CalendarEvent e, String id) {

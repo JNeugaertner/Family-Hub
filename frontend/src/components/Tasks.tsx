@@ -4,7 +4,7 @@ import AvatarButton from '../profiles/AvatarButton';
 import { PlusIcon, ClockIcon, AlertTriangleIcon, PencilIcon } from './Icons';
 import { ApiError } from '../api/client';
 import { useCalendarData, type CalendarMember } from '../calendar/CalendarDataContext';
-import { startOfToday, toDateKey } from '../calendar/dates';
+import { formatDayMonth, startOfToday, toDateKey } from '../calendar/dates';
 import PointsToast from '../points/PointsToast';
 import type { ApiTask, TaskCategory, TaskPriority, TaskStatus } from '../tasks/api';
 import { useTaskData } from '../tasks/TaskDataContext';
@@ -18,6 +18,12 @@ const PRIORITY_COLORS = {
   high: { bg: '#FEF2F2', text: '#DC2626', dot: '#EF4444' },
 };
 
+const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: 'Niedrig',
+  medium: 'Mittel',
+  high: 'Hoch',
+};
+
 const CATEGORY_ICONS: Record<TaskCategory, string> = {
   chores: '🧹',
   school: '📚',
@@ -27,13 +33,30 @@ const CATEGORY_ICONS: Record<TaskCategory, string> = {
   home: '🔧',
 };
 
+const CATEGORY_LABELS: Record<TaskCategory, string> = {
+  chores: 'Haushalt',
+  school: 'Schule',
+  health: 'Gesundheit',
+  errands: 'Besorgungen',
+  family: 'Familie',
+  home: 'Haus & Garten',
+};
+
+const categoryLabel = (category: TaskCategory) => `${CATEGORY_ICONS[category] || '📋'} ${CATEGORY_LABELS[category] ?? category}`;
+
 type BoardStatus = Exclude<TaskStatus, 'confirmed'>;
+
+const STATUS_LABELS: Record<BoardStatus, string> = {
+  todo: 'Offen',
+  inprogress: 'In Arbeit',
+  done: 'Erledigt',
+};
 
 const isFinished = (task: ApiTask) => task.status === 'done' || task.status === 'confirmed';
 const isOverdue = (task: ApiTask, todayKey: string) => !isFinished(task) && !!task.dueDate && task.dueDate < todayKey;
 // Bonus-Aufgabe, die noch niemand übernommen hat (steht im Bereich "Bonus-Aufgaben", nicht im Board)
 const isOpenBonus = (task: ApiTask) => task.bonus && task.assigneeId === null;
-const dueLabel = (dueDate: string | null) => (dueDate ? dueDate.split('-').slice(1).join('/') : 'ohne Frist');
+const dueLabel = (dueDate: string | null) => (dueDate ? formatDayMonth(dueDate) : 'ohne Frist');
 const awaitsConfirmation = (task: ApiTask) => task.status === 'done' && task.points > 0;
 
 function errorText(err: unknown) {
@@ -70,9 +93,9 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
             className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
             style={{ backgroundColor: pri.bg, color: pri.text }}
           >
-            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+            {PRIORITY_LABELS[task.priority]}
           </span>
-          <span className="text-xs text-slate-400">{CATEGORY_ICONS[task.category] || '📋'} {task.category}</span>
+          <span className="text-xs text-slate-400">{categoryLabel(task.category)}</span>
           {task.bonus && <BonusBadge repeatable={task.repeatable} />}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -115,7 +138,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
         </div>
         <div className={`flex items-center gap-1 text-xs font-medium ${overdue ? 'text-[#EF4444]' : 'text-slate-400'}`}>
           <ClockIcon size={10} />
-          {overdue ? 'Overdue' : dueLabel(task.dueDate)}
+          {overdue ? 'Überfällig' : dueLabel(task.dueDate)}
         </div>
       </div>
 
@@ -156,7 +179,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
                   : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
               }`}
             >
-              {s === 'todo' ? 'To Do' : s === 'inprogress' ? 'Doing' : 'Done'}
+              {STATUS_LABELS[s]}
             </button>
           ))}
         </div>
@@ -195,7 +218,7 @@ function BonusCard({ task, todayKey, onClaim, onEdit, busy }: {
         <span className="text-lg font-bold text-[#D97706] flex-shrink-0">⭐ {task.points}</span>
       </div>
       <div className="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
-        <span>{CATEGORY_ICONS[task.category] || '📋'} {task.category}</span>
+        <span>{categoryLabel(task.category)}</span>
         {task.repeatable && <span title="Nach der Bestätigung wieder offen">↻ wiederkehrend</span>}
         <span className={`flex items-center gap-1 ml-auto ${overdue ? 'text-[#EF4444]' : ''}`}>
           <ClockIcon size={10} />{dueLabel(task.dueDate)}
@@ -343,9 +366,9 @@ function TaskFormModal({ task, bonusDefault = false, assignable, mayAssignPoints
             <Field id="task-priority" label="Priorität" error={errors.priority}>
               <select id="task-priority" className={inputClass(!!errors.priority)} value={priority}
                 onChange={e => setPriority(e.target.value as TaskPriority)}>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
+                {(Object.keys(PRIORITY_LABELS) as TaskPriority[]).map(p => (
+                  <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
+                ))}
               </select>
             </Field>
           </div>
@@ -358,7 +381,7 @@ function TaskFormModal({ task, bonusDefault = false, assignable, mayAssignPoints
               <select id="task-category" className={inputClass(!!errors.category)} value={category}
                 onChange={e => setCategory(e.target.value as TaskCategory)}>
                 {(Object.keys(CATEGORY_ICONS) as TaskCategory[]).map(c => (
-                  <option key={c} value={c}>{CATEGORY_ICONS[c]} {c}</option>
+                  <option key={c} value={c}>{categoryLabel(c)}</option>
                 ))}
               </select>
             </Field>
@@ -462,9 +485,9 @@ export default function Tasks({ onNavigate }: Props) {
   });
 
   const columns: { id: BoardStatus; label: string; color: string; bg: string }[] = [
-    { id: 'todo', label: 'To Do', color: '#64748B', bg: '#F8FAFC' },
-    { id: 'inprogress', label: 'In Progress', color: '#2563EB', bg: '#EFF6FF' },
-    { id: 'done', label: 'Done', color: '#22C55E', bg: '#F0FDF4' },
+    { id: 'todo', label: STATUS_LABELS.todo, color: '#64748B', bg: '#F8FAFC' },
+    { id: 'inprogress', label: STATUS_LABELS.inprogress, color: '#2563EB', bg: '#EFF6FF' },
+    { id: 'done', label: STATUS_LABELS.done, color: '#22C55E', bg: '#F0FDF4' },
   ];
 
   const stats = {
@@ -492,9 +515,9 @@ export default function Tasks({ onNavigate }: Props) {
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
-          { label: 'Total Tasks', value: stats.total, color: '#2563EB', bg: '#EFF6FF' },
-          { label: 'Completed', value: stats.done, color: '#22C55E', bg: '#F0FDF4' },
-          { label: 'Overdue', value: stats.overdue, color: '#EF4444', bg: '#FEF2F2' },
+          { label: 'Aufgaben', value: stats.total, color: '#2563EB', bg: '#EFF6FF' },
+          { label: 'Erledigt', value: stats.done, color: '#22C55E', bg: '#F0FDF4' },
+          { label: 'Überfällig', value: stats.overdue, color: '#EF4444', bg: '#FEF2F2' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl border border-slate-100 px-4 py-3 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold" style={{ backgroundColor: s.bg, color: s.color }}>
@@ -535,7 +558,7 @@ export default function Tasks({ onNavigate }: Props) {
               onClick={() => setFilterMember(null)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filterMember === null ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              Everyone
+              Alle
             </button>
             {filterMembers.map(m => (
               <button
@@ -564,7 +587,7 @@ export default function Tasks({ onNavigate }: Props) {
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {p === 'all' ? 'All' : p}
+              {p === 'all' ? 'Alle' : PRIORITY_LABELS[p as TaskPriority]}
             </button>
           ))}
           {perms.canAdd && (
@@ -573,7 +596,7 @@ export default function Tasks({ onNavigate }: Props) {
               className="flex items-center gap-1.5 bg-[#2563EB] text-white px-3.5 py-1.5 rounded-full text-xs font-semibold hover:bg-[#1D4ED8] transition-colors ml-2"
             >
               <PlusIcon size={14} />
-              New Task
+              Neue Aufgabe
             </button>
           )}
         </div>
@@ -608,7 +631,7 @@ export default function Tasks({ onNavigate }: Props) {
         </section>
       )}
 
-      {/* Kanban board */}
+      {/* Alle Aufgaben */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {columns.map(col => {
           const colTasks = filtered.filter(t => (col.id === 'done' ? isFinished(t) : t.status === col.id));
@@ -662,7 +685,7 @@ export default function Tasks({ onNavigate }: Props) {
                 {colTasks.length === 0 && (
                   <div className="text-center py-8 text-slate-300 text-sm">
                     <div className="text-2xl mb-2">{col.id === 'done' ? '✅' : '📋'}</div>
-                    <div>No tasks here</div>
+                    <div>Keine Aufgaben</div>
                   </div>
                 )}
                 {perms.canAdd && (
@@ -670,7 +693,7 @@ export default function Tasks({ onNavigate }: Props) {
                     onClick={() => setEditor({})}
                     className="w-full py-2 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs font-medium hover:border-[#2563EB] hover:text-[#2563EB] transition-colors flex items-center justify-center gap-1.5"
                   >
-                    <PlusIcon size={13} /> Add task
+                    <PlusIcon size={13} /> Aufgabe hinzufügen
                   </button>
                 )}
               </div>

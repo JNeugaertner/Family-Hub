@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useAutoRefresh } from '../api/useAutoRefresh';
 import type { CalendarEvent } from '../components/data';
 import { listMembers, type ApiMember } from '../family/api';
 import type { RoleId } from '../roles';
@@ -71,20 +72,28 @@ export function CalendarDataProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<CalendarMember[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
 
+  // Nur die zuletzt gestartete Abfrage zählt (Hintergrund-Aktualisierung und Neuladen nach Änderungen)
+  const latest = useRef(0);
+
   const reload = useCallback(async () => {
+    const call = ++latest.current;
     try {
       const [m, e] = await Promise.all([listMembers(), api.listEvents()]);
+      if (call !== latest.current) return;
       setMembers(m.map(toMember));
       setEvents(e.map(toEvent));
       setError(null);
       setStatus('ready');
     } catch (err) {
+      if (call !== latest.current) return;
       setError(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+  // Mitglieder stehen hier mit, Google-Termine kommen auch aus dem automatischen Abgleich
+  useAutoRefresh(reload, ['events', 'members', 'settings', 'google']);
 
   const afterChange = useCallback(<A extends unknown[]>(action: (...args: A) => Promise<unknown>) =>
     async (...args: A) => {

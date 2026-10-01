@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useAutoRefresh } from '../api/useAutoRefresh';
 import { useAuth } from '../auth/AuthContext';
 import { listBalances } from '../points/api';
 import * as api from './api';
@@ -33,20 +34,28 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<api.ApiTask[]>([]);
   const [balances, setBalances] = useState<Record<string, number>>({});
 
+  // Nur die zuletzt gestartete Abfrage zählt (Hintergrund-Aktualisierung und Neuladen nach Änderungen)
+  const latest = useRef(0);
+
   const reload = useCallback(async () => {
+    const call = ++latest.current;
     try {
       const [t, b] = await Promise.all([api.listTasks(), mayViewPoints ? listBalances() : Promise.resolve([])]);
+      if (call !== latest.current) return;
       setTasks(t);
       setBalances(Object.fromEntries(b.map(x => [x.memberId, x.points])));
       setError(null);
       setStatus('ready');
     } catch (err) {
+      if (call !== latest.current) return;
       setError(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
   }, [mayViewPoints]);
 
   useEffect(() => { reload(); }, [reload]);
+  // Einlösungen und Erfolge ändern Punktestände
+  useAutoRefresh(reload, ['tasks', 'redemptions', 'achievements', 'members']);
 
   const afterChange = useCallback(<A extends unknown[], R>(action: (...args: A) => Promise<R>) =>
     async (...args: A) => {

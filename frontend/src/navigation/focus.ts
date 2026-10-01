@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect } from 'react';
 
-// Sprungziel beim Seitenwechsel, z. B. aus der Übersicht: ein bestimmter Termin (an seinem Tag) oder eine Aufgabe.
+// Sprungziel beim Seitenwechsel, z. B. aus der Übersicht: ein bestimmter Termin (an seinem Tag), ein Tag im Kalender
+// oder eine Aufgabe.
 // Die Zielseite scrollt zum Element mit data-focus-id und lässt es kurz aufleuchten (Klasse focus-flash, index.css).
 export type Focus =
   | { kind: 'event'; id: string; date: string }
+  | { kind: 'day'; date: string }
   | { kind: 'task'; id: string };
 
 interface FocusState {
@@ -16,7 +18,8 @@ export const FocusContext = createContext<FocusState>({ focus: null, clear: () =
 export const useFocus = () => useContext(FocusContext);
 
 // ready: die Seite hat ihre Daten geladen und die passende Ansicht gezeigt
-export function useFlashFocus(kind: Focus['kind'], ready: boolean) {
+// Nur Termine und Aufgaben leuchten auf; ein Tag hat kein einzelnes Element dafür
+export function useFlashFocus(kind: 'event' | 'task', ready: boolean) {
   const { focus, clear } = useFocus();
   useEffect(() => {
     if (!ready || !focus || focus.kind !== kind) return;

@@ -16,7 +16,7 @@ Erfolge mit Bonuspunkten, die Einkaufsliste (Kinder schlagen vor, Eltern
 Einkaufsliste, Kinder äußern Wünsche), das Wetter am Wohnort mit
 Kleidungsempfehlung (OpenWeather) sowie das Einbinden des eigenen Google
 Kalenders (nur lesen).
-Die übrigen Bereiche der Oberfläche zeigen noch feste Beispieldaten.
+Die Müllabfuhrtermine werden nach dem Import einer kommunalen ICS-Datei in den Profileinstellungen angezeigt; eine konfigurierbare Aufgabe für den Vorabend erscheint fünf Tage vor der Abholung. Die übrigen noch nicht genannten Bereiche der Oberfläche zeigen feste Beispieldaten.
 
 ## Tech-Stack
 
@@ -129,6 +129,17 @@ nächsten vier Tage und eine Kleidungsempfehlung). Die Daten kommen von
 
 Das Backend fragt OpenWeather höchstens alle zehn Minuten
 (`familyhub.weather.cache-duration`).
+
+## Als App installieren
+
+FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im
+Startmenü bzw. auf dem Startbildschirm). In Edge oder Chrome
+`http://localhost:5173` öffnen und in der Adressleiste auf „App installieren“
+klicken (Edge: Menü „Apps“ → „Diese Website als App installieren“).
+
+Auf dem Handy funktioniert das erst, wenn FamilyHub dort über HTTPS erreichbar
+ist, also auf einem Server läuft; im lokalen Entwicklungsbetrieb ist die
+Oberfläche nur auf dem eigenen Rechner erreichbar.
 
 ## Projektstruktur
 

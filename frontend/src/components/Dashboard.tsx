@@ -6,7 +6,7 @@ import type { MealType } from '../meals/api';
 import { useMealData } from '../meals/MealDataContext';
 import { useShoppingData } from '../shopping/ShoppingDataContext';
 import GoogleBadge from '../google/GoogleBadge';
-import { startOfToday, toDateKey } from '../calendar/dates';
+import { MONTHS, WEEKDAYS_SHORT, formatDayMonth, formatLongDate, startOfToday, toDateKey, weekdayIndex } from '../calendar/dates';
 import { cardBackground, dotBackground, memberColors } from '../calendar/eventStyle';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
 import AvatarButton from '../profiles/AvatarButton';
@@ -14,6 +14,8 @@ import { useTaskData } from '../tasks/TaskDataContext';
 import { usePointHolders } from '../points/usePointHolders';
 import WeatherWidget from '../weather/WeatherWidget';
 import type { Focus } from '../navigation/focus';
+import { SoonBadge } from './Placeholder';
+import { PLACEHOLDER } from '../placeholders';
 import {
   CalendarIcon, CheckSquareIcon, ShoppingCartIcon, UtensilsIcon,
   StarIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon,
@@ -30,9 +32,6 @@ const onEnter = (open: () => void) => (e: KeyboardEvent) => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
 };
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-
 const TRANSPORT_ICONS: Record<string, string> = {
   car: '🚗', transit: '🚌', bike: '🚲', walk: '🚶',
 };
@@ -45,7 +44,7 @@ function MiniCalendar({ onNavigate }: { onNavigate: Navigate }) {
   const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const year     = viewDate.getFullYear();
   const month    = viewDate.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
+  const firstDay = weekdayIndex(new Date(year, month, 1));
   const daysInM  = new Date(year, month + 1, 0).getDate();
   const daysInP  = new Date(year, month, 0).getDate();
 
@@ -64,24 +63,27 @@ function MiniCalendar({ onNavigate }: { onNavigate: Navigate }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-bold text-slate-800 text-base">{MONTHS[month]} {year}</h2>
         <div className="flex gap-1">
-          <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" aria-label="Prev month"><ChevronLeftIcon size={16} /></button>
-          <button onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" aria-label="Next month"><ChevronRightIcon size={16} /></button>
+          <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" aria-label="Vorheriger Monat"><ChevronLeftIcon size={16} /></button>
+          <button onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" aria-label="Nächster Monat"><ChevronRightIcon size={16} /></button>
         </div>
       </div>
 
       <div className="grid grid-cols-7 mb-2">
-        {DAYS.map(d => <div key={d} className="text-center text-[10px] font-semibold text-slate-400 py-1 uppercase tracking-wide">{d}</div>)}
+        {WEEKDAYS_SHORT.map(d =><div key={d} className="text-center text-[10px] font-semibold text-slate-400 py-1 uppercase tracking-wide">{d}</div>)}
       </div>
 
       <div className="grid grid-cols-7 gap-y-0.5">
         {cells.map((cell, i) => {
+          // Tage des Vor- und Folgemonats liegen davor bzw. danach
+          const cellDate = new Date(year, month, i - firstDay + 1);
           const events  = cell.type === 'curr' ? getEvents(cell.day) : [];
           const isToday = cell.type === 'curr' && cell.day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
           const hasConflict = events.some(e => e.conflict || e.travelConflict);
           return (
             <button
               key={i}
-              onClick={() => onNavigate('calendar')}
+              onClick={() => onNavigate('calendar', { kind: 'day', date: toDateKey(cellDate) })}
+              aria-label={`${formatLongDate(cellDate)} im Kalender öffnen`}
               className={`flex flex-col items-center py-1 rounded-lg transition-colors relative
                 ${cell.type !== 'curr' ? 'opacity-25' : 'hover:bg-slate-50'}
                 ${isToday ? 'bg-[#2563EB] hover:bg-[#2563EB]' : ''}`}
@@ -199,7 +201,7 @@ function QuickTasks({ onNavigate }: { onNavigate: Navigate }) {
           <CheckSquareIcon size={16} className="text-[#F97316]" />
           Dringende Aufgaben
         </h2>
-        <button onClick={() => onNavigate('tasks')} className="text-xs text-[#2563EB] font-medium hover:underline">Kanban →</button>
+        <button onClick={() => onNavigate('tasks')} className="text-xs text-[#2563EB] font-medium hover:underline">Alle Aufgaben →</button>
       </div>
       <div className="space-y-2">
         {urgent.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Keine dringenden Aufgaben 🎉</p>}
@@ -214,7 +216,7 @@ function QuickTasks({ onNavigate }: { onNavigate: Navigate }) {
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c }} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-slate-800 truncate">{t.title}</div>
-                <div className="text-xs text-slate-400">{t.dueDate ? `Fällig ${t.dueDate.split('-').slice(1).join('/')}` : 'Ohne Frist'}</div>
+                <div className="text-xs text-slate-400">{t.dueDate ? `Fällig ${formatDayMonth(t.dueDate)}` : 'Ohne Frist'}</div>
               </div>
               <AvatarButton member={member} size={24} />
             </div>
@@ -381,13 +383,15 @@ function AIBanner({ onNavigate }: { onNavigate: Navigate }) {
         <SparklesIcon size={20} className="text-white" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-sm">FamilyHub KI</div>
+        <div className="font-semibold text-sm flex items-center gap-2">
+          FamilyHub KI {PLACEHOLDER.assistant && <SoonBadge onDark label="Vorschau" />}
+        </div>
         <div className="text-white/80 text-xs mt-0.5 truncate">
-          Lucas hat Mathe noch nicht begonnen · Soccer 16:30 · Morgen: Gelber Sack rausstellen ♻️
+          Bald: Tipps der KI für euren Tag, z. B. wer wann wohin muss und was noch fehlt
         </div>
       </div>
       <button onClick={() => onNavigate('assistant')} className="flex-shrink-0 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
-        KI fragen
+        {PLACEHOLDER.assistant ? 'Vorschau ansehen' : 'KI fragen'}
       </button>
     </div>
   );

@@ -196,6 +196,37 @@ class MealControllerTest {
     }
 
     @Test
+    void dishKeepsRecipeWithOneStepPerLineAndChildrenCanReadIt() throws Exception {
+        String recipe = "{\"name\": \"Tomatensuppe\", \"ingredients\": [], \"prepMinutes\": 25, \"servings\": 4, "
+                + "\"instructions\": \"  Tomaten schneiden \\r\\n\\n Mit Brühe kochen\\n\\n  Pürieren  \\n\"}";
+        String body = mvc.perform(post("/api/dishes").with(as(emma)).contentType(APPLICATION_JSON).content(recipe))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.instructions").value("Tomaten schneiden\nMit Brühe kochen\nPürieren"))
+                .andExpect(jsonPath("$.prepMinutes").value(25))
+                .andExpect(jsonPath("$.servings").value(4))
+                .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(body, "$.id");
+
+        // Kinder sehen die Kochanleitung in der Gerichte-Sammlung
+        mvc.perform(get("/api/dishes").with(as(lucas)))
+                .andExpect(jsonPath("$[?(@.name == 'Tomatensuppe')].instructions")
+                        .value("Tomaten schneiden\nMit Brühe kochen\nPürieren"));
+
+        // Nur Leerzeilen: keine Kochanleitung; Zubereitungszeit weggelassen wird entfernt
+        mvc.perform(put("/api/dishes/" + id).with(as(emma)).contentType(APPLICATION_JSON)
+                        .content("{\"name\": \"Tomatensuppe\", \"instructions\": \" \\n \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.instructions").doesNotExist())
+                .andExpect(jsonPath("$.prepMinutes").doesNotExist());
+
+        mvc.perform(put("/api/dishes/" + id).with(as(emma)).contentType(APPLICATION_JSON)
+                        .content("{\"name\": \"Tomatensuppe\", \"prepMinutes\": 0, \"servings\": 51}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.prepMinutes").value("Zubereitungszeit muss mindestens 1 Minute sein"))
+                .andExpect(jsonPath("$.errors.servings").value("Höchstens 50 Portionen"));
+    }
+
+    @Test
     void teenagerManagesDishesAndRenamingOrDeletingKeepsThePlanReadable() throws Exception {
         String body = mvc.perform(post("/api/dishes").with(as(emma)).contentType(APPLICATION_JSON)
                         .content("{\"name\": \" Käsespätzle \", \"ingredients\": [{\"name\": \"Spätzle\", "

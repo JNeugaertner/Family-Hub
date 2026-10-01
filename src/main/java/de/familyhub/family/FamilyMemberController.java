@@ -23,6 +23,8 @@ import de.familyhub.achievements.AchievementService;
 import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
 import de.familyhub.google.GoogleAccountService;
+import de.familyhub.meals.MealEntryRepository;
+import de.familyhub.meals.MealStatus;
 import de.familyhub.permission.Action;
 import de.familyhub.permission.Module;
 import de.familyhub.permission.Permission;
@@ -32,6 +34,8 @@ import de.familyhub.permission.Scope;
 import de.familyhub.rewards.RedemptionRepository;
 import de.familyhub.rewards.RedemptionStatus;
 import de.familyhub.security.CurrentMember;
+import de.familyhub.shopping.ShoppingItemRepository;
+import de.familyhub.shopping.ShoppingItemStatus;
 import de.familyhub.task.TaskRepository;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,11 +58,14 @@ public class FamilyMemberController {
     private final GoogleAccountService googleAccounts;
     private final RedemptionRepository redemptions;
     private final AchievementService achievements;
+    private final MealEntryRepository meals;
+    private final ShoppingItemRepository shopping;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
             TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
             PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts,
-            RedemptionRepository redemptions, AchievementService achievements) {
+            RedemptionRepository redemptions, AchievementService achievements, MealEntryRepository meals,
+            ShoppingItemRepository shopping) {
         this.members = members;
         this.events = events;
         this.tasks = tasks;
@@ -70,6 +77,8 @@ public class FamilyMemberController {
         this.googleAccounts = googleAccounts;
         this.redemptions = redemptions;
         this.achievements = achievements;
+        this.meals = meals;
+        this.shopping = shopping;
     }
 
     @GetMapping
@@ -135,7 +144,7 @@ public class FamilyMemberController {
     @Operation(summary = "Familienmitglied löschen",
             description = "Nur für Administratoren und nur, wenn das Mitglied an keinem Termin allein beteiligt ist. "
                     + "Aus gemeinsamen Terminen wird es ausgetragen; aus Google importierte Termine und die "
-                    + "Google-Verbindung werden mitgelöscht.")
+                    + "Google-Verbindung werden mitgelöscht, ebenso offene Essenswünsche und Einkaufsvorschläge.")
     public void delete(@PathVariable String id) {
         FamilyMember admin = requireManager();
         FamilyMember member = find(id);
@@ -163,6 +172,9 @@ public class FamilyMemberController {
         events.saveAll(ownEvents.stream().map(e -> e.withoutMember(id)).toList());
         googleAccounts.forgetMember(id);
         achievements.forgetMember(id);
+        // Offene Wünsche und Vorschläge könnte sonst niemand mehr zuordnen; bereits übernommene bleiben
+        meals.deleteByCreatedByAndStatus(id, MealStatus.PROPOSED);
+        shopping.deleteByCreatedByAndStatus(id, ShoppingItemStatus.PROPOSED);
         members.deleteById(id);
     }
 

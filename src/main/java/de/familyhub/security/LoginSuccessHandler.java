@@ -18,17 +18,21 @@ class LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final FamilyMemberRepository members;
     private final MeResponses meResponses;
     private final ProblemResponses responses;
+    private final LoginAttempts attempts;
 
-    LoginSuccessHandler(FamilyMemberRepository members, MeResponses meResponses, ProblemResponses responses) {
+    LoginSuccessHandler(FamilyMemberRepository members, MeResponses meResponses, ProblemResponses responses,
+            LoginAttempts attempts) {
         this.members = members;
         this.meResponses = meResponses;
         this.responses = responses;
+        this.attempts = attempts;
     }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException {
         FamilyUserDetails user = (FamilyUserDetails) authentication.getPrincipal();
+        attempts.succeeded(request.getParameter("username"));
         FamilyMember member = members.findById(user.memberId()).orElseThrow();
         responses.writeJson(response, meResponses.of(member));
     }

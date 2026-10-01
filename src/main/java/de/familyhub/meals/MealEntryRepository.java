@@ -17,4 +17,7 @@ public interface MealEntryRepository extends MongoRepository<MealEntry, String> 
     List<MealEntry> findByDishId(String dishId);
 
     List<MealEntry> findByStatus(MealStatus status);
+
+    // offene Wünsche eines gelöschten Mitglieds entfernen
+    long deleteByCreatedByAndStatus(String createdBy, MealStatus status);
 }

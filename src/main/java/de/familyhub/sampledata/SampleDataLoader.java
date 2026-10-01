@@ -94,22 +94,22 @@ public class SampleDataLoader implements ApplicationRunner {
     private static final String WHOLE_FAMILY = "Sarah, Mike, Emma, Lucas, Lily";
 
     private static final List<SampleEvent> EVENTS = List.of(
-            new SampleEvent("School pickup", 0, "15:00", "15:30", "Lucas", SCHOOL, "Lincoln Middle School"),
-            new SampleEvent("Soccer practice", 0, "16:30", "18:00", "Emma", SPORTS, "City Sports Complex"),
-            new SampleEvent("Team standup", 1, "09:00", "09:30", "Mike", WORK, null),
-            new SampleEvent("Piano lesson", 1, "15:30", "16:30", "Lily", SCHOOL, "Music Academy"),
-            new SampleEvent("Dentist – Lucas", 2, "11:00", "12:00", "Lucas", APPOINTMENT, "Bright Smile Dental"),
-            new SampleEvent("Family dinner", 5, "18:00", "20:00", WHOLE_FAMILY, FAMILY, null),
-            new SampleEvent("Parent-teacher conf.", 3, "14:00", "15:00", "Sarah", SCHOOL, "Lincoln Elementary"),
-            new SampleEvent("Basketball game", 4, "10:00", "12:00", "Lucas", SPORTS, "Sports Center"),
-            new SampleEvent("Doctor checkup", 7, "10:00", "11:00", "Lily", APPOINTMENT, null),
-            new SampleEvent("Work presentation", 8, "14:00", null, "Mike", WORK, null),
-            new SampleEvent("Gymnastics", 3, "14:30", "15:30", "Lily", SPORTS, null),
-            new SampleEvent("Book club", 6, "19:00", null, "Sarah", FAMILY, null, true, null),
+            new SampleEvent("Abholen von der Schule", 0, "15:00", "15:30", "Lucas", SCHOOL, "Schillerschule"),
+            new SampleEvent("Fußballtraining", 0, "16:30", "18:00", "Emma", SPORTS, "Sportpark Nord"),
+            new SampleEvent("Team-Besprechung", 1, "09:00", "09:30", "Mike", WORK, null),
+            new SampleEvent("Klavierstunde", 1, "15:30", "16:30", "Lily", SCHOOL, "Musikschule"),
+            new SampleEvent("Zahnarzt – Lucas", 2, "11:00", "12:00", "Lucas", APPOINTMENT, "Zahnarztpraxis am Markt"),
+            new SampleEvent("Familienessen", 5, "18:00", "20:00", WHOLE_FAMILY, FAMILY, null),
+            new SampleEvent("Elterngespräch", 3, "14:00", "15:00", "Sarah", SCHOOL, "Grundschule am Park"),
+            new SampleEvent("Basketballspiel", 4, "10:00", "12:00", "Lucas", SPORTS, "Sporthalle Mitte"),
+            new SampleEvent("Kinderarzt", 7, "10:00", "11:00", "Lily", APPOINTMENT, null),
+            new SampleEvent("Präsentation im Büro", 8, "14:00", null, "Mike", WORK, null),
+            new SampleEvent("Turnen", 3, "14:30", "15:30", "Lily", SPORTS, null),
+            new SampleEvent("Lesekreis", 6, "19:00", null, "Sarah", FAMILY, null, true, null),
             new SampleEvent("🗑️ Gelber Sack", 1, "07:00", null, "Mike", REMINDER, null),
-            new SampleEvent("Movie night", 4, "20:00", null, "Sarah, Mike, Emma", FAMILY, null),
-            new SampleEvent("Grocery run", 2, "09:00", null, "Mike", FAMILY, null),
-            new SampleEvent("Park cycle tour", 6, "10:00", "12:00", WHOLE_FAMILY, FAMILY, null),
+            new SampleEvent("Filmabend", 4, "20:00", null, "Sarah, Mike, Emma", FAMILY, null),
+            new SampleEvent("Großeinkauf", 2, "09:00", null, "Mike", FAMILY, null),
+            new SampleEvent("Radtour im Park", 6, "10:00", "12:00", WHOLE_FAMILY, FAMILY, null),
             new SampleEvent("Kinoabend mit Lucas", 5, "19:00", "21:00", "Emma, Lucas", FAMILY, "Cinestar", false,
                     "Emma"));
 
@@ -193,7 +193,8 @@ public class SampleDataLoader implements ApplicationRunner {
         String creator = idByUsername.get("sarah");
         LocalDateTime now = LocalDateTime.now(clock);
         Map<String, Dish> dishByName = dishRepository.saveAll(SampleMeals.DISHES.stream()
-                        .map(d -> new Dish(null, d.name(), d.ingredients(), creator, now)).toList())
+                        .map(d -> new Dish(null, d.name(), d.ingredients(), d.instructions(), d.prepMinutes(),
+                                d.servings(), creator, now)).toList())
                 .stream().collect(Collectors.toMap(Dish::name, d -> d));
         LocalDate monday = now.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         List<MealEntry> plan = SampleMeals.PLAN.stream()
