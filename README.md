@@ -16,7 +16,7 @@ Erfolge mit Bonuspunkten, die Einkaufsliste (Kinder schlagen vor, Eltern
 Einkaufsliste, Kinder äußern Wünsche), das Wetter am Wohnort mit
 Kleidungsempfehlung (OpenWeather) sowie das Einbinden des eigenen Google
 Kalenders (nur lesen).
-Die übrigen Bereiche der Oberfläche zeigen noch feste Beispieldaten.
+Die Müllabfuhrtermine werden nach dem Import einer kommunalen ICS-Datei in den Profileinstellungen angezeigt; eine konfigurierbare Aufgabe für den Vorabend erscheint fünf Tage vor der Abholung. Die übrigen noch nicht genannten Bereiche der Oberfläche zeigen feste Beispieldaten.
 
 ## Tech-Stack
 
