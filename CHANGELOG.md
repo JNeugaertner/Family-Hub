@@ -3,6 +3,55 @@
 Alle Versionen von FamilyHub AI mit den wichtigsten Neuerungen. Jede Version ist
 auf `main` mit einem Tag markiert (`v0.1.0`, …).
 
+## v0.5.0 – 01.10.2026
+
+### Neu
+
+- **Müllabfuhr:** Administratoren importieren unter „Familie“ den
+  ICS-Abfuhrkalender ihrer Gemeinde. Die Abholtermine erscheinen im Kalender
+  (Leiste „Müllabfuhr“, Monats-, Wochen- und Tagesansicht). Bis zu fünf Tage vor
+  einer Abholung entsteht automatisch die Aufgabe „… rausbringen“ für den
+  Vorabend, mit einstellbaren Punkten, für eine feste Person oder offen für
+  Kinder und Jugendliche.
+- **Live-Aktualisierung:** Änderungen anderer Familienmitglieder erscheinen ohne
+  Neuladen. Zusätzlich lädt die Seite beim Zurückkehren in den Tab und jede
+  Minute nach.
+- **Kochanleitung:** Gerichte haben eine Anleitung (ein Schritt pro Zeile),
+  Zubereitungszeit und Portionen. Die Rezeptansicht öffnet sich aus dem Wochenplan
+  und aus der Gerichte-Sammlung; die Beispielgerichte bringen Rezepte mit.
+- **Als App installieren:** FamilyHub lässt sich auf Handy und PC als App mit
+  eigenem Symbol installieren (siehe README).
+- **Anmeldesperre:** Nach fünf falschen Passwörtern ist das Konto fünf Minuten
+  gesperrt.
+
+### Geändert
+
+- Alle Texte sind auf Deutsch, die Woche beginnt am Montag, die Beispieldaten
+  sind deutsch.
+- Belohnungen lösen nur Kinder und Jugendliche für sich selbst ein; Eltern lösen
+  nicht mehr für ein Kind ein. Der Link auf der Übersicht heißt „Alle Aufgaben“.
+- Kalender: Die Wochenansicht zeigt 0 bis 24 Uhr und startet bei 06:00. Ein Klick
+  auf einen Tag in der Monatsansicht oder im Minikalender der Übersicht öffnet die
+  Tagesansicht. Die Wochenüberschrift stimmt auch über einen Monatswechsel.
+- Noch nicht fertige Bereiche sind gekennzeichnet: KI-Assistent und Nachrichten
+  als „Vorschau“, Benachrichtigungen als „Demnächst“. Mikrofon-Knopf und
+  Verkehrsmittel-Legende sind ausgeblendet.
+- Wird ein Mitglied gelöscht, verschwinden auch seine offenen Essenswünsche und
+  Einkaufsvorschläge.
+
+### Hinweise zum Update
+
+- Neue Endpunkte: `/api/live` (Server-Sent Events), `/api/waste` und
+  `/api/waste/import` (Details in der Swagger UI).
+- Neue Einstellungen mit Standardwerten: `familyhub.login.max-failures` (5),
+  `familyhub.login.lock-duration` (PT5M) und `familyhub.waste.task-sync-cron`
+  (täglich 00:10 Uhr).
+- Für die Müllabfuhr gibt es keine Beispieldaten; die Termine erscheinen erst nach
+  dem Import einer ICS-Datei.
+- Bestehende Gerichte haben noch keine Kochanleitung; sie lässt sich beim
+  Bearbeiten des Gerichts ergänzen.
+- 243 automatisierte Backend-Tests, dazu Browser-Tests je Rolle.
+
 ## v0.4.0 – 29.09.2026
 
 ### Neu
@@ -51,7 +100,7 @@ auf `main` mit einem Tag markiert (`v0.1.0`, …).
   zeigt die Übersicht einen Hinweis, alles andere läuft normal.
 - Neue Endpunkte: `/api/meals`, `/api/dishes`, `/api/weather`,
   `/api/tasks/{id}/claim` und `/api/tasks/{id}/release` (Details in der Swagger UI).
-- 240 automatisierte Backend-Tests, dazu Browser-Tests je Rolle.
+- 230 automatisierte Backend-Tests, dazu Browser-Tests je Rolle.
 
 ## v0.3.0 – 28.09.2026
 
