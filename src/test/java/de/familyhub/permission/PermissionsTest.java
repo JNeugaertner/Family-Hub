@@ -69,6 +69,18 @@ class PermissionsTest {
     }
 
     @Test
+    void childrenAndTeenagersChatButOnlyDeleteOwnMessagesAndGuestsHaveNoMessenger() {
+        for (Role role : new Role[] { Role.KIND, Role.JUGENDLICHER }) {
+            FamilyMember member = member(role);
+            assertThat(permissions.can(member, Module.MESSENGER, ANSEHEN, Scope.FAMILIE)).isTrue();
+            assertThat(permissions.can(member, Module.MESSENGER, ERSTELLEN, Scope.FAMILIE)).isTrue();
+            assertThat(permissions.can(member, Module.MESSENGER, Action.LOESCHEN, Scope.EIGEN)).isTrue();
+            assertThat(permissions.can(member, Module.MESSENGER, Action.LOESCHEN, Scope.FAMILIE)).isFalse();
+        }
+        assertThat(permissions.can(member(Role.GAST), Module.MESSENGER, ANSEHEN, Scope.EIGEN)).isFalse();
+    }
+
+    @Test
     void broaderScopeCoversNarrowerScope() {
         FamilyMember child = member(Role.KIND);
         assertThat(permissions.can(child, KALENDER, ANSEHEN, Scope.EIGEN)).isTrue();
