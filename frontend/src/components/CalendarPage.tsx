@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import {
-  GARBAGE_PICKUPS,
   CalendarEvent, type GarbagePickup,
 } from './data';
 import {
@@ -18,6 +17,8 @@ import ParticipantAvatars from '../calendar/ParticipantAvatars';
 import { useFlashFocus, useFocus } from '../navigation/focus';
 import { SoonBadge } from './Placeholder';
 import { PLACEHOLDER } from '../placeholders';
+import { getWasteCollection } from '../waste/api';
+import { useAutoRefresh } from '../api/useAutoRefresh';
 
 type SelectEvent = (event: CalendarEvent) => void;
 type SelectDay = (date: Date) => void;
@@ -48,6 +49,12 @@ const WASTE_STYLES: Record<string, { dot: string; label: string; bg: string }> =
   'Papier':      { dot: '#2563EB', label: '🔵 Papier',      bg: '#EFF6FF' },
   'Biomüll':     { dot: '#16A34A', label: '🟢 Biomüll',     bg: '#F0FDF4' },
   'Restmüll':    { dot: '#6B7280', label: '⚫ Restmüll',    bg: '#F9FAFB' },
+  'Hausmüll':    { dot: '#6B7280', label: '⚫ Hausmüll',    bg: '#F9FAFB' },
+};
+
+const wasteStyle = (type: string) => WASTE_STYLES[type] ?? {
+  ...WASTE_STYLES['Restmüll'],
+  label: type,
 };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -166,15 +173,15 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
 // ─── month view ───────────────────────────────────────────────────────────────
 
 // Klick auf einen Tag (auch auf "+2 weitere") öffnet ihn in der Tagesansicht
-function MonthView({ year, month, events: allEvents, onSelect, onSelectDay }: { year: number; month: number; events: CalendarEvent[]; onSelect: SelectEvent; onSelectDay: SelectDay }) {
+function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, onSelectDay }: { year: number; month: number; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; onSelect: SelectEvent; onSelectDay: SelectDay }) {
   // Leere Tage vor dem Ersten: die Woche beginnt am Montag
   const firstDay    = weekdayIndex(new Date(year, month, 1));
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrev  = new Date(year, month, 0).getDate();
   const today       = startOfToday();
 
-  const garbageByDate: Record<string, GarbagePickup> = {};
-  GARBAGE_PICKUPS.forEach(g => { garbageByDate[g.date] = g; });
+  const garbageByDate: Record<string, GarbagePickup[]> = {};
+  garbagePickups.forEach(g => { (garbageByDate[g.date] ??= []).push(g); });
 
   const cells: { day: number; type: 'prev' | 'curr' | 'next' }[] = [];
   for (let i = firstDay - 1; i >= 0; i--) cells.push({ day: daysInPrev - i, type: 'prev' });
@@ -201,7 +208,7 @@ function MonthView({ year, month, events: allEvents, onSelect, onSelectDay }: { 
           const hasConflict = events.some(e => e.conflict || e.travelConflict);
           const isWeekEnd   = i % 7 >= 5;
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`;
-          const garbage = cell.type === 'curr' ? garbageByDate[dateStr] : undefined;
+          const garbage = cell.type === 'curr' ? garbageByDate[dateStr] ?? [] : [];
           // Tage des Vor- und Folgemonats liegen davor bzw. danach
           const cellDate = new Date(year, month, i - firstDay + 1);
           const openDay = (e: MouseEvent) => { e.stopPropagation(); onSelectDay(cellDate); };
@@ -224,15 +231,13 @@ function MonthView({ year, month, events: allEvents, onSelect, onSelectDay }: { 
               </div>
 
               {/* Garbage badge */}
-              {garbage && (
-                <div
-                  title="Müllabfuhr: Beispieldaten, noch ein Platzhalter"
+              {garbage.map(g => (
+                <div key={g.id} title={`Müllabfuhr: ${g.type}`}
                   className="text-[8px] font-bold px-1 py-0.5 rounded mb-0.5 truncate"
-                  style={{ backgroundColor: WASTE_STYLES[garbage.type]?.bg, color: WASTE_STYLES[garbage.type]?.dot }}
-                >
-                  {WASTE_STYLES[garbage.type]?.label}
+                  style={{ backgroundColor: wasteStyle(g.type).bg, color: wasteStyle(g.type).dot }}>
+                  {wasteStyle(g.type).label}
                 </div>
-              )}
+              ))}
 
               <div className="space-y-0.5">
                 {events.slice(0, 3).map(ev => <EventPill key={ev.id} event={ev} compact onSelect={onSelect} />)}
@@ -252,7 +257,7 @@ function MonthView({ year, month, events: allEvents, onSelect, onSelectDay }: { 
 
 // ─── week view (enhanced) ─────────────────────────────────────────────────────
 
-function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events: CalendarEvent[]; onSelect: SelectEvent }) {
+function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset: number; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; onSelect: SelectEvent }) {
   const { memberById } = useCalendarData();
   const todayKey = toDateKey(startOfToday());
   const startOfWeek = mondayOf(addDays(startOfToday(), weekOffset * 7));
@@ -271,8 +276,8 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
     if (gridRef.current && firstHourRef.current) gridRef.current.scrollTop = firstHourRef.current.offsetTop;
   }, []);
 
-  const garbageByDate: Record<string, GarbagePickup> = {};
-  GARBAGE_PICKUPS.forEach(g => { garbageByDate[g.date] = g; });
+  const garbageByDate: Record<string, GarbagePickup[]> = {};
+  garbagePickups.forEach(g => { (garbageByDate[g.date] ??= []).push(g); });
 
   const getEventsForDay = (date: Date) => {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -291,7 +296,7 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
           const isToday    = toDateKey(d) === todayKey;
           const dateStr    = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           const events     = getEventsForDay(d);
-          const garbage    = garbageByDate[dateStr];
+          const garbage    = garbageByDate[dateStr] ?? [];
           const hasConflict = events.some(e => e.conflict || e.travelConflict);
 
           return (
@@ -314,15 +319,13 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
                 {hasConflict && <AlertTriangleIcon size={9} className="text-[#EF4444] ml-0.5" />}
               </div>
               {/* Garbage reminder badge */}
-              {garbage && (
-                <div
-                  title="Müllabfuhr: Beispieldaten, noch ein Platzhalter"
+              {garbage.map(g => (
+                <div key={g.id} title={`Müllabfuhr: ${g.type}`}
                   className="text-[8px] font-bold mx-1 mt-1 px-1 py-0.5 rounded truncate"
-                  style={{ backgroundColor: WASTE_STYLES[garbage.type]?.bg, color: WASTE_STYLES[garbage.type]?.dot }}
-                >
-                  🗑 {garbage.type}
+                  style={{ backgroundColor: wasteStyle(g.type).bg, color: wasteStyle(g.type).dot }}>
+                  🗑 {g.type}
                 </div>
-              )}
+              ))}
               {allDayFor(dateStr).map(ev => (
                 <button
                   key={ev.id}
@@ -434,17 +437,24 @@ function WeekView({ weekOffset, events, onSelect }: { weekOffset: number; events
 
 // ─── day view ─────────────────────────────────────────────────────────────────
 
-function DayView({ day, events, onSelect }: { day: Date; events: CalendarEvent[]; onSelect: SelectEvent }) {
+function DayView({ day, events, garbagePickups, onSelect }: { day: Date; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; onSelect: SelectEvent }) {
   const dayKey = toDateKey(day);
   const isToday = dayKey === toDateKey(startOfToday());
   const dayEvents = events
     .filter(e => occursOn(e, dayKey))
     .sort((a, b) => a.time.localeCompare(b.time));
+  const dayPickups = garbagePickups.filter(pickup => pickup.date === dayKey);
 
   return (
     <div className="space-y-3">
+      {dayPickups.map(pickup => (
+        <div key={pickup.id} className="rounded-xl border px-4 py-3 text-sm font-semibold"
+          style={{ backgroundColor: wasteStyle(pickup.type).bg, color: wasteStyle(pickup.type).dot, borderColor: `${wasteStyle(pickup.type).dot}40` }}>
+          🗑 Müllabfuhr: {pickup.type}
+        </div>
+      ))}
       {dayEvents.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400">
+        dayPickups.length === 0 && <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400">
           {isToday ? 'Heute keine Termine 🎉' : 'An diesem Tag keine Termine'}
         </div>
       ) : (
@@ -490,6 +500,17 @@ export default function CalendarPage({ onNavigate }: Props) {
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null);
 
   const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [garbagePickups, setGarbagePickups] = useState<GarbagePickup[]>([]);
+
+  const reloadGarbage = useCallback(async () => {
+    try {
+      setGarbagePickups((await getWasteCollection()).pickups);
+    } catch {
+      setGarbagePickups([]);
+    }
+  }, []);
+  useEffect(() => { void reloadGarbage(); }, [reloadGarbage]);
+  useAutoRefresh(reloadGarbage, ['waste']);
 
   const { status, error, members, events, reload, memberById, approveEvent, rejectEvent } = useCalendarData();
   useFlashFocus('event', status === 'ready' && view === 'day');
@@ -534,7 +555,7 @@ export default function CalendarPage({ onNavigate }: Props) {
   const conflicts = visibleEvents.filter(e => e.conflict || e.travelConflict);
 
   // Upcoming garbage pickups for sidebar
-  const upcomingGarbage = GARBAGE_PICKUPS
+  const upcomingGarbage = garbagePickups
     .filter(g => g.date >= todayKey)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 3);
@@ -678,10 +699,10 @@ export default function CalendarPage({ onNavigate }: Props) {
       {upcomingGarbage.length > 0 && (
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            Müllabfuhr {PLACEHOLDER.wasteCollection && <SoonBadge label="Beispiel" />}
+            Müllabfuhr
           </span>
           {upcomingGarbage.map(g => {
-            const ws  = WASTE_STYLES[g.type];
+            const ws  = WASTE_STYLES[g.type] ?? WASTE_STYLES['Restmüll'];
             const days  = Math.round((fromDateKey(g.date).getTime() - today.getTime()) / 86_400_000);
             return (
               <div
@@ -716,9 +737,9 @@ export default function CalendarPage({ onNavigate }: Props) {
       )}
 
       {/* Views */}
-      {view === 'month' && <MonthView year={year} month={month} events={visibleEvents} onSelect={openEditor} onSelectDay={showDay} />}
-      {view === 'week'  && <WeekView weekOffset={weekOffset} events={visibleEvents} onSelect={openEditor} />}
-      {view === 'day'   && <DayView day={shownDay} events={visibleEvents} onSelect={openEditor} />}
+      {view === 'month' && <MonthView year={year} month={month} events={visibleEvents} garbagePickups={garbagePickups} onSelect={openEditor} onSelectDay={showDay} />}
+      {view === 'week'  && <WeekView weekOffset={weekOffset} events={visibleEvents} garbagePickups={garbagePickups} onSelect={openEditor} />}
+      {view === 'day'   && <DayView day={shownDay} events={visibleEvents} garbagePickups={garbagePickups} onSelect={openEditor} />}
 
       {/* Upcoming events (day view only) */}
       {view === 'day' && (

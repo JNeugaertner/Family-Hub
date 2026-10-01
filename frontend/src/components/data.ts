@@ -1,6 +1,4 @@
-// Gemeinsame Typen für Termine und feste Beispieldaten für das, was noch nicht ans Backend angeschlossen ist
-// (Nachrichten, Benachrichtigungen, Müllabfuhr). Alles andere kommt aus dem Backend.
-import { addDays, mondayOf, startOfToday, toDateKey } from '../calendar/dates';
+// Gemeinsame Typen für Termine und feste Beispieldaten für das, was noch nicht ans Backend angeschlossen ist.
 
 export type EventCategory = 'school' | 'sports' | 'appointment' | 'family' | 'work' | 'reminder';
 
@@ -61,24 +59,10 @@ export const MESSAGES: Message[] = [
 export type WasteType = 'Restmüll' | 'Biomüll' | 'Papier' | 'Gelber Sack';
 
 export interface GarbagePickup {
-  id: number;
-  type: WasteType;
-  date: string;           // ISO date string
-  color: string;
-  bgColor: string;
-  icon: string;
-  reminderDayBefore: boolean;
+  id: string;
+  type: string;
+  date: string;
 }
-
-// Noch ohne Backend: Abholtermine relativ zur aktuellen Woche (0 = Montag), passend zu den Beispielterminen
-const thisWeek = (day: number) => toDateKey(addDays(mondayOf(startOfToday()), day));
-
-export const GARBAGE_PICKUPS: GarbagePickup[] = [
-  { id: 1, type: 'Gelber Sack',  date: thisWeek(1),  color: '#CA8A04', bgColor: '#FEF9C3', icon: '🟡', reminderDayBefore: true },
-  { id: 2, type: 'Papier',       date: thisWeek(3),  color: '#2563EB', bgColor: '#EFF6FF', icon: '🔵', reminderDayBefore: true },
-  { id: 3, type: 'Biomüll',      date: thisWeek(7),  color: '#16A34A', bgColor: '#F0FDF4', icon: '🟢', reminderDayBefore: true },
-  { id: 4, type: 'Restmüll',     date: thisWeek(14), color: '#6B7280', bgColor: '#F9FAFB', icon: '⚫', reminderDayBefore: true },
-];
 
 export const NOTIFICATIONS = [
   { id: 1, type: 'conflict', message: 'Terminkonflikt: Turnen und Elterngespräch überschneiden sich', time: 'vor 2 Min.', read: false },
