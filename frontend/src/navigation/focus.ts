@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect } from 'react';
 
 // Sprungziel beim Seitenwechsel, z. B. aus der Übersicht: ein bestimmter Termin (an seinem Tag), ein Tag im Kalender
-// oder eine Aufgabe.
+// oder eine Aufgabe. newTask öffnet auf der Aufgabenseite das Formular mit vorausgefülltem Titel (aus einer Nachricht).
 // Die Zielseite scrollt zum Element mit data-focus-id und lässt es kurz aufleuchten (Klasse focus-flash, index.css).
 export type Focus =
   | { kind: 'event'; id: string; date: string }
   | { kind: 'day'; date: string }
-  | { kind: 'task'; id: string };
+  | { kind: 'task'; id: string }
+  | { kind: 'newTask'; title: string };
 
 interface FocusState {
   focus: Focus | null;

@@ -7,15 +7,16 @@ Müllabfuhr, Fahrzeiten, Messenger-Eingaben und Sprachfunktionen in einer
 gemeinsamen Oberfläche. Leitprinzip: **Der Agent informiert und bereitet vor,
 die Eltern entscheiden.**
 
-**Status:** Proof of Concept (Version 0.4.0). Umgesetzt sind der Familienkalender
+**Status:** Proof of Concept (Version 0.5.0). Umgesetzt sind der Familienkalender
 (auch Termine für mehrere Personen), Anmeldung, Rollen und Rechte, Aufgaben mit
 Punktesystem (Punkte nach Bestätigung durch die Eltern, dazu Bonus-Aufgaben für
 alle Kinder), ein Belohnungsshop (Punkte einlösen, Eltern genehmigen),
 Erfolge mit Bonuspunkten, die Einkaufsliste (Kinder schlagen vor, Eltern
 übernehmen), der Essensplan mit Gerichte-Sammlung (Zutaten per Knopf auf die
 Einkaufsliste, Kinder äußern Wünsche), das Wetter am Wohnort mit
-Kleidungsempfehlung (OpenWeather) sowie das Einbinden des eigenen Google
-Kalenders (nur lesen).
+Kleidungsempfehlung (OpenWeather), das Einbinden des eigenen Google
+Kalenders (nur lesen) sowie der Familien-Chat (Familiengruppe und Einzelchats;
+aus einer Nachricht per Knopf ein Artikel, ein Termin oder eine Aufgabe).
 Die Müllabfuhrtermine werden nach dem Import einer kommunalen ICS-Datei in den Profileinstellungen angezeigt; eine konfigurierbare Aufgabe für den Vorabend erscheint fünf Tage vor der Abholung. Die übrigen noch nicht genannten Bereiche der Oberfläche zeigen feste Beispieldaten.
 
 ## Tech-Stack

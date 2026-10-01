@@ -40,6 +40,9 @@ import de.familyhub.meals.DishRepository;
 import de.familyhub.meals.MealEntry;
 import de.familyhub.meals.MealEntryRepository;
 import de.familyhub.meals.MealStatus;
+import de.familyhub.messages.ChatMessage;
+import de.familyhub.messages.ChatMessageRepository;
+import de.familyhub.messages.Conversations;
 import de.familyhub.permission.Role;
 import de.familyhub.points.PointEntry;
 import de.familyhub.points.PointEntryRepository;
@@ -125,6 +128,7 @@ public class SampleDataLoader implements ApplicationRunner {
     private final ShoppingItemRepository shoppingRepository;
     private final DishRepository dishRepository;
     private final MealEntryRepository mealRepository;
+    private final ChatMessageRepository messageRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
@@ -132,7 +136,8 @@ public class SampleDataLoader implements ApplicationRunner {
             FamilySettingsRepository settingsRepository, TaskRepository taskRepository,
             PointEntryRepository pointRepository, RewardRepository rewardRepository,
             ShoppingItemRepository shoppingRepository, DishRepository dishRepository,
-            MealEntryRepository mealRepository, PasswordEncoder passwordEncoder, Clock clock) {
+            MealEntryRepository mealRepository, ChatMessageRepository messageRepository,
+            PasswordEncoder passwordEncoder, Clock clock) {
         this.memberRepository = memberRepository;
         this.eventRepository = eventRepository;
         this.settingsRepository = settingsRepository;
@@ -142,6 +147,7 @@ public class SampleDataLoader implements ApplicationRunner {
         this.shoppingRepository = shoppingRepository;
         this.dishRepository = dishRepository;
         this.mealRepository = mealRepository;
+        this.messageRepository = messageRepository;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
     }
@@ -158,6 +164,7 @@ public class SampleDataLoader implements ApplicationRunner {
             loadRewards();
             loadShopping();
             loadMeals();
+            loadMessages();
             return;
         }
 
@@ -179,6 +186,29 @@ public class SampleDataLoader implements ApplicationRunner {
         loadRewards();
         loadShopping();
         loadMeals();
+        loadMessages();
+    }
+
+    // Auch für bestehende Datenbanken, solange es noch keine Nachrichten gibt; Zuordnung über die Benutzernamen.
+    private void loadMessages() {
+        if (messageRepository.count() > 0) {
+            return;
+        }
+        Map<String, String> idByUsername = memberRepository.findAll().stream()
+                .filter(m -> m.username() != null)
+                .collect(Collectors.toMap(FamilyMember::username, FamilyMember::id));
+        LocalDateTime now = LocalDateTime.now(clock);
+        List<ChatMessage> messages = SampleMessages.MESSAGES.stream()
+                .filter(m -> idByUsername.containsKey(m.from()) && (m.with() == null || idByUsername.containsKey(m.with())))
+                .map(m -> new ChatMessage(null,
+                        m.with() == null ? Conversations.FAMILY
+                                : Conversations.direct(idByUsername.get(m.from()), idByUsername.get(m.with())),
+                        idByUsername.get(m.from()), m.text(), now.minusMinutes(m.minutesAgo())))
+                .toList();
+        messageRepository.saveAll(messages);
+        if (!messages.isEmpty()) {
+            log.info("Beispielnachrichten angelegt: {} Nachrichten.", messages.size());
+        }
     }
 
     // Auch für bestehende Datenbanken, solange es weder Gerichte noch einen Essensplan gibt. Der Plan gilt für die

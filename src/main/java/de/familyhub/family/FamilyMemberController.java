@@ -24,6 +24,7 @@ import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
 import de.familyhub.google.GoogleAccountService;
 import de.familyhub.meals.MealEntryRepository;
+import de.familyhub.messages.MessageService;
 import de.familyhub.meals.MealStatus;
 import de.familyhub.permission.Action;
 import de.familyhub.permission.Module;
@@ -60,12 +61,13 @@ public class FamilyMemberController {
     private final AchievementService achievements;
     private final MealEntryRepository meals;
     private final ShoppingItemRepository shopping;
+    private final MessageService messages;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
             TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
             PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts,
             RedemptionRepository redemptions, AchievementService achievements, MealEntryRepository meals,
-            ShoppingItemRepository shopping) {
+            ShoppingItemRepository shopping, MessageService messages) {
         this.members = members;
         this.events = events;
         this.tasks = tasks;
@@ -79,6 +81,7 @@ public class FamilyMemberController {
         this.achievements = achievements;
         this.meals = meals;
         this.shopping = shopping;
+        this.messages = messages;
     }
 
     @GetMapping
@@ -144,7 +147,8 @@ public class FamilyMemberController {
     @Operation(summary = "Familienmitglied löschen",
             description = "Nur für Administratoren und nur, wenn das Mitglied an keinem Termin allein beteiligt ist. "
                     + "Aus gemeinsamen Terminen wird es ausgetragen; aus Google importierte Termine und die "
-                    + "Google-Verbindung werden mitgelöscht, ebenso offene Essenswünsche und Einkaufsvorschläge.")
+                    + "Google-Verbindung werden mitgelöscht, ebenso offene Essenswünsche, Einkaufsvorschläge und "
+                    + "Einzelchats. Nachrichten in der Familiengruppe bleiben.")
     public void delete(@PathVariable String id) {
         FamilyMember admin = requireManager();
         FamilyMember member = find(id);
@@ -175,6 +179,7 @@ public class FamilyMemberController {
         // Offene Wünsche und Vorschläge könnte sonst niemand mehr zuordnen; bereits übernommene bleiben
         meals.deleteByCreatedByAndStatus(id, MealStatus.PROPOSED);
         shopping.deleteByCreatedByAndStatus(id, ShoppingItemStatus.PROPOSED);
+        messages.forgetMember(id);
         members.deleteById(id);
     }
 

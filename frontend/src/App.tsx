@@ -25,6 +25,7 @@ import { googleReturnFromUrl } from './google/api';
 import { useRewardData } from './rewards/RewardDataContext';
 import { useShoppingData } from './shopping/ShoppingDataContext';
 import { useMealData } from './meals/MealDataContext';
+import { useMessageData } from './messages/MessageDataContext';
 import { ROLE_NAMES } from './roles';
 import { FocusContext, type Focus } from './navigation/focus';
 import AvatarButton from './profiles/AvatarButton';
@@ -85,6 +86,8 @@ export default function App() {
   // Zähler an "Essensplan": für Administratoren die Essenswünsche der Kinder
   const { wishes: mealWishes } = useMealData();
   const mealBadge = can('essen', 'freigeben', 'familie') ? mealWishes.length : 0;
+  // Zähler an "Nachrichten": ungelesene Nachrichten in allen eigenen Unterhaltungen
+  const { unreadTotal: messageBadge } = useMessageData();
   const initial = me.name.charAt(0).toUpperCase();
 
   const unreadCount = NOTIFICATIONS.filter(n => !n.read).length;
@@ -189,7 +192,7 @@ export default function App() {
                   <Icon size={18} />
                 </span>
                 <span className="text-sm whitespace-nowrap">{label}</span>
-                {((id === 'assistant' && PLACEHOLDER.assistant) || (id === 'messenger' && PLACEHOLDER.messenger)) && (
+                {id === 'assistant' && PLACEHOLDER.assistant && (
                   <SoonBadge label="Bald" className="ml-auto" />
                 )}
                 {id === 'tasks' && taskBadge > 0 && (
@@ -208,6 +211,12 @@ export default function App() {
                   <span className="ml-auto w-5 h-5 rounded-full bg-[#14B8A6] text-white text-[10px] font-bold flex items-center justify-center"
                     title="Essenswünsche der Kinder">
                     {mealBadge}<span className="sr-only"> Essenswünsche der Kinder</span>
+                  </span>
+                )}
+                {id === 'messenger' && messageBadge > 0 && (
+                  <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-[#2563EB] text-white text-[10px] font-bold flex items-center justify-center"
+                    title="Ungelesene Nachrichten">
+                    {messageBadge}<span className="sr-only"> ungelesene Nachrichten</span>
                   </span>
                 )}
                 {id === 'rewards' && rewardBadge > 0 && (

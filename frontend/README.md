@@ -47,8 +47,9 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Essensplan: Wochenplan, Gerichte-Sammlung mit Kochanleitung (ein Schritt pro Zeile, Zubereitungszeit, Portionen), Wünsche der Kinder, Zutaten auf die Einkaufsliste; Dashboard „Mahlzeiten heute“ | Backend: `/api/meals`, `/api/dishes` |
 | Wetter mit Kleidungsempfehlung (Dashboard); Wohnort einstellen (Karte unter „Familie“, Admins) | Backend: `/api/weather` |
 | Müllabfuhr: ICS-Import in den Profileinstellungen, Kalenderanzeigen und automatische Aufgabe am Vorabend mit Punkten und Zuweisung | Backend: `/api/waste` |
+| Nachrichten: Familiengruppe und Einzelchats (nur die beiden Beteiligten), Ungelesen-Zähler in der Seitenleiste, aus einer Nachricht auf die Einkaufsliste, als Termin oder als Aufgabe | Backend: `/api/messages` |
 | Live-Aktualisierung: Änderungen anderer Familienmitglieder erscheinen ohne Neuladen | Backend: `/api/live` (Server-Sent Events) |
-| KI-Assistent, Nachrichten, Benachrichtigungen | Platzhalter: feste Beispieldaten bzw. in der Oberfläche mit „🚧 Demnächst“ oder „Vorschau“ gekennzeichnet (Schalter in `src/placeholders.ts`) |
+| KI-Assistent, Benachrichtigungen | Platzhalter: feste Beispieldaten bzw. in der Oberfläche mit „🚧 Demnächst“ oder „Vorschau“ gekennzeichnet (Schalter in `src/placeholders.ts`) |
 
 Fahrzeiten und Konflikt-Markierungen liefert das Backend noch nicht, sie werden
 daher im Kalender nicht angezeigt. Kalender und Dashboard rechnen mit dem

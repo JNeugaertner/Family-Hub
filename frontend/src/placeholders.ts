@@ -6,8 +6,6 @@ export const PLACEHOLDER = {
   assistant: true,
   // Sprachassistent: schwebender Mikrofon-Knopf ohne Spracherkennung (ausgeblendet)
   voice: true,
-  // Nachrichten: Beispielnachrichten
-  messenger: true,
   // Glocke: Beispielmeldungen
   notifications: true,
   // Fahrzeiten und Terminkonflikte: werden nicht berechnet (Legende im Kalender ausgeblendet)

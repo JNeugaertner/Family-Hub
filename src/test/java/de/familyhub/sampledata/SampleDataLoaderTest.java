@@ -28,6 +28,9 @@ import de.familyhub.family.FamilyMemberRepository;
 import de.familyhub.meals.DishRepository;
 import de.familyhub.meals.MealEntry;
 import de.familyhub.meals.MealEntryRepository;
+import de.familyhub.messages.ChatMessage;
+import de.familyhub.messages.ChatMessageRepository;
+import de.familyhub.messages.Conversations;
 import de.familyhub.permission.Role;
 import de.familyhub.points.PointEntry;
 import de.familyhub.points.PointEntryRepository;
@@ -72,6 +75,9 @@ class SampleDataLoaderTest {
     @Autowired
     private MealEntryRepository mealRepository;
 
+    @Autowired
+    private ChatMessageRepository messageRepository;
+
     private static final PasswordEncoder PASSWORD_ENCODER = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 
     // Mittwoch, 07.10.2026: Die Beispielwoche beginnt am Montag, 05.10.2026
@@ -90,9 +96,10 @@ class SampleDataLoaderTest {
         shoppingRepository.deleteAll();
         dishRepository.deleteAll();
         mealRepository.deleteAll();
+        messageRepository.deleteAll();
         loader = new SampleDataLoader(memberRepository, eventRepository, settingsRepository, taskRepository,
                 pointRepository, rewardRepository, shoppingRepository, dishRepository, mealRepository,
-                PASSWORD_ENCODER, CLOCK);
+                messageRepository, PASSWORD_ENCODER, CLOCK);
     }
 
     @Test
@@ -121,6 +128,22 @@ class SampleDataLoaderTest {
         assertThat(plan).filteredOn(m -> m.name().equals("Essen bei Oma"))
                 .singleElement()
                 .satisfies(m -> assertThat(m.dishId()).isNull());
+    }
+
+    @Test
+    void loadsSampleMessagesForTheFamilyGroupAndTheParentsOnlyOnce() {
+        loader.load();
+        loader.load();
+
+        Map<String, String> idByName = memberRepository.findAll().stream()
+                .collect(Collectors.toMap(FamilyMember::name, FamilyMember::id));
+        List<ChatMessage> messages = messageRepository.findAll();
+        assertThat(messages).hasSize(9)
+                .allSatisfy(m -> assertThat(m.sentAt()).isBefore(LocalDateTime.now(CLOCK)))
+                .extracting(ChatMessage::conversation).containsOnly(Conversations.FAMILY,
+                        Conversations.direct(idByName.get("Sarah"), idByName.get("Mike")));
+        assertThat(messages).filteredOn(m -> m.conversation().equals(Conversations.FAMILY)).hasSize(7);
+        assertThat(messages).extracting(ChatMessage::senderId).doesNotContain(idByName.get("Oma"));
     }
 
     @Test

@@ -35,27 +35,6 @@ export interface CalendarEvent {
   travelConflict?: boolean; // travel time overlaps with previous/next event
 }
 
-export interface Message {
-  id: number;
-  source: 'whatsapp' | 'telegram' | 'family';
-  senderName: string;
-  senderColor: string;
-  content: string;
-  time: string;
-  unread: boolean;
-  actionable?: 'event' | 'shopping' | 'task';
-  thread: string;
-}
-
-export const MESSAGES: Message[] = [
-  { id: 1, source: 'whatsapp', senderName: 'School Group', senderColor: '#25D366', content: "⚠️ Tomorrow's game starts at 10am at City Sports Center. Please bring water!", time: '14:32', unread: true, actionable: 'event', thread: 'School Sports Group' },
-  { id: 2, source: 'whatsapp', senderName: 'Sarah Johnson', senderColor: '#2563EB', content: "Can you grab some milk on your way home? We're out again 😅", time: '13:15', unread: true, actionable: 'shopping', thread: 'Family Chat' },
-  { id: 3, source: 'telegram', senderName: 'Mike Johnson', senderColor: '#14B8A6', content: "Meeting ran late. Will be home around 7pm. Start dinner without me!", time: '17:45', unread: false, thread: 'Family Chat' },
-  { id: 4, source: 'whatsapp', senderName: 'Music Academy', senderColor: '#8B5CF6', content: "Reminder: Lily's piano recital is on Oct 3rd at 3pm. Seats are limited!", time: '10:00', unread: true, actionable: 'event', thread: 'Music Academy' },
-  { id: 5, source: 'telegram', senderName: 'Emma Johnson', senderColor: '#8B5CF6', content: "Mum can you pick me up after practice? Coach said we might go till 6.", time: '16:10', unread: false, actionable: 'task', thread: 'Family Chat' },
-  { id: 6, source: 'family', senderName: 'Lucas Johnson', senderColor: '#F97316', content: "I finished my homework!! Can I have extra screen time? 🙏", time: '18:20', unread: true, thread: 'Family Chat' },
-];
-
 export type WasteType = 'Restmüll' | 'Biomüll' | 'Papier' | 'Gelber Sack';
 
 export interface GarbagePickup {
