@@ -28,10 +28,12 @@ function Field({ id, label, error, children }: { id: string; label: string; erro
 interface Props {
   event?: CalendarEvent;
   defaultDate: string;
+  // Vorschlag für den Titel eines neuen Termins (z. B. aus einer Nachricht)
+  defaultTitle?: string;
   onClose: () => void;
 }
 
-export default function EventFormModal({ event, defaultDate, onClose }: Props) {
+export default function EventFormModal({ event, defaultDate, defaultTitle, onClose }: Props) {
   const { members, memberById, saveEvent, removeEvent, approveEvent, rejectEvent } = useCalendarData();
   const permissions = useCalendarPermissions();
   const { me } = permissions;
@@ -48,7 +50,7 @@ export default function EventFormModal({ event, defaultDate, onClose }: Props) {
   const initialMembers = event?.memberIds
     ?? (permissions.canAssignTo(me.id) ? [me.id] : assignable[0] ? [assignable[0].id] : []);
 
-  const [title, setTitle] = useState(event?.title ?? '');
+  const [title, setTitle] = useState(event?.title ?? defaultTitle ?? '');
   const [start, setStart] = useState(event?.start.slice(0, 16) ?? `${defaultDate}T09:00`);
   const [end, setEnd] = useState(event?.end.slice(0, 16) ?? `${defaultDate}T10:00`);
   const [memberIds, setMemberIds] = useState<string[]>(initialMembers);

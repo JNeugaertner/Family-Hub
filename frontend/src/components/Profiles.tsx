@@ -42,6 +42,8 @@ const PERMISSION_DISPLAY: (Permission & { label: string; icon: string })[] = [
   { module: 'essen', action: 'ansehen', scope: 'familie', label: 'Essensplan ansehen', icon: '🍽️' },
   { module: 'essen', action: 'vorschlagen', scope: 'familie', label: 'Essenswünsche einreichen', icon: '💡' },
   { module: 'essen', action: 'bearbeiten', scope: 'familie', label: 'Essensplan und Gerichte bearbeiten', icon: '🍳' },
+  { module: 'messenger', action: 'erstellen', scope: 'familie', label: 'Im Familien-Chat schreiben', icon: '💬' },
+  { module: 'messenger', action: 'loeschen', scope: 'familie', label: 'Fremde Nachrichten löschen', icon: '🧹' },
   { module: 'punkte', action: 'ansehen', scope: 'familie', label: 'Punktestände der Familie sehen', icon: '⭐' },
   { module: 'punkte', action: 'vorschlagen', scope: 'eigen', label: 'Belohnungen einlösen', icon: '🛍️' },
   { module: 'punkte', action: 'freigeben', scope: 'familie', label: 'Punkte vergeben, Einlösungen genehmigen', icon: '🎁' },
