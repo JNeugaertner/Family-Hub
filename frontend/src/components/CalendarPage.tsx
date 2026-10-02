@@ -45,7 +45,7 @@ const TRANSPORT_ICONS: Record<string, string> = {
 };
 
 const WASTE_STYLES: Record<string, { dot: string; label: string; bg: string }> = {
-  'Gelber Sack': { dot: '#CA8A04', label: '🟡 Gelber Sack', bg: '#FEF9C3' },
+  'gelbe Tonne': { dot: '#CA8A04', label: '🟡 gelbe Tonne', bg: '#FEF9C3' },
   'Papier':      { dot: '#2563EB', label: '🔵 Papier',      bg: '#EFF6FF' },
   'Biomüll':     { dot: '#16A34A', label: '🟢 Biomüll',     bg: '#F0FDF4' },
   'Restmüll':    { dot: '#6B7280', label: '⚫ Restmüll',    bg: '#F9FAFB' },
