@@ -11,6 +11,7 @@ import static de.familyhub.permission.Module.ESSEN;
 import static de.familyhub.permission.Module.FAHRZEIT;
 import static de.familyhub.permission.Module.FAMILIE;
 import static de.familyhub.permission.Module.KALENDER;
+import static de.familyhub.permission.Module.MESSENGER;
 import static de.familyhub.permission.Module.MUELL;
 import static de.familyhub.permission.Module.PUNKTE;
 import static de.familyhub.permission.Module.SPRACHASSISTENT;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 // Kategorien; Jugendliche verwalten eigene Termine und schlagen Termine für andere vor.
 // 28.09.2026: Kinder und Jugendliche lösen Belohnungen für sich selbst ein ("punkte/vorschlagen/eigen");
 // Kinder sehen die ganze Einkaufsliste und schlagen Artikel vor; Kinder sehen den Essensplan und äußern Wünsche.
+// 01.10.2026: Kinder und Jugendliche schreiben in der Familiengruppe und in Einzelchats und löschen eigene Nachrichten.
 public final class StandardRoles {
 
     private static final Map<Role, Set<Permission>> PERMISSIONS = new EnumMap<>(Role.class);
@@ -64,6 +66,9 @@ public final class StandardRoles {
                 of(WETTER, ANSEHEN, Scope.FAMILIE),
                 of(MUELL, ANSEHEN, Scope.FAMILIE),
                 of(FAHRZEIT, ANSEHEN, Scope.FAMILIE),
+                of(MESSENGER, ANSEHEN, Scope.FAMILIE),
+                of(MESSENGER, ERSTELLEN, Scope.FAMILIE),
+                of(MESSENGER, LOESCHEN, Scope.EIGEN),
                 of(SPRACHASSISTENT, ANSEHEN, Scope.EIGEN),
                 of(SYSTEM, BEARBEITEN, Scope.EIGEN)));
 
@@ -81,6 +86,9 @@ public final class StandardRoles {
                 of(ESSEN, VORSCHLAGEN, Scope.FAMILIE),
                 of(WETTER, ANSEHEN, Scope.FAMILIE),
                 of(MUELL, ANSEHEN, Scope.FAMILIE),
+                of(MESSENGER, ANSEHEN, Scope.FAMILIE),
+                of(MESSENGER, ERSTELLEN, Scope.FAMILIE),
+                of(MESSENGER, LOESCHEN, Scope.EIGEN),
                 of(SPRACHASSISTENT, ANSEHEN, Scope.EIGEN)));
 
         PERMISSIONS.put(Role.GAST, Set.of(

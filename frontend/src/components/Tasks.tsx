@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
-import { useFlashFocus } from '../navigation/focus';
+import { useFlashFocus, useFocus } from '../navigation/focus';
 import AvatarButton from '../profiles/AvatarButton';
 import { PlusIcon, ClockIcon, AlertTriangleIcon, PencilIcon } from './Icons';
 import { ApiError } from '../api/client';
@@ -251,10 +251,12 @@ function Field({ id, label, error, children }: { id: string; label: string; erro
 }
 
 // readOnly: nur ansehen (z. B. bestätigte Aufgaben), Löschen bleibt möglich, wenn erlaubt
-function TaskFormModal({ task, bonusDefault = false, assignable, mayAssignPoints, mayDelete, readOnly, todayKey, onClose }: {
+function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, mayAssignPoints, mayDelete, readOnly, todayKey, onClose }: {
   task?: ApiTask;
   // neue Aufgabe direkt als Bonus-Aufgabe (Knopf im Bereich "Bonus-Aufgaben")
   bonusDefault?: boolean;
+  // Vorschlag für den Titel einer neuen Aufgabe (aus einer Nachricht)
+  defaultTitle?: string;
   assignable: CalendarMember[];
   mayAssignPoints: boolean;
   mayDelete: boolean;
@@ -263,7 +265,7 @@ function TaskFormModal({ task, bonusDefault = false, assignable, mayAssignPoints
   onClose: () => void;
 }) {
   const { saveTask, removeTask } = useTaskData();
-  const [title, setTitle] = useState(task?.title ?? '');
+  const [title, setTitle] = useState(task?.title ?? defaultTitle ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
   const [assigneeId, setAssigneeId] = useState(task?.assigneeId ?? assignable[0]?.id ?? '');
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'medium');
@@ -434,7 +436,14 @@ export default function Tasks({ onNavigate }: Props) {
   useFlashFocus('task', status === 'ready');
   const { members, memberById } = useCalendarData();
   const perms = useTaskPermissions();
-  const [editor, setEditor] = useState<{ task?: ApiTask; bonus?: boolean } | null>(null);
+  const [editor, setEditor] = useState<{ task?: ApiTask; bonus?: boolean; title?: string } | null>(null);
+  // Aus einer Nachricht: neue Aufgabe mit vorausgefülltem Titel
+  const { focus, clear: clearFocus } = useFocus();
+  useEffect(() => {
+    if (focus?.kind !== 'newTask') return;
+    if (perms.canAdd) setEditor({ title: focus.title });
+    clearFocus();
+  }, [focus, perms.canAdd, clearFocus]);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [filterMember, setFilterMember] = useState<string | null>(null);
   const [filterPriority, setFilterPriority] = useState<string>('all');
@@ -706,6 +715,7 @@ export default function Tasks({ onNavigate }: Props) {
         <TaskFormModal
           task={editor.task}
           bonusDefault={editor.bonus}
+          defaultTitle={editor.title}
           assignable={assignableFor(editor.task)}
           mayAssignPoints={perms.mayConfirm}
           mayDelete={editor.task ? perms.canDelete(editor.task) : false}

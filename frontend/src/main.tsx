@@ -8,6 +8,7 @@ import { TaskDataProvider } from './tasks/TaskDataContext'
 import { RewardDataProvider } from './rewards/RewardDataContext'
 import { ShoppingDataProvider } from './shopping/ShoppingDataContext'
 import { MealDataProvider } from './meals/MealDataContext'
+import { MessageDataProvider } from './messages/MessageDataContext'
 import { ProfileCardProvider } from './profiles/ProfileCard'
 import './index.css'
 
@@ -20,9 +21,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <RewardDataProvider>
               <ShoppingDataProvider>
                 <MealDataProvider>
-                  <ProfileCardProvider>
-                    <App />
-                  </ProfileCardProvider>
+                  <MessageDataProvider>
+                    <ProfileCardProvider>
+                      <App />
+                    </ProfileCardProvider>
+                  </MessageDataProvider>
                 </MealDataProvider>
               </ShoppingDataProvider>
             </RewardDataProvider>
