@@ -11,6 +11,7 @@ export const SHOPPING_CATEGORIES: Record<ShoppingCategory, { label: string; icon
   tiefkuehl: { label: 'Tiefkühl', icon: '🧊' },
   snacks: { label: 'Snacks', icon: '🍿' },
   haushalt: { label: 'Haushalt', icon: '🧹' },
+  zutaten_essensplanung: { label: 'Zutaten Essensplanung', icon: '🍽️' },
 };
 
 export const SHOPPING_CATEGORY_KEYS = Object.keys(SHOPPING_CATEGORIES) as ShoppingCategory[];
