@@ -14,8 +14,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import de.familyhub.family.FamilyMember;
@@ -90,7 +90,7 @@ public class WasteCollectionService {
         return imported;
     }
 
-    @Scheduled(cron = "${familyhub.waste.task-sync-cron:0 10 0 * * *}")
+    @Scheduled(cron = "${familyhub.waste.task-sync-cron:0 10 05 * * *}")
     public void createUpcomingTasks() {
         WasteCollection collection = collections.current();
         if (collection == null) {
