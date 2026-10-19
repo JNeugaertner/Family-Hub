@@ -27,6 +27,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/health", "/api/auth/status").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/setup").permitAll()
+                        // Webhook der WhatsApp Cloud API: Meta ruft Verifizierung (GET) und eingehende
+                        // Nachrichten (POST) ohne Anmeldung auf; Status und gespeicherte Nachrichten bleiben
+                        // unten durch anyRequest() der Anmeldung vorbehalten.
+                        .requestMatchers(HttpMethod.GET, "/api/whatsapp").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/whatsapp").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
                 .formLogin(form -> form
@@ -45,7 +50,9 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
                         .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
-                .csrf(csrf -> csrf.spa())
+                // Die WhatsApp-Webhook-Adresse darf ohne CSRF-Token empfangen: Meta ist ein externer Absender
+                // und hat weder ein Token noch eine Sitzung.
+                .csrf(csrf -> csrf.spa().ignoringRequestMatchers("/api/whatsapp"))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .addFilterBefore(new LoginThrottleFilter(attempts, problems), UsernamePasswordAuthenticationFilter.class)
                 // Reine API ohne Weiterleitung nach dem Login: Anfragen nicht in der Sitzung merken

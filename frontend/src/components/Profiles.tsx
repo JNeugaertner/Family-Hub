@@ -14,7 +14,9 @@ import { FAMILY_COLORS } from '../family/colors';
 import GoogleCalendarCard from '../google/GoogleCalendarCard';
 import WeatherLocationCard from '../weather/WeatherLocationCard';
 import WasteCalendarCard from '../waste/WasteCalendarCard';
+import WhatsAppCard from '../whatsapp/WhatsAppCard';
 import { hasPermission, permissionKey, ROLE_NAMES, type Permission, type RoleId } from '../roles';
+import { useFlashFocus } from '../navigation/focus';
 
 function ShieldLock({ size = 16, className = '' }: { size?: number; className?: string }) {
   return (
@@ -497,6 +499,8 @@ export default function Profiles({ onNavigate }: Props) {
   const me = useMe();
   const { can } = useAuth();
   const { reload: reloadCalendar } = useCalendarData();
+  // Aus den Nachrichten hierher gesprungen (WhatsApp-Button): die WhatsApp-Karte aufleuchten lassen
+  useFlashFocus('whatsapp', true);
   const mayManage = can('familie', 'verwalten', 'familie');
   const mayManageRights = can('system', 'verwalten', 'familie');
   // Wie im Backend (GoogleController): alle außer Gästen, die ihre eigenen Termine sehen dürfen
@@ -578,6 +582,7 @@ export default function Profiles({ onNavigate }: Props) {
         {mayManageRights && <WeatherLocationCard />}
         {mayManageRights && <WasteCalendarCard members={members} />}
         <PasswordCard />
+        <WhatsAppCard />
         {mayConnectGoogle && <GoogleCalendarCard />}
       </div>
 

@@ -7,7 +7,8 @@ export type Focus =
   | { kind: 'event'; id: string; date: string }
   | { kind: 'day'; date: string }
   | { kind: 'task'; id: string }
-  | { kind: 'newTask'; title: string };
+  | { kind: 'newTask'; title: string }
+  | { kind: 'whatsapp' };
 
 interface FocusState {
   focus: Focus | null;
@@ -20,15 +21,17 @@ export const useFocus = () => useContext(FocusContext);
 
 // ready: die Seite hat ihre Daten geladen und die passende Ansicht gezeigt
 // Nur Termine und Aufgaben leuchten auf; ein Tag hat kein einzelnes Element dafür
-export function useFlashFocus(kind: 'event' | 'task', ready: boolean) {
+export function useFlashFocus(kind: 'event' | 'task' | 'whatsapp', ready: boolean) {
   const { focus, clear } = useFocus();
   useEffect(() => {
     if (!ready || !focus || focus.kind !== kind) return;
+    // „whatsapp" hat kein eigenes id-Feld, sondern ist selbst die Such-ID der Karte
+    const targetId = kind === 'whatsapp' ? 'whatsapp' : (focus as { id: string }).id;
     let tries = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     // Das Element erscheint evtl. erst nach dem nächsten Rendern (z. B. nach dem Wechsel in die Tagesansicht)
     const find = () => {
-      const el = document.querySelector<HTMLElement>(`[data-focus-id="${CSS.escape(focus.id)}"]`);
+      const el = document.querySelector<HTMLElement>(`[data-focus-id="${CSS.escape(targetId)}"]`);
       if (!el) {
         if (tries++ < 20) timer = setTimeout(find, 50);
         else clear();
