@@ -1,7 +1,7 @@
 import { json, request } from '../api/client';
 
 export type ShoppingCategory =
-  'milchprodukte' | 'backwaren' | 'fleisch' | 'gemuese' | 'obst' | 'getraenke' | 'vorrat' | 'tiefkuehl' | 'snacks' | 'haushalt';
+  'milchprodukte' | 'backwaren' | 'fleisch' | 'gemuese' | 'obst' | 'getraenke' | 'vorrat' | 'tiefkuehl' | 'snacks' | 'haushalt' | 'zutaten_essensplanung';
 
 export interface ShoppingItem {
   id: string;
