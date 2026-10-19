@@ -105,9 +105,10 @@ public class TaskController {
                     + "legen nur Administratoren an: ohne Person, mit Punkten, Frist optional.")
     public ResponseEntity<Task> create(@Valid @RequestBody Task task) {
         FamilyMember viewer = currentMember.get();
-        access.requireCreate(viewer, task);
-        Task toSave = copy(null, task, task.bonus() ? null : task.assigneeId(), TaskStatus.TODO, viewer.id(),
-                task.bonus());
+        // Aufgaben für Erwachsene (kein Kind/Jugendlicher) bekommen keine Punkte, da sie keine sammeln
+        Task checked = access.requireCreate(viewer, task);
+        Task toSave = copy(null, checked, checked.bonus() ? null : checked.assigneeId(), TaskStatus.TODO, viewer.id(),
+                checked.bonus());
         requireAssignment(toSave);
         Task saved = tasks.save(toSave);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
@@ -124,7 +125,8 @@ public class TaskController {
         Task changed = existing.bonus()
                 ? copy(id, task, existing.assigneeId(), existing.status(), existing.createdBy(), true)
                 : copy(id, task, task.assigneeId(), existing.status(), existing.createdBy(), false);
-        access.requireEdit(viewer, existing, changed);
+        // Aufgaben für Erwachsene (kein Kind/Jugendlicher) behalten keine Punkte, da sie keine sammeln
+        changed = access.requireEdit(viewer, existing, changed);
         requireAssignment(changed);
         return tasks.save(changed);
     }

@@ -13,6 +13,7 @@ import java.util.function.Predicate;
 import org.springframework.stereotype.Component;
 
 import de.familyhub.family.FamilyMember;
+import de.familyhub.family.FamilyMemberRepository;
 import de.familyhub.permission.Action;
 import de.familyhub.permission.Permissions;
 import de.familyhub.permission.Role;
@@ -33,10 +34,12 @@ public class TaskAccess {
 
     private final Permissions permissions;
     private final RoleResolver roles;
+    private final FamilyMemberRepository members;
 
-    public TaskAccess(Permissions permissions, RoleResolver roles) {
+    public TaskAccess(Permissions permissions, RoleResolver roles, FamilyMemberRepository members) {
         this.permissions = permissions;
         this.roles = roles;
+        this.members = members;
     }
 
     public Predicate<Task> visibilityFor(FamilyMember viewer) {
@@ -78,23 +81,42 @@ public class TaskAccess {
         return visibilityFor(viewer).test(task);
     }
 
-    public void requireCreate(FamilyMember viewer, Task task) {
+    public Task requireCreate(FamilyMember viewer, Task task) {
         if (task.bonus()) {
             requireTaskRight(viewer, ERSTELLEN, Scope.FAMILIE, false, "Bonus-Aufgaben anzulegen", "anlegen");
             requirePointsRight(viewer, true);
-            return;
+            return task;
         }
         Scope scope = viewer.id().equals(task.assigneeId()) ? Scope.EIGEN : Scope.FAMILIE;
         requireTaskRight(viewer, ERSTELLEN, scope, false, "Aufgaben anzulegen", "anlegen");
         requirePointsRight(viewer, task.points() > 0);
+        return requireNoPointsForAdults(task);
     }
 
-    public void requireEdit(FamilyMember viewer, Task existing, Task changed) {
+    public Task requireEdit(FamilyMember viewer, Task existing, Task changed) {
         requireNotConfirmed(existing);
         boolean own = isOwnTask(viewer, existing) && viewer.id().equals(changed.assigneeId());
         requireTaskRight(viewer, ERSTELLEN, own ? Scope.EIGEN : Scope.FAMILIE, isAssignedByOthers(viewer, existing),
                 "Aufgaben zu ändern", "ändern");
         requirePointsRight(viewer, !existing.points().equals(changed.points()));
+        return requireNoPointsForAdults(changed);
+    }
+
+    // Erwachsene sammeln keine Sterne: Eine Aufgabe, die einem Erwachsenen (kein Kind/Jugendlicher) zugewiesen ist,
+    // hat keine Punkte. Bonus-Aufgaben bleiben davon ausgenommen (sie sind nur für Kinder und Jugendliche offen).
+    // Gibt die (ggf. auf null gesetzte) Aufgabe zurück, damit der Aufrufer sie so verwenden kann.
+    private Task requireNoPointsForAdults(Task task) {
+        if (!task.bonus() && task.assigneeId() != null && task.points() > 0
+                && !isChildOrTeenager(task.assigneeId())) {
+            return task.withoutPoints();
+        }
+        return task;
+    }
+
+    private boolean isChildOrTeenager(String assigneeId) {
+        return members.findById(assigneeId)
+                .map(member -> roles.effectiveRole(member).countsAsChild())
+                .orElse(true);
     }
 
     public void requireStatusChange(FamilyMember viewer, Task task) {

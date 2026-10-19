@@ -109,6 +109,12 @@ public record Task(
                 confirmedAt, confirmedBy, bonus, repeatable);
     }
 
+    // Aufgabe ohne Punkte (Erwachsene sammeln keine Sterne)
+    public Task withoutPoints() {
+        return new Task(id, title, description, assigneeId, dueDate, priority, category, 0, status, createdBy,
+                confirmedAt, confirmedBy, bonus, repeatable);
+    }
+
     public Task withAssignee(String newAssigneeId, TaskStatus newStatus) {
         return new Task(id, title, description, newAssigneeId, dueDate, priority, category, points, newStatus,
                 createdBy, confirmedAt, confirmedBy, bonus, repeatable);
