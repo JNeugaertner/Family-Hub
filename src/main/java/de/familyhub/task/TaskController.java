@@ -30,6 +30,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import de.familyhub.achievements.AchievementService;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.permission.RoleResolver;
 import de.familyhub.points.PointsService;
 import de.familyhub.security.CurrentMember;
 import de.familyhub.web.ApiException;
@@ -50,18 +51,20 @@ public class TaskController {
     private final TaskAccess access;
     private final PointsService points;
     private final AchievementService achievements;
+    private final RoleResolver roles;
     private final MongoTemplate mongo;
     private final Clock clock;
 
     public TaskController(TaskRepository tasks, FamilyMemberRepository members, CurrentMember currentMember,
-            TaskAccess access, PointsService points, AchievementService achievements, MongoTemplate mongo,
-            Clock clock) {
+            TaskAccess access, PointsService points, AchievementService achievements, RoleResolver roles,
+            MongoTemplate mongo, Clock clock) {
         this.tasks = tasks;
         this.members = members;
         this.currentMember = currentMember;
         this.access = access;
         this.points = points;
         this.achievements = achievements;
+        this.roles = roles;
         this.mongo = mongo;
         this.clock = clock;
     }
@@ -202,7 +205,12 @@ public class TaskController {
         FamilyMember viewer = currentMember.get();
         access.requireConfirmationRight(viewer);
         Task task = findAwaitingConfirmation(id, viewer);
-        points.awardForTask(task, viewer);
+        // Punkte gibt es nur für Kinder und Jugendliche. Die Aufgabe wird trotzdem abgeschlossen;
+        // Erwachsene dürfen Aufgaben übernehmen, bekommen aber keine Punkte gutgeschrieben.
+        FamilyMember assignee = members.findById(task.assigneeId()).orElse(null);
+        if (assignee != null && roles.effectiveRole(assignee).countsAsChild()) {
+            points.awardForTask(task, viewer);
+        }
         Task confirmed = tasks.save(task.confirmed(LocalDateTime.now(clock), viewer.id()));
         achievements.onTaskConfirmed(confirmed, viewer);
         if (confirmed.repeatable()) {

@@ -471,7 +471,11 @@ export default function Tasks({ onNavigate }: Props) {
 
   const confirm = (task: ApiTask) => act(async () => {
     await confirmTask(task.id);
-    setCelebration(`+${task.points} Punkte für ${memberById(task.assigneeId ?? '')?.name ?? 'das Kind'}!`);
+    const assignee = memberById(task.assigneeId ?? '');
+    // Punkte-Animation nur für Kinder und Jugendliche: Erwachsene bekommen keine Punkte.
+    if (assignee && (assignee.effectiveRole === 'kind' || assignee.effectiveRole === 'jugendlicher')) {
+      setCelebration(`+${task.points} Punkte für ${assignee.name}!`);
+    }
   });
 
   const assignableFor = (task?: ApiTask) => members.filter(m => m.effectiveRole !== 'gast'
