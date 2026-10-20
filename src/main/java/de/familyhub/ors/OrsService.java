@@ -15,22 +15,23 @@ import jakarta.annotation.PostConstruct;
 @Service
 public class OrsService {
         private final OrsApi api;
-        public OrsLocation Terminort;
-    private final OrsProperties properties;
+        private final OrsProperties properties;
 
         public OrsService(OrsApi api, OrsProperties properties) {
         this.api = api;
         this.properties = properties;
 
-        OrsApi.SearchResponse response = api.findPlaces("Anger 1 Erfurt");
-        this.Terminort = new OrsLocation(response.features().get(0).properties().label(),
-                response.features().get(0).geometry().coordinates().get(1),
-                response.features().get(0).geometry().coordinates().get(0));
         }
-        //Test ob API Aufruf funktioniert
-    @PostConstruct
+        public OrsLocation getTerminort(String query) {
+            OrsApi.SearchResponse response = api.findPlaces(query);
+            return new OrsLocation(response.features().get(0).properties().label(),
+                    response.features().get(0).geometry().coordinates().get(1),
+                    response.features().get(0).geometry().coordinates().get(0));
+        }
+
+ //Test ob API Aufruf funktioniert
+@PostConstruct
 public void test() {
-    System.out.println(Terminort);
-    System.out.println(Terminort.label());
+    System.out.println("test");
 }
 }
