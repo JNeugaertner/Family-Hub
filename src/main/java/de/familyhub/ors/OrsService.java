@@ -9,17 +9,28 @@ import org.springframework.stereotype.Service;
 import de.familyhub.ors.OrsApi;
 import de.familyhub.ors.OrsProperties;
 import de.familyhub.web.ApiException;
+import jakarta.annotation.PostConstruct;
 
 // Terminort
 @Service
 public class OrsService {
         private final OrsApi api;
+        public OrsLocation Terminort;
     private final OrsProperties properties;
 
         public OrsService(OrsApi api, OrsProperties properties) {
         this.api = api;
         this.properties = properties;
 
-        System.out.println(api.findPlaces("Anger 1 Erfurt"));
-    }
+        OrsApi.SearchResponse response = api.findPlaces("Anger 1 Erfurt");
+        this.Terminort = new OrsLocation(response.features().get(0).properties().label(),
+                response.features().get(0).geometry().coordinates().get(1),
+                response.features().get(0).geometry().coordinates().get(0));
+        }
+        //Test ob API Aufruf funktioniert
+    @PostConstruct
+public void test() {
+    System.out.println(Terminort);
+    System.out.println(Terminort.label());
+}
 }

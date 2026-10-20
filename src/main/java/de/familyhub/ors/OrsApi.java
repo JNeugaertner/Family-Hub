@@ -1,7 +1,11 @@
 package de.familyhub.ors;
 
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+
+import com.mongodb.client.model.geojson.Geometry;
 
 @Component
 public class OrsApi {
@@ -12,13 +16,20 @@ public class OrsApi {
         this.properties = properties;
         this.rest = RestClient.builder().build();
     }
-    public String findPlaces(String query) {
+    public SearchResponse findPlaces(String query) {
         return rest.get()
-                .uri(properties.baseUrl() + "/geocode/search?text="
-                +query.replace(" ","%20"))
+                .uri(properties.baseUrl() + "/geocode/search?text="+query)
                 .header("Authorization", properties.apiKey())
                 .retrieve()
-                .body(String.class);
+                .body(SearchResponse.class);
+    }
+    record SearchResponse(List<Feature> features) {
+    }
+    record Feature(Geometry geometry, FeatureProperties properties) {
+    }
+    record Geometry(List<Double> coordinates) {
+    }
+    record FeatureProperties(String label) {
     }
 
 }
