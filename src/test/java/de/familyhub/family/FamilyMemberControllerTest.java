@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -212,6 +213,51 @@ class FamilyMemberControllerTest {
     }
 
     @Test
+    void administratorStoresPhoneNumbersTheWayWhatsAppSendsThem() throws Exception {
+        FamilyMember emma = members.save(TestUsers.member("Emma", Role.JUGENDLICHER));
+        FamilyMember oma = members.save(TestUsers.member("Oma", Role.GAST));
+        String emmaJson = """
+                {"name": "Emma", "color": "#8B5CF6", "username": "emma", "role": "jugendlicher", "phone": "%s"}
+                """;
+
+        mvc.perform(put("/api/members/" + emma.id()).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(emmaJson.formatted("+49 (170) 123-4567")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phone").value("491701234567"));
+        mvc.perform(put("/api/members/" + emma.id()).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(emmaJson.formatted("0170 1234567")))
+                .andExpect(jsonPath("$.phone").value("491701234567"));
+        mvc.perform(put("/api/members/" + emma.id()).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(emmaJson.formatted("0043 664 1234567")))
+                .andExpect(jsonPath("$.phone").value("436641234567"));
+
+        // Nur Administratoren und die Person selbst sehen die Nummer
+        mvc.perform(get("/api/members/" + emma.id()).with(as(emma)))
+                .andExpect(jsonPath("$.phone").value("436641234567"));
+        mvc.perform(get("/api/members/" + emma.id()).with(as(oma)))
+                .andExpect(jsonPath("$.phone").doesNotExist());
+
+        for (String invalid : List.of("Hallo 123", "+49 12")) {
+            mvc.perform(put("/api/members/" + emma.id()).with(as(sarah)).contentType(APPLICATION_JSON)
+                            .content(emmaJson.formatted(invalid)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors.phone").value(MemberRules.PHONE_MESSAGE));
+        }
+        // Eine Nummer gehört zu höchstens einer Person
+        mvc.perform(post("/api/members").with(as(sarah)).contentType(APPLICATION_JSON).content("""
+                        {"name": "Lucas", "color": "#F97316", "username": "lucas", "password": "geheim123",
+                         "role": "kind", "phone": "+43 664 1234567"}
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.phone").value("Diese Nummer ist schon bei Emma eingetragen"));
+
+        mvc.perform(put("/api/members/" + emma.id()).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(emmaJson.formatted("")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phone").doesNotExist());
+    }
+
+    @Test
     void administratorGrantsSinglePermissionsThatOnlyAdministratorsSee() throws Exception {
         FamilyMember lily = members.save(TestUsers.member("Lily", Role.KIND));
         FamilyMember emma = members.save(TestUsers.member("Emma", Role.JUGENDLICHER));
@@ -269,6 +315,13 @@ class FamilyMemberControllerTest {
         mvc.perform(post("/api/members").with(as(emma)).contentType(APPLICATION_JSON)
                         .content(json("Lily", "lily", "geheim123", "kind")))
                 .andExpect(status().isForbidden());
+        // Über die Nummer sähe Emma fremde WhatsApp-Nachrichten
+        mvc.perform(put("/api/members/" + emma.id()).with(as(emma)).contentType(APPLICATION_JSON).content("""
+                        {"name": "Emma", "color": "#8B5CF6", "username": "emma", "role": "jugendlicher",
+                         "phone": "+49 170 1234567"}
+                        """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("Nur Administratoren dürfen Handynummern eintragen."));
 
         FamilyMember unchanged = members.findById(lucas.id()).orElseThrow();
         assertThat(unchanged.passwordHash()).isEqualTo(lucas.passwordHash());

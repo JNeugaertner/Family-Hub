@@ -3,6 +3,7 @@ package de.familyhub.whatsapp;
 import static de.familyhub.testsupport.TestUsers.as;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -158,6 +159,39 @@ class WhatsAppWebhookControllerTest {
         mvc.perform(signed("kein json")).andExpect(status().isBadRequest());
 
         assertThat(messages.count()).isZero();
+    }
+
+    private static FamilyMember withPhone(FamilyMember m, String phone) {
+        return new FamilyMember(m.id(), m.name(), m.color(), m.username(), m.passwordHash(), m.role(), m.birthDate(),
+                m.roleFixed(), m.extraPermissions(), m.revokedPermissions(), phone);
+    }
+
+    @Test
+    void everyoneSeesOnlyMessagesFromTheirOwnNumberAndAdministratorsSeeAll() throws Exception {
+        FamilyMember emma = members.save(withPhone(TestUsers.member("Emma", Role.JUGENDLICHER), "4915712345678"));
+        FamilyMember lucas = members.save(TestUsers.member("Lucas", Role.KIND));
+        FamilyMember oma = members.save(withPhone(TestUsers.member("Oma", Role.GAST), "4917099999999"));
+        mvc.perform(signed(payload("wamid.A", "4915712345678", "Von Emma"))).andExpect(status().isOk());
+        mvc.perform(signed(payload("wamid.B", "4917011111111", "Von jemand anderem"))).andExpect(status().isOk());
+        mvc.perform(signed(payload("wamid.C", "4917099999999", "Von Oma"))).andExpect(status().isOk());
+
+        mvc.perform(get("/api/whatsapp/messages").with(as(emma)))
+                .andExpect(jsonPath("$[*].text", contains("Von Emma")));
+        mvc.perform(get("/api/whatsapp/status").with(as(emma)))
+                .andExpect(jsonPath("$.messageCount").value(1));
+        // Ohne eingetragene Nummer: nichts
+        mvc.perform(get("/api/whatsapp/messages").with(as(lucas)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+        // Gäste haben keinen Zugang, auch mit Nummer
+        mvc.perform(get("/api/whatsapp/messages").with(as(oma)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/whatsapp/status").with(as(oma)))
+                .andExpect(jsonPath("$.messageCount").value(0));
+        mvc.perform(get("/api/whatsapp/messages").with(as(sarah)))
+                .andExpect(jsonPath("$", hasSize(3)));
+        mvc.perform(get("/api/whatsapp/status").with(as(sarah)))
+                .andExpect(jsonPath("$.messageCount").value(3));
     }
 
     @Test

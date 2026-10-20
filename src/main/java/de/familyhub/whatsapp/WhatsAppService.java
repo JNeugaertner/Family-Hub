@@ -70,6 +70,15 @@ public class WhatsAppService {
         return repository.count();
     }
 
+    // Nachrichten einer Absendernummer (nur Ziffern mit Ländervorwahl, siehe MemberRules.normalizePhone)
+    public List<WhatsAppMessage> recentFrom(String phone) {
+        return repository.findTop100ByFromOrderByReceivedAtDescIdDesc(phone);
+    }
+
+    public long countFrom(String phone) {
+        return repository.countByFrom(phone);
+    }
+
     // Zerlegt eine einzelne Nachricht und legt sie roh ab; null, wenn sie bereits gespeichert war
     private WhatsAppMessage storeOne(JsonNode message) {
         String id = textOrNull(message, "id");

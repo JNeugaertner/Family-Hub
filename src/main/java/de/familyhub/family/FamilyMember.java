@@ -25,7 +25,10 @@ public record FamilyMember(
         boolean roleFixed,
         // Einzelrechte, die ein Administrator zusätzlich vergibt bzw. entzieht (Rollenkonzept)
         Set<Permission> extraPermissions,
-        Set<Permission> revokedPermissions) {
+        Set<Permission> revokedPermissions,
+        // Handynummer, wie WhatsApp den Absender liefert: nur Ziffern mit Ländervorwahl (z. B. 4917012345678);
+        // darüber sieht die Person ihre WhatsApp-Nachrichten (MemberRules.normalizePhone)
+        @Indexed(unique = true, sparse = true) String phone) {
 
     @PersistenceCreator
     public FamilyMember {
@@ -38,8 +41,15 @@ public record FamilyMember(
         this(id, name, color, username, passwordHash, role, birthDate, roleFixed, Set.of(), Set.of());
     }
 
+    public FamilyMember(String id, String name, String color, String username, String passwordHash, Role role,
+            LocalDate birthDate, boolean roleFixed, Set<Permission> extraPermissions,
+            Set<Permission> revokedPermissions) {
+        this(id, name, color, username, passwordHash, role, birthDate, roleFixed, extraPermissions,
+                revokedPermissions, null);
+    }
+
     public FamilyMember withPasswordHash(String newPasswordHash) {
         return new FamilyMember(id, name, color, username, newPasswordHash, role, birthDate, roleFixed,
-                extraPermissions, revokedPermissions);
+                extraPermissions, revokedPermissions, phone);
     }
 }
