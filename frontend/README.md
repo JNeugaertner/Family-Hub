@@ -81,6 +81,8 @@ Stift (auch ein Klick auf die Karte öffnet das Formular); bestätigte Aufgaben
 lassen sich nur ansehen. Administratoren räumen mit „Erledigte löschen“ in der
 Spalte Done auf: Das entfernt bestätigte Aufgaben und erledigte ohne Punkte,
 wartende Bestätigungen bleiben stehen, die Punkte-Historie bleibt erhalten.
+Erwachsene sammeln keine Punkte: Für sie gibt es im Formular kein Punkte-Feld,
+an ihren Aufgaben keine Sterne und kein Bestätigen; abgehakt ist erledigt.
 
 **Bonus-Aufgaben:** Eltern legen Aufgaben ohne feste Person an (Punkte Pflicht,
 Frist optional, auf Wunsch wiederkehrend). Sie stehen oben auf der Aufgabenseite
@@ -118,8 +120,12 @@ Menge und Kategorie). Kinder sehen den Plan und wünschen sich etwas; der Wunsch
 steht gestrichelt im Plan, nur die Eltern übernehmen ihn (er ersetzt dann den
 bisherigen Eintrag) oder lehnen ab (Zähler an „Essensplan“). Mit dem
 Einkaufswagen an einem Gericht oder „Zutaten der Woche auf die Einkaufsliste“
-kommen die Zutaten auf die Einkaufsliste; was dort schon offen steht, wird nicht
-doppelt angelegt.
+kommen die Zutaten in die eigene Kategorie „Zutaten Essensplanung“. „Zutaten der
+Woche“ gleicht diese Kategorie mit dem Plan ab: gleiche Zutaten werden
+zusammengezählt, nicht mehr benötigte entfernt. Abgehakte Zutaten bleiben stehen
+und kommen neu dazu, wenn der Plan sie wieder braucht. Von Hand ist die Kategorie
+nicht wählbar (`SELECTABLE_SHOPPING_CATEGORIES` in `src/shopping/categories.ts`),
+Artikel aus dem Essensplan behalten sie beim Bearbeiten.
 
 **Google Kalender:** Termine aus Google tragen im Kalender und im Dashboard ein
 „G“ und lassen sich nur ansehen; geändert werden sie in Google. Ganztägige
