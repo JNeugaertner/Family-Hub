@@ -330,6 +330,34 @@ class MealControllerTest {
     }
 
     @Test
+    void boughtIngredientsStayAndComeBackWhenThePlanNeedsThemAgain() throws Exception {
+        String week = "{\"from\": \"" + MONDAY + "\", \"to\": \"" + MONDAY.plusDays(6) + "\"}";
+        mvc.perform(post("/api/meals/shopping").with(as(emma)).contentType(APPLICATION_JSON).content(week))
+                .andExpect(status().isOk());
+        ShoppingItem milk = shoppingItems.findAll().stream().filter(i -> i.name().equals("Milch"))
+                .findFirst().orElseThrow();
+        shoppingItems.save(milk.withChecked(true, sarah.id()));
+
+        // Die Milch ist gekauft; der Plan braucht sie weiter, also kommt sie neu auf die Liste
+        mvc.perform(post("/api/meals/shopping").with(as(emma)).contentType(APPLICATION_JSON).content(week))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.added", org.hamcrest.Matchers.contains("Milch")))
+                .andExpect(jsonPath("$.skipped", org.hamcrest.Matchers.contains("Spaghetti", "Hackfleisch")));
+        assertThat(shoppingItems.findAll()).filteredOn(i -> i.name().equals("Milch"))
+                .extracting(ShoppingItem::checked)
+                .containsExactlyInAnyOrder(true, false);
+
+        // Ohne Gericht in der Woche verschwinden die offenen Zutaten, die gekaufte Milch bleibt stehen
+        mvc.perform(delete("/api/meals/" + mondayDinner.id()).with(as(sarah))).andExpect(status().isNoContent());
+        mvc.perform(post("/api/meals/shopping").with(as(emma)).contentType(APPLICATION_JSON).content(week))
+                .andExpect(status().isOk());
+        assertThat(shoppingItems.findAll()).singleElement().satisfies(i -> {
+            assertThat(i.name()).isEqualTo("Milch");
+            assertThat(i.checked()).isTrue();
+        });
+    }
+
+    @Test
     void childCannotPutIngredientsOnTheShoppingList() throws Exception {
         mvc.perform(post("/api/meals/" + mondayDinner.id() + "/shopping").with(as(lucas)))
                 .andExpect(status().isForbidden());
