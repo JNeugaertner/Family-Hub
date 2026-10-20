@@ -18,13 +18,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 
+import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -54,6 +57,9 @@ class GoogleControllerTest {
 
     @Autowired
     private TokenCipher cipher;
+
+    @Autowired
+    private MongoTemplate mongo;
 
     @MockitoBean
     private GoogleApi google;
@@ -206,6 +212,24 @@ class GoogleControllerTest {
         assertThat(connection.exportCalendarId()).isEqualTo(FAMILYHUB);
         assertThat(connection.calendars()).extracting(GoogleCalendarChoice::calendarId)
                 .containsExactly("lucas@example.com");
+    }
+
+    @Test
+    void connectionsSavedBeforeExportExistedStillLoad() throws Exception {
+        // So liegt eine Verbindung aus der Zeit vor dem Eintragen in der Datenbank: ohne writeGranted und
+        // exportCalendarId
+        mongo.getCollection("googleConnections").insertOne(new Document("memberId", lucas.id())
+                .append("googleEmail", "lucas@example.com")
+                .append("encryptedRefreshToken", cipher.encrypt("refresh-1"))
+                .append("connectedAt", new Date())
+                .append("calendars", List.of())
+                .append("needsReconnect", false));
+
+        mvc.perform(get("/api/google/status").with(as(lucas)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.connected").value(true))
+                .andExpect(jsonPath("$.writeGranted").value(false))
+                .andExpect(jsonPath("$.exportEnabled").value(false));
     }
 
     @Test

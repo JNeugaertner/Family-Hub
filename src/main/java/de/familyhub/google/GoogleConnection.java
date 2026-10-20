@@ -22,11 +22,13 @@ public record GoogleConnection(
         Instant lastSyncAt,
         String lastSyncError,
         boolean needsReconnect,
-        boolean writeGranted,
+        Boolean writeGranted,
         String exportCalendarId) {
 
     public GoogleConnection {
         calendars = calendars == null ? List.of() : List.copyOf(calendars);
+        // Verbindungen aus der Zeit vor dem Eintragen haben das Feld nicht
+        writeGranted = Boolean.TRUE.equals(writeGranted);
     }
 
     public boolean exportEnabled() {
