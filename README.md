@@ -21,6 +21,7 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | Einkaufsliste | Gemeinsame Liste mit Kategorien und „dringend“; Kinder schlagen Artikel vor, die Eltern übernehmen |
 | Essensplan | Wochenplan mit Gerichte-Sammlung, Zutaten und Kochanleitung; Kinder äußern Wünsche; Zutaten per Knopf auf die Einkaufsliste |
 | Nachrichten | Familiengruppe und Einzelchats; aus einer Nachricht wird ein Artikel, ein Termin oder eine Aufgabe |
+| WhatsApp (in Arbeit) | Nachrichten an die WhatsApp-Nummer der Familie empfangen; jede Person sieht die von ihrer eigenen Handynummer |
 | Müllabfuhr | Abfuhrkalender der Gemeinde (ICS-Datei) importieren; Termine im Kalender und eine Aufgabe für den Vorabend |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
@@ -91,9 +92,9 @@ den ersten Administrator an.
 ## Einstellungen
 
 Die Einstellungen stehen in `src/main/resources/application.properties`.
-Zugangsdaten für Google und OpenWeather gehören **nie** dorthin, sondern in eine
-Datei `local.properties` im Projektordner. Sie steht in `.gitignore` und wird
-beim Start automatisch gelesen.
+Zugangsdaten für Google, OpenWeather und WhatsApp gehören **nie** dorthin,
+sondern in eine Datei `local.properties` im Projektordner. Sie steht in
+`.gitignore` und wird beim Start automatisch gelesen.
 
 | Einstellung | Standard | Bedeutung |
 |---|---|---|
@@ -189,62 +190,48 @@ gibt es keine Beispieldaten.
 
 ## WhatsApp einrichten (optional)
 
-FamilyHub nimmt eingehende WhatsApp-Nachrichten über die offizielle **Meta
-WhatsApp Cloud API** entgegen. Die Nachrichten werden **roh in der Datenbank
-gespeichert** und geloggt – es gibt noch **keine KI-Auswertung, keine Analyse
-und keine automatischen Antworten**. Diese Aufgabe bleibt bewusst dem späteren
-KI-Service überlassen; die WhatsApp-Empfangslogik (Paket `de.familyhub.whatsapp`)
-ist sauber davon getrennt.
+FamilyHub nimmt Nachrichten an die WhatsApp-Nummer der Familie über die
+offizielle **WhatsApp Cloud API** von Meta entgegen und speichert sie. Ausgewertet
+oder beantwortet werden sie noch nicht; das übernimmt später der KI-Assistent.
 
-Zugriff auf die empfangenen Nachrichten: `GET /api/whatsapp/status`
-(eingerichtet + Anzahl) und `GET /api/whatsapp/messages` (letzte 100, inkl.
-rohem Payload) – beide nach Anmeldung. Der Webhook selbst ist öffentlich und
-von CSRF ausgenommen, weil Meta ihn von außen anruft.
+**Wer was sieht:** Jede Person sieht die Nachrichten von ihrer eigenen
+Handynummer, Administratoren sehen alle, Gäste keine. Die Handynummern tragen
+Administratoren unter „Familie“ beim Familienmitglied ein (mit Ländervorwahl;
+ohne gilt Deutschland). Abrufen lassen sich die Nachrichten über
+`GET /api/whatsapp/messages`, die Anzahl über `GET /api/whatsapp/status`.
 
-### 1. In der Meta Developer Platform
+Der Webhook `/api/whatsapp` ist öffentlich, weil Meta ihn ohne Anmeldung
+aufruft. Er nimmt nur Aufrufe an, die Meta mit dem App-Secret signiert hat
+(Header `X-Hub-Signature-256`); alle anderen lehnt er ab.
 
-1. Unter [developers.facebook.com](https://developers.facebook.com) ein App-Projekt
-   anlegen und die Produktart **WhatsApp** hinzufügen.
-2. Unter **WhatsApp → API Setup** die eigene (in die Cloud-API überführte)
-   Telefonnummer registrieren und den **permanenten Test-Zugriffstoken**
-   kopieren. Das ist `WHATSAPP_ACCESS_TOKEN`.
-3. **Phone Number ID**: Die interne ID der verknüpften Nummer (erscheint in den
-   Einstellungen der Cloud-API). Das ist `WHATSAPP_PHONE_NUMBER_ID`.
-4. **Verify Token**: Einen eigenen Wert frei wählen (z. B. `familyhub-secret`).
-   Das ist `WHATSAPP_VERIFY_TOKEN` – er muss hier und in Schritt 3 identisch sein.
+1. Unter [developers.facebook.com](https://developers.facebook.com) eine App
+   anlegen und das Produkt **WhatsApp** hinzufügen. Dort brauchst du vier Werte:
+   - **Zugriffstoken** (`WHATSAPP_ACCESS_TOKEN`): unter „WhatsApp → API Setup“.
+     Der Token dort läuft nach 24 Stunden ab; dauerhaft geht es mit dem Token
+     eines System-Users.
+   - **Phone Number ID** (`WHATSAPP_PHONE_NUMBER_ID`): ebenfalls unter „API Setup“.
+   - **App-Secret** (`WHATSAPP_APP_SECRET`): unter „App-Einstellungen → Allgemein“
+     („App-Geheimcode“).
+   - **Verify-Token** (`WHATSAPP_VERIFY_TOKEN`): einen beliebigen Wert selbst
+     wählen, z. B. eine lange Zufallszeichenkette.
+2. Die Werte als Umgebungsvariablen setzen oder in `local.properties` eintragen
+   (`local.properties` gewinnt):
 
-### 2. Zugangsdaten hinterlegen
-
-Die drei Werte **nie im Git**, sondern als Umgebungsvariablen **oder** in
-`local.properties` (steht in `.gitignore`):
-
-```properties
-# Entweder als Umgebungsvariablen setzen:
-#   WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN
-# …oder alternativ hier (gewinnt vor der Umgebungsvariablen):
-familyhub.whatsapp.access-token=<WHATSAPP_ACCESS_TOKEN>
-familyhub.whatsapp.phone-number-id=<WHATSAPP_PHONE_NUMBER_ID>
-familyhub.whatsapp.verify-token=<WHATSAPP_VERIFY_TOKEN>
-```
-
-### 3. Webhook bei Meta anlegen
-
-Der Webhook muss öffentlich (HTTPS) erreichbar sein. Für die lokale Entwicklung
-eignet sich ein Tunnel wie ngrok oder Cloudflare, z. B.
-`https://<tunnel>.ngrok.io/api/whatsapp`. In der Meta Developer Platform unter
-**WhatsApp → Configuration** eintragen:
-
-- **Callback URL:** `https://<tunnel>.ngrok.io/api/whatsapp`
-- **Verify Token:** derselbe Wert wie `WHATSAPP_VERIFY_TOKEN`
-- **Webhook-Ereignis:** `messages` abonniert.
-
-Meta prüft die URL mit einer GET-Anfrage und erwartet den Challenge-Wert
-unverändert zurück – FamilyHub antwortet genau so, wenn der Token stimmt.
-Danach liefert Meta eingehende Nachrichten per POST auf dieselbe Adresse;
-FamilyHub speichert sie roh ab.
-
-**Vor der ersten Prüfung** (z. B. Swagger) das Backend neu starten, damit die
-Zugangsdaten geladen sind.
+   ```properties
+   familyhub.whatsapp.access-token=<Zugriffstoken>
+   familyhub.whatsapp.phone-number-id=<Phone Number ID>
+   familyhub.whatsapp.app-secret=<App-Secret>
+   familyhub.whatsapp.verify-token=<Verify-Token>
+   ```
+3. Backend neu starten. Der Webhook muss über HTTPS von außen erreichbar sein;
+   lokal geht das mit einem Tunnel wie ngrok, z. B.
+   `https://<tunnel>.ngrok.io/api/whatsapp`.
+4. In der Meta Developer Platform unter „WhatsApp → Configuration“ die
+   **Callback URL** (die Tunnel-Adresse mit `/api/whatsapp`) und denselben
+   **Verify-Token** eintragen und das Webhook-Feld `messages` abonnieren. Meta
+   prüft die Adresse sofort; FamilyHub antwortet nur, wenn der Token stimmt.
+5. Als Administrator unter „Familie“ bei jedem Familienmitglied die Handynummer
+   eintragen, damit es seine Nachrichten sieht.
 
 ## Als App installieren
 
@@ -269,7 +256,7 @@ Oberfläche nur auf dem eigenen Rechner erreichbar.
 
 Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
 `points`, `rewards`, `achievements`, `shopping`, `meals`, `messages`, `waste`,
-`weather`, `family` und `settings`. Querschnittsthemen liegen in `security`
+`weather`, `whatsapp`, `family` und `settings`. Querschnittsthemen liegen in `security`
 (Anmeldung), `permission` (Rollen und Rechte), `live` (Live-Aktualisierung),
 `web` (Fehlerbehandlung, CORS, Swagger) und `sampledata` (Beispielfamilie).
 

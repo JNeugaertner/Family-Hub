@@ -9,6 +9,7 @@ const CONFIG_TEMPLATE = [
   'familyhub.whatsapp.access-token=<ACCESS_TOKEN>',
   'familyhub.whatsapp.phone-number-id=<PHONE_NUMBER_ID>',
   'familyhub.whatsapp.verify-token=<VERIFY_TOKEN>',
+  'familyhub.whatsapp.app-secret=<APP_SECRET>',
 ].join('\n');
 
 // WhatsApp-Anbindung unter den Einstellungen. „Verbunden" heißt: Der Server hat Zugangsdaten.
@@ -57,7 +58,7 @@ export default function WhatsAppCard() {
               eine WhatsApp-App mit Cloud-API anlegen.
             </li>
             <li>
-              Access-Token, Phone-Number-ID und Verify-Token in{' '}
+              Access-Token, Phone-Number-ID, Verify-Token und App-Secret in{' '}
               <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">local.properties</code> eintragen (Details in der README).
             </li>
             <li>
@@ -78,10 +79,12 @@ export default function WhatsAppCard() {
             ✓ WhatsApp verbunden
           </p>
           <p className="text-sm text-slate-600">
-            {status.messageCount} empfangene Nachricht{status.messageCount === 1 ? '' : 'en'} gespeichert.
+            {status.messageCount} empfangene Nachricht{status.messageCount === 1 ? '' : 'en'} für dich gespeichert.
           </p>
           <p className="text-xs text-slate-400">
-            Eingehende Nachrichten werden nur gespeichert – noch keine KI-Antworten oder Analyse.
+            Jede Person sieht die Nachrichten von ihrer eigenen Handynummer, Administratoren alle. Die Nummern
+            tragen Administratoren beim Familienmitglied ein. Eingehende Nachrichten werden nur gespeichert – noch
+            keine KI-Antworten oder Analyse.
           </p>
         </div>
       ) : null}

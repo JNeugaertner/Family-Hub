@@ -190,6 +190,8 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
   const [roleFixed, setRoleFixed] = useState(member?.roleFixed ?? false);
   const [extra, setExtra] = useState<Permission[]>(member?.extraPermissions ?? []);
   const [revoked, setRevoked] = useState<Permission[]>(member?.revokedPermissions ?? []);
+  // Gespeichert sind nur Ziffern mit Ländervorwahl; mit + davor ist die Nummer besser lesbar
+  const [phone, setPhone] = useState(member?.phone ? `+${member.phone}` : '');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -249,6 +251,7 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
       // Einzelrechte nur für Nicht-Administratoren, im Rollenwechsel bereinigt
       extraPermissions: role === 'administrator' ? [] : extra.filter(p => !inRole(p)),
       revokedPermissions: role === 'administrator' ? [] : revoked.filter(inRole),
+      phone: phone.trim() || null,
     };
     run(() => (member ? updateMember(member.id, input) : createMember(input)));
   };
@@ -298,6 +301,14 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
                 disabled={birthDateLocked} onChange={e => setBirthDate(e.target.value)} />
             </Field>
           </div>
+
+          {/* Die Nummer bestimmt, wessen WhatsApp-Nachrichten jemand sieht; ändern dürfen sie nur Administratoren */}
+          <Field id="member-phone" label="Handynummer für WhatsApp (optional)" error={errors.phone}>
+            <input id="member-phone" type="tel" className={inputClass(!!errors.phone)} value={phone}
+              disabled={!mayManageRights} placeholder="+49 170 1234567" autoComplete="off"
+              onChange={e => setPhone(e.target.value)} />
+            <span className="block text-xs text-slate-400 mt-1">Darüber sieht die Person ihre WhatsApp-Nachrichten.</span>
+          </Field>
 
           {role === 'kind' && (
             <label className="flex items-start gap-2.5 text-sm text-slate-700">

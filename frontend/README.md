@@ -37,7 +37,8 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Kalender (Monat, Woche, Tag), Personenfilter | Backend: `/api/members`, `/api/events` |
 | Termine anlegen (für eine oder mehrere Personen, auch „Ganze Familie“), ändern, löschen, Vorschläge freigeben oder ablehnen | Backend, Formular `src/components/EventFormModal.tsx` |
 | Dashboard: Mini-Kalender und „Heute“ (nur freigegebene Termine) | Backend |
-| Profile: Mitglieder, Rollen, Einzelrechte, Freigaben für Gäste, eigenes Passwort | Backend: `/api/members`, `/api/roles`, `/api/settings`, `/api/auth/password` |
+| Profile: Mitglieder, Rollen, Einzelrechte, Handynummer für WhatsApp (nur Administratoren), Freigaben für Gäste, eigenes Passwort | Backend: `/api/members`, `/api/roles`, `/api/settings`, `/api/auth/password` |
+| WhatsApp: Karte unter „Familie“ mit Status der Anbindung und Anzahl der eigenen Nachrichten; Hinweis-Knopf in „Nachrichten“, solange nicht eingerichtet | Backend: `/api/whatsapp/status` |
 | Aufgaben: anlegen, abhaken, bestätigen oder zurückgeben; Dashboard „Dringende Aufgaben“ | Backend: `/api/tasks` |
 | Punkte: Punktestände, Rangliste, Historie, Belohnungsanimation; Dashboard „Familienpunkte“ | Backend: `/api/points` |
 | Erfolge: Fortschritt je Kind, Animation bei neuen Erfolgen; Anpassen (Admins) | Backend: `/api/achievements` |
@@ -177,6 +178,7 @@ Administratoren; sie sind im Kalender gestrichelt mit ⏳ markiert.
 - `src/achievements/`: Erfolge-API (Katalog, Fortschritt je Kind, Anpassen)
 - `src/rewards/`: Belohnungs-API und `RewardDataContext` (Belohnungen und Einlösungen, lädt nach Änderungen auch die Punktestände neu)
 - `src/weather/`: Wetter-API, Kachel für die Übersicht, Karte „Wohnort für das Wetter“ für die Profilseite
+- `src/whatsapp/`: Status der WhatsApp-Anbindung und die Karte „WhatsApp“ für die Profilseite
 - `src/google/`: Google-API des Backends, Karte „Google Kalender“ für die Profilseite, „G“-Abzeichen
 - `src/profiles/`: Profil-Overlay (`ProfileCard`) und der klickbare Avatar (`AvatarButton`)
 - `src/roles/`: gemeinsame Typen des Rechtemodells (Modul, Aktion, Geltungsbereich) und `hasPermission()`
