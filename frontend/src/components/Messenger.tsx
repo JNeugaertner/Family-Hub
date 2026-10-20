@@ -7,7 +7,7 @@ import { useCalendarPermissions } from '../calendar/permissions';
 import { addDays, formatLongDate, fromDateKey, startOfToday, toDateKey, weekdayIndex, WEEKDAYS_SHORT } from '../calendar/dates';
 import { useTaskPermissions } from '../tasks/permissions';
 import { useShoppingData } from '../shopping/ShoppingDataContext';
-import { SHOPPING_CATEGORIES, SHOPPING_CATEGORY_KEYS } from '../shopping/categories';
+import { SELECTABLE_SHOPPING_CATEGORIES, SHOPPING_CATEGORIES } from '../shopping/categories';
 import type { ShoppingCategory } from '../shopping/api';
 import { useMessageData } from '../messages/MessageDataContext';
 import * as api from '../messages/api';
@@ -202,7 +202,7 @@ function ShoppingFromMessage({ message, onClose, onDone }: {
             <label htmlFor="msg-shopping-category" className="text-xs font-semibold text-slate-600 mb-1.5 block">Kategorie</label>
             <select id="msg-shopping-category" value={category} onChange={e => setCategory(e.target.value as ShoppingCategory)}
               className={input(false)}>
-              {SHOPPING_CATEGORY_KEYS.map(key => (
+              {SELECTABLE_SHOPPING_CATEGORIES.map(key => (
                 <option key={key} value={key}>{SHOPPING_CATEGORIES[key].icon} {SHOPPING_CATEGORIES[key].label}</option>
               ))}
             </select>

@@ -23,7 +23,9 @@ import de.familyhub.shopping.ShoppingItem;
 import de.familyhub.shopping.ShoppingItemRepository;
 import de.familyhub.shopping.ShoppingItemStatus;
 
-// Zutaten aus dem Essensplan werden in einer eigenen Kategorie verwaltet.
+// Zutaten aus dem Essensplan werden in einer eigenen Kategorie verwaltet. Dort zählen nur offene Artikel: Abgehakte
+// sind gekauft und bleiben unverändert stehen, bis jemand „Abgehakte entfernen“ klickt; braucht der Plan die Zutat
+// erneut, kommt sie wieder auf die Liste (Entscheidung vom 20.10.2026).
 @Component
 public class MealShopping {
 
@@ -60,7 +62,7 @@ public class MealShopping {
     private Transfer apply(Map<String, Ingredient> planned, FamilyMember viewer, boolean synchronize) {
         List<ShoppingItem> existing = items.findAll();
         Map<String, ShoppingItem> managed = existing.stream()
-                .filter(i -> i.category() == ShoppingCategory.ZUTATEN_ESSENSPLANUNG && !i.isProposal())
+                .filter(i -> i.category() == ShoppingCategory.ZUTATEN_ESSENSPLANUNG && !i.isProposal() && !i.checked())
                 .collect(Collectors.toMap(i -> key(i.name()), Function.identity(), (first, ignored) -> first));
 
         List<String> added = new ArrayList<>();
