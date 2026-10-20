@@ -90,7 +90,7 @@ public class WasteCollectionService {
         return imported;
     }
 
-    @Scheduled(cron = "${familyhub.waste.task-sync-cron: 0 50 07 * * *}")
+    @Scheduled(cron = "${familyhub.waste.task-sync-cron:0 50 7 * * *}")
     public void createUpcomingTasks() {
         WasteCollection collection = collections.current();
         if (collection == null) {
