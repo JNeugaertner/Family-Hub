@@ -2,7 +2,10 @@ package de.familyhub.google;
 
 import static de.familyhub.testsupport.TestUsers.as;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -38,6 +41,7 @@ import de.familyhub.testsupport.TestUsers;
 class GoogleControllerTest {
 
     private static final String FRONTEND = "http://localhost:5173";
+    private static final String FAMILYHUB = "familyhub@group.calendar.google.com";
 
     @Autowired
     private MockMvc mvc;
@@ -66,12 +70,17 @@ class GoogleControllerTest {
         lucas = members.save(TestUsers.member("Lucas", Role.KIND));
         oma = members.save(TestUsers.member("Oma", Role.GAST));
         session = new MockHttpSession();
-        when(google.authorizationUrl(anyString())).thenAnswer(call -> "https://accounts.test/auth?state="
-                + call.getArgument(0));
+        when(google.authorizationUrl(anyString(), anyBoolean()))
+                .thenAnswer(call -> "https://accounts.test/auth?state=" + call.getArgument(0));
     }
 
     private String startConnect(FamilyMember member) throws Exception {
-        mvc.perform(post("/api/google/connect").with(as(member)).session(session))
+        return startConnect(member, false);
+    }
+
+    private String startConnect(FamilyMember member, boolean export) throws Exception {
+        mvc.perform(post("/api/google/connect").param("export", String.valueOf(export)).with(as(member))
+                        .session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authorizationUrl").value(org.hamcrest.Matchers.startsWith(
                         "https://accounts.test/auth?state=")));
@@ -79,7 +88,11 @@ class GoogleControllerTest {
     }
 
     private void googleAnswers(String refreshToken) {
-        when(google.exchangeCode("code-123")).thenReturn(new GoogleApi.Tokens("access-1", refreshToken));
+        googleAnswers(refreshToken, GoogleApi.READ_SCOPE);
+    }
+
+    private void googleAnswers(String refreshToken, String grantedScopes) {
+        when(google.exchangeCode("code-123")).thenReturn(new GoogleApi.Tokens("access-1", refreshToken, grantedScopes));
         when(google.listCalendars("access-1")).thenReturn(List.of(
                 new GoogleApi.CalendarInfo("lucas@example.com", "Lucas", null, true),
                 new GoogleApi.CalendarInfo("fussball@group.calendar.google.com", "Fußball", null, null)));
@@ -120,7 +133,7 @@ class GoogleControllerTest {
     void reconnectKeepsCalendarSelection() throws Exception {
         connections.save(new GoogleConnection(null, lucas.id(), "lucas@example.com", cipher.encrypt("alt"),
                 Instant.now(), List.of(new GoogleCalendarChoice("fussball@group.calendar.google.com", "Alt", false,
-                        true, EventCategory.SPORTS)), null, null, true));
+                        true, EventCategory.SPORTS)), null, null, true, false, null));
 
         String state = startConnect(lucas);
         googleAnswers("refresh-neu");
@@ -133,6 +146,66 @@ class GoogleControllerTest {
         assertThat(connection.needsReconnect()).isFalse();
         assertThat(connection.calendars()).contains(new GoogleCalendarChoice("fussball@group.calendar.google.com",
                 "Fußball", false, true, EventCategory.SPORTS));
+    }
+
+    @Test
+    void connectWithExportAsksForWriteAccessAndStartsExportingAfterReturn() throws Exception {
+        String state = startConnect(lucas, true);
+        verify(google).authorizationUrl(state, true);
+        googleAnswers("refresh-1", GoogleApi.READ_SCOPE + " " + GoogleApi.WRITE_SCOPE);
+        when(google.refreshAccessToken("refresh-1")).thenReturn("access-2");
+        when(google.createCalendar(eq("access-2"), eq("FamilyHub"), anyString(), anyString()))
+                .thenReturn(new GoogleApi.CalendarInfo(FAMILYHUB, "FamilyHub", null, null));
+
+        mvc.perform(get("/api/google/callback").param("code", "code-123").param("state", state)
+                        .with(as(lucas)).session(session))
+                .andExpect(redirectedUrl(FRONTEND + "?google=verbunden"));
+
+        GoogleConnection connection = connections.findByMemberId(lucas.id()).orElseThrow();
+        assertThat(connection.writeGranted()).isTrue();
+        assertThat(connection.exportCalendarId()).isEqualTo(FAMILYHUB);
+        mvc.perform(get("/api/google/status").with(as(lucas)))
+                .andExpect(jsonPath("$.writeGranted").value(true))
+                .andExpect(jsonPath("$.exportEnabled").value(true));
+    }
+
+    @Test
+    void writeAccessDeclinedAtGoogleStillConnectsForReading() throws Exception {
+        String state = startConnect(lucas, true);
+        googleAnswers("refresh-1");
+
+        mvc.perform(get("/api/google/callback").param("code", "code-123").param("state", state)
+                        .with(as(lucas)).session(session))
+                .andExpect(redirectedUrl(FRONTEND + "?google=ohne-eintragen"));
+
+        GoogleConnection connection = connections.findByMemberId(lucas.id()).orElseThrow();
+        assertThat(connection.writeGranted()).isFalse();
+        assertThat(connection.exportEnabled()).isFalse();
+        verify(google, never()).createCalendar(any(), any(), any(), any());
+    }
+
+    @Test
+    void reconnectKeepsExportingAndHidesTheFamilyHubCalendarFromTheSelection() throws Exception {
+        connections.save(new GoogleConnection(null, lucas.id(), "lucas@example.com", cipher.encrypt("alt"),
+                Instant.now(), List.of(), null, null, true, true, FAMILYHUB));
+
+        // Wer schon einträgt, wird beim erneuten Verbinden wieder nach dem Schreibrecht gefragt
+        String state = startConnect(lucas);
+        verify(google).authorizationUrl(state, true);
+        when(google.exchangeCode("code-123")).thenReturn(new GoogleApi.Tokens("access-1", "refresh-neu",
+                GoogleApi.READ_SCOPE + " " + GoogleApi.WRITE_SCOPE));
+        when(google.listCalendars("access-1")).thenReturn(List.of(
+                new GoogleApi.CalendarInfo("lucas@example.com", "Lucas", null, true),
+                new GoogleApi.CalendarInfo(FAMILYHUB, "FamilyHub", null, null)));
+
+        mvc.perform(get("/api/google/callback").param("code", "code-123").param("state", state)
+                        .with(as(lucas)).session(session))
+                .andExpect(redirectedUrl(FRONTEND + "?google=verbunden"));
+
+        GoogleConnection connection = connections.findByMemberId(lucas.id()).orElseThrow();
+        assertThat(connection.exportCalendarId()).isEqualTo(FAMILYHUB);
+        assertThat(connection.calendars()).extracting(GoogleCalendarChoice::calendarId)
+                .containsExactly("lucas@example.com");
     }
 
     @Test
@@ -180,7 +253,7 @@ class GoogleControllerTest {
     @Test
     void disconnectRevokesAccessAndDeletesConnection() throws Exception {
         connections.save(new GoogleConnection(null, lucas.id(), "lucas@example.com", cipher.encrypt("refresh-1"),
-                Instant.now(), List.of(), null, null, false));
+                Instant.now(), List.of(), null, null, false, false, null));
 
         mvc.perform(delete("/api/google").with(as(lucas))).andExpect(status().isNoContent());
 
@@ -192,9 +265,22 @@ class GoogleControllerTest {
     }
 
     @Test
+    void disconnectAlsoDeletesTheFamilyHubCalendarInGoogle() throws Exception {
+        connections.save(new GoogleConnection(null, lucas.id(), "lucas@example.com", cipher.encrypt("refresh-1"),
+                Instant.now(), List.of(), null, null, false, true, FAMILYHUB));
+        when(google.refreshAccessToken("refresh-1")).thenReturn("access-1");
+
+        mvc.perform(delete("/api/google").with(as(lucas))).andExpect(status().isNoContent());
+
+        verify(google).deleteCalendar("access-1", FAMILYHUB);
+        verify(google).revoke("refresh-1");
+        assertThat(connections.count()).isZero();
+    }
+
+    @Test
     void disconnectWorksEvenIfGoogleIsUnreachable() throws Exception {
         connections.save(new GoogleConnection(null, lucas.id(), "lucas@example.com", cipher.encrypt("refresh-1"),
-                Instant.now(), List.of(), null, null, false));
+                Instant.now(), List.of(), null, null, false, false, null));
         doThrow(new GoogleException("nicht erreichbar", false)).when(google).revoke("refresh-1");
 
         mvc.perform(delete("/api/google").with(as(lucas))).andExpect(status().isNoContent());

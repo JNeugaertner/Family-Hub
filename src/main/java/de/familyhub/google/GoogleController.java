@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import de.familyhub.calendar.EventCategory;
@@ -38,9 +39,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpSession;
 
-// Google Kalender verbinden (nur lesen). Ablauf: POST /connect liefert die Anmeldeseite von Google, Google leitet
-// danach auf GET /callback zurück, von dort geht es weiter ins Frontend (?google=verbunden|abgebrochen|fehler).
+// Google Kalender verbinden. Ablauf: POST /connect liefert die Anmeldeseite von Google, Google leitet danach auf
+// GET /callback zurück, von dort geht es weiter ins Frontend (?google=verbunden|abgebrochen|fehler|ohne-eintragen).
 // Verbinden darf jede Person außer Gästen, die ihre eigenen Termine sehen darf (Entscheidung vom 28.09.2026).
+// Wahlweise trägt FamilyHub die eigenen Termine in den Google-Kalender „FamilyHub“ ein (Entscheidung vom
+// 19.10.2026); das Schreibrecht dafür fragt POST /connect?export=true erst an, wenn jemand es einschaltet.
 @RestController
 @RequestMapping("/api/google")
 @Tag(name = "Google Kalender")
@@ -49,6 +52,8 @@ public class GoogleController {
     private static final Logger LOG = LoggerFactory.getLogger(GoogleController.class);
 
     static final String STATE_ATTRIBUTE = "familyhub.google.state";
+    // Nach der Rückkehr von Google das Eintragen einschalten
+    static final String EXPORT_ATTRIBUTE = "familyhub.google.export";
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -72,19 +77,25 @@ public class GoogleController {
         this.permissions = permissions;
     }
 
+    // writeGranted: Google hat das Eintragen erlaubt; exportEnabled: FamilyHub-Termine werden eingetragen
     public record GoogleStatus(boolean configured, boolean connected, String email,
-            List<GoogleCalendarChoice> calendars, Instant lastSyncAt, String lastSyncError, boolean needsReconnect) {
+            List<GoogleCalendarChoice> calendars, Instant lastSyncAt, String lastSyncError, boolean needsReconnect,
+            boolean writeGranted, boolean exportEnabled) {
 
         static GoogleStatus of(boolean configured, GoogleConnection connection) {
             if (connection == null) {
-                return new GoogleStatus(configured, false, null, List.of(), null, null, false);
+                return new GoogleStatus(configured, false, null, List.of(), null, null, false, false, false);
             }
             return new GoogleStatus(configured, true, connection.googleEmail(), connection.calendars(),
-                    connection.lastSyncAt(), connection.lastSyncError(), connection.needsReconnect());
+                    connection.lastSyncAt(), connection.lastSyncError(), connection.needsReconnect(),
+                    connection.writeGranted(), connection.exportEnabled());
         }
     }
 
     public record ConnectResponse(String authorizationUrl) {
+    }
+
+    public record ExportSetting(boolean enabled) {
     }
 
     @GetMapping("/status")
@@ -97,15 +108,19 @@ public class GoogleController {
 
     @PostMapping("/connect")
     @Operation(summary = "Google Kalender verbinden",
-            description = "Liefert die Adresse der Google-Anmeldeseite. Das Frontend leitet den Browser dorthin weiter.")
-    public ConnectResponse connect(HttpSession session) {
-        requireConnectRight();
+            description = "Liefert die Adresse der Google-Anmeldeseite. Das Frontend leitet den Browser dorthin weiter. "
+                    + "export = true fragt zusätzlich das Recht zum Eintragen an und schaltet das Eintragen nach der "
+                    + "Rückkehr ein. Wer schon einträgt, wird beim erneuten Verbinden immer auch danach gefragt.")
+    public ConnectResponse connect(@RequestParam(defaultValue = "false") boolean export, HttpSession session) {
+        FamilyMember viewer = requireConnectRight();
         requireConfigured();
         byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
         String state = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         session.setAttribute(STATE_ATTRIBUTE, state);
-        return new ConnectResponse(google.authorizationUrl(state));
+        session.setAttribute(EXPORT_ATTRIBUTE, export);
+        boolean exporting = connections.findByMemberId(viewer.id()).map(GoogleConnection::exportEnabled).orElse(false);
+        return new ConnectResponse(google.authorizationUrl(state, export || exporting));
     }
 
     @GetMapping("/callback")
@@ -116,7 +131,9 @@ public class GoogleController {
             HttpSession session) {
         FamilyMember viewer = requireConnectRight();
         Object expectedState = session.getAttribute(STATE_ATTRIBUTE);
+        boolean exportWanted = Boolean.TRUE.equals(session.getAttribute(EXPORT_ATTRIBUTE));
         session.removeAttribute(STATE_ATTRIBUTE);
+        session.removeAttribute(EXPORT_ATTRIBUTE);
 
         // Ohne passenden state könnte ein fremder Link ein fremdes Google-Konto unterschieben (CSRF).
         if (expectedState == null || !expectedState.equals(state)) {
@@ -126,18 +143,52 @@ public class GoogleController {
             return backToFrontend("abgebrochen");
         }
         try {
+            GoogleConnection connection = accounts.connect(viewer.id(), code);
             // Fehler beim ersten Abgleich stehen im Status; verbunden ist das Konto trotzdem.
-            sync.sync(accounts.connect(viewer.id(), code));
+            if (!exportWanted) {
+                sync.sync(connection);
+                return backToFrontend("verbunden");
+            }
+            // Bei Google lässt sich das Eintragen auf der Zustimmungsseite einzeln abwählen
+            if (!connection.writeGranted()) {
+                sync.sync(connection);
+                return backToFrontend("ohne-eintragen");
+            }
+            sync.enableExport(connection);
             return backToFrontend("verbunden");
-        } catch (GoogleException e) {
+        } catch (GoogleException | RestClientException e) {
             LOG.warn("Google-Verbindung für Mitglied {} fehlgeschlagen: {}", viewer.id(), e.getMessage());
             return backToFrontend("fehler");
         }
     }
 
+    @PutMapping("/export")
+    @Operation(summary = "FamilyHub-Termine in Google eintragen (ein oder aus)",
+            description = "Ein: legt in Google den Kalender „FamilyHub“ an und trägt dort alle freigegebenen Termine "
+                    + "ein, an denen die Person beteiligt ist; Änderungen in FamilyHub folgen nach wenigen Sekunden. "
+                    + "Braucht das Schreibrecht (writeGranted), sonst zuerst POST /connect?export=true. "
+                    + "Aus: löscht den Kalender „FamilyHub“ in Google.")
+    public GoogleStatus setExport(@RequestBody ExportSetting setting) {
+        FamilyMember viewer = requireConnectRight();
+        requireConfigured();
+        GoogleConnection connection = requireConnection(viewer);
+        if (setting.enabled() && !connection.writeGranted()) {
+            throw ApiException.conflict("Google hat das Eintragen noch nicht erlaubt. Bitte zuerst bei Google zustimmen.");
+        }
+        try {
+            return GoogleStatus.of(true, setting.enabled() ? sync.enableExport(connection)
+                    : sync.disableExport(connection));
+        } catch (GoogleException e) {
+            throw ApiException.unavailable(e.getMessage());
+        } catch (RestClientException e) {
+            throw ApiException.unavailable("Google ist gerade nicht erreichbar. Bitte später erneut versuchen.");
+        }
+    }
+
     @PostMapping("/sync")
     @Operation(summary = "Jetzt mit Google abgleichen",
-            description = "Übernimmt neue, geänderte und gelöschte Termine. Fehler stehen in lastSyncError.")
+            description = "Übernimmt neue, geänderte und gelöschte Termine und trägt, wenn eingeschaltet, die "
+                    + "FamilyHub-Termine in Google ein. Fehler stehen in lastSyncError.")
     public GoogleStatus syncNow() {
         FamilyMember viewer = requireConnectRight();
         requireConfigured();
@@ -179,7 +230,8 @@ public class GoogleController {
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Google-Verbindung trennen",
-            description = "Widerruft den Zugang bei Google, löscht die Verbindung und alle importierten Termine.")
+            description = "Löscht den Kalender „FamilyHub“ in Google, widerruft den Zugang bei Google, löscht die "
+                    + "Verbindung und alle importierten Termine.")
     public void disconnect() {
         FamilyMember viewer = requireConnectRight();
         accounts.disconnect(requireConnection(viewer));

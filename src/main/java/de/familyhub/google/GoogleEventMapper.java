@@ -4,7 +4,10 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.stereotype.Component;
 
@@ -12,7 +15,8 @@ import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.EventStatus;
 import de.familyhub.calendar.ExternalRef;
 
-// Wandelt einen Google-Termin in einen FamilyHub-Termin der verbundenen Person um.
+// Wandelt Termine zwischen Google und FamilyHub um: Google-Termine werden FamilyHub-Termine der verbundenen Person,
+// FamilyHub-Termine werden Einträge im Google-Kalender „FamilyHub“.
 @Component
 public class GoogleEventMapper {
 
@@ -27,9 +31,12 @@ public class GoogleEventMapper {
         this.zone = clock.getZone();
     }
 
-    // null für abgesagte oder unvollständige Termine; die werden nicht übernommen.
+    // null für abgesagte oder unvollständige Termine; die werden nicht übernommen. Ebenso für Termine, die FamilyHub
+    // selbst nach Google eingetragen hat (z. B. wenn jemand den Kalender „FamilyHub“ eines anderen abonniert hat):
+    // Die gibt es in FamilyHub schon.
     public CalendarEvent toEvent(GoogleEvent event, String memberId, GoogleCalendarChoice calendar) {
-        if ("cancelled".equals(event.status()) || event.start() == null || event.end() == null) {
+        if ("cancelled".equals(event.status()) || event.start() == null || event.end() == null
+                || event.familyhubId() != null) {
             return null;
         }
         LocalDateTime start = toLocal(event.start());
@@ -47,6 +54,29 @@ public class GoogleEventMapper {
                 EventStatus.APPROVED, memberId, new ExternalRef(ExternalRef.GOOGLE, calendar.calendarId(), event.id()));
     }
 
+    // Eintrag für den Google-Kalender „FamilyHub“. Private Termine sind auch in Google privat; die Id des
+    // FamilyHub-Termins steht als private Eigenschaft daran, so erkennt der Abgleich ihn wieder.
+    public GoogleEventInput toGoogle(CalendarEvent event) {
+        return new GoogleEventInput(event.title(), blankToNull(event.description()), blankToNull(event.location()),
+                event.privateEvent() ? "private" : "default", toGoogleTime(event.start()), toGoogleTime(event.end()),
+                new GoogleEventInput.ExtendedProperties(Map.of(GoogleEvent.FAMILYHUB_ID, event.id())));
+    }
+
+    // Stimmt der Eintrag in Google noch mit dem FamilyHub-Termin überein? Sonst wird er überschrieben, auch wenn ihn
+    // jemand in Google geändert hat: FamilyHub bleibt führend (Entscheidung vom 19.10.2026).
+    public boolean isUpToDate(GoogleEvent google, CalendarEvent event) {
+        if (google.start() == null || google.end() == null
+                || google.start().dateTime() == null || google.end().dateTime() == null) {
+            return false;
+        }
+        return Objects.equals(google.summary(), event.title())
+                && Objects.equals(blankToNull(google.description()), blankToNull(event.description()))
+                && Objects.equals(blankToNull(google.location()), blankToNull(event.location()))
+                && "private".equals(google.visibility()) == event.privateEvent()
+                && toLocal(google.start()).equals(event.start())
+                && toLocal(google.end()).equals(event.end());
+    }
+
     // Zeiten mit Zeitzone in die Zeitzone von FamilyHub umrechnen; ganztägige Termine gehen von 00:00 bis 00:00
     // des Folgetags (Google liefert das Ende bereits exklusiv).
     private LocalDateTime toLocal(GoogleEvent.Time time) {
@@ -54,6 +84,10 @@ public class GoogleEventMapper {
             return time.dateTime().atZoneSameInstant(zone).toLocalDateTime();
         }
         return time.date() == null ? null : time.date().atStartOfDay();
+    }
+
+    private GoogleEventInput.Time toGoogleTime(LocalDateTime time) {
+        return new GoogleEventInput.Time(time.atZone(zone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), zone.getId());
     }
 
     // Google liefert Beschreibungen teils als HTML
@@ -67,5 +101,9 @@ public class GoogleEventMapper {
         }
         String trimmed = text.strip();
         return trimmed.length() <= max ? trimmed : trimmed.substring(0, max - 1) + "…";
+    }
+
+    private static String blankToNull(String text) {
+        return text == null || text.isBlank() ? null : text;
     }
 }
