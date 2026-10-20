@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -34,6 +35,9 @@ class GoogleApiTest {
             "https://auth.test/auth", "https://auth.test/token", "https://auth.test/revoke",
             "https://api.test/calendar/v3");
 
+    private static final String FAMILYHUB = "fh@group.calendar.google.com";
+    private static final String FAMILYHUB_URL = "https://api.test/calendar/v3/calendars/fh%40group.calendar.google.com";
+
     private MockRestServiceServer server;
     private GoogleApi api;
 
@@ -46,7 +50,7 @@ class GoogleApiTest {
 
     @Test
     void authorizationUrlAsksForReadOnlyAccessWithRefreshToken() {
-        String url = api.authorizationUrl("state-123");
+        String url = api.authorizationUrl("state-123", false);
 
         assertThat(url).startsWith("https://auth.test/auth?")
                 .contains("client_id=client-id")
@@ -56,6 +60,28 @@ class GoogleApiTest {
                 .contains("access_type=offline")
                 .contains("prompt=consent")
                 .contains("state=state-123");
+    }
+
+    @Test
+    void authorizationUrlAsksForWriteAccessOnlyWhenWanted() {
+        assertThat(api.authorizationUrl("state-123", true)).contains("scope=https://www.googleapis.com/auth/"
+                + "calendar.readonly%20https://www.googleapis.com/auth/calendar.app.created");
+        assertThat(api.authorizationUrl("state-123", false)).doesNotContain("calendar.app.created");
+    }
+
+    @Test
+    void tokensTellWhetherWritingWasAllowed() {
+        server.expect(requestTo("https://auth.test/token"))
+                .andRespond(withSuccess("""
+                        {"access_token": "access-1", "refresh_token": "refresh-1", "token_type": "Bearer",
+                         "scope": "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.app.created"}
+                        """, MediaType.APPLICATION_JSON));
+
+        GoogleApi.Tokens tokens = api.exchangeCode("code-123");
+
+        assertThat(tokens.grants(GoogleApi.WRITE_SCOPE)).isTrue();
+        assertThat(new GoogleApi.Tokens("access-1", "refresh-1", GoogleApi.READ_SCOPE).grants(GoogleApi.WRITE_SCOPE))
+                .isFalse();
     }
 
     @Test
@@ -173,6 +199,91 @@ class GoogleApiTest {
         assertThat(events.get(0).visibility()).isEqualTo("private");
         assertThat(events.get(1).start().date()).isEqualTo(LocalDate.of(2026, 10, 3));
         assertThat(events.get(1).start().dateTime()).isNull();
+        assertThat(events.get(0).familyhubId()).isNull();
         server.verify();
+    }
+
+    @Test
+    void listEventsReadsTheFamilyHubIdOfEntriesFamilyHubWrote() {
+        server.expect(requestTo(startsWith(FAMILYHUB_URL + "/events?")))
+                .andRespond(withSuccess("""
+                        {"items": [
+                          {"id": "g1", "status": "confirmed", "summary": "Arzt",
+                           "start": {"dateTime": "2026-10-01T10:00:00+02:00", "timeZone": "Europe/Berlin"},
+                           "end": {"dateTime": "2026-10-01T11:00:00+02:00", "timeZone": "Europe/Berlin"},
+                           "extendedProperties": {"private": {"familyhubId": "abc"}, "shared": {"x": "y"}}}
+                        ]}
+                        """, MediaType.APPLICATION_JSON));
+
+        List<GoogleEvent> events = api.listEvents("access-1", FAMILYHUB,
+                Instant.parse("2025-09-28T00:00:00Z"), Instant.parse("2027-09-28T00:00:00Z"));
+
+        assertThat(events).singleElement().satisfies(e -> assertThat(e.familyhubId()).isEqualTo("abc"));
+    }
+
+    @Test
+    void createsTheFamilyHubCalendarAndWritesEntriesAsJson() {
+        server.expect(requestTo("https://api.test/calendar/v3/calendars"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("Authorization", "Bearer access-1"))
+                .andExpect(jsonPath("$.summary").value("FamilyHub"))
+                .andExpect(jsonPath("$.timeZone").value("Europe/Berlin"))
+                .andRespond(withSuccess("{\"id\": \"fh@group.calendar.google.com\", \"summary\": \"FamilyHub\"}",
+                        MediaType.APPLICATION_JSON));
+        server.expect(requestTo(FAMILYHUB_URL + "/events"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("Authorization", "Bearer access-1"))
+                .andExpect(jsonPath("$.summary").value("Arzt"))
+                .andExpect(jsonPath("$.visibility").value("private"))
+                .andExpect(jsonPath("$.start.dateTime").value("2026-10-01T10:00:00+02:00"))
+                .andExpect(jsonPath("$.start.timeZone").value("Europe/Berlin"))
+                .andExpect(jsonPath("$.extendedProperties.private.familyhubId").value("abc"))
+                // Leere Felder gehen nicht mit
+                .andExpect(jsonPath("$.location").doesNotExist())
+                .andRespond(withSuccess("{\"id\": \"g1\"}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(FAMILYHUB_URL + "/events/g1"))
+                .andExpect(method(HttpMethod.PUT))
+                .andExpect(jsonPath("$.summary").value("Arzt"))
+                .andRespond(withSuccess("{\"id\": \"g1\"}", MediaType.APPLICATION_JSON));
+
+        GoogleApi.CalendarInfo calendar = api.createCalendar("access-1", "FamilyHub", "Termine aus FamilyHub",
+                "Europe/Berlin");
+        GoogleEventInput arzt = new GoogleEventInput("Arzt", null, null, "private",
+                new GoogleEventInput.Time("2026-10-01T10:00:00+02:00", "Europe/Berlin"),
+                new GoogleEventInput.Time("2026-10-01T11:00:00+02:00", "Europe/Berlin"),
+                new GoogleEventInput.ExtendedProperties(Map.of("familyhubId", "abc")));
+
+        assertThat(calendar.id()).isEqualTo(FAMILYHUB);
+        assertThat(api.insertEvent("access-1", calendar.id(), arzt).id()).isEqualTo("g1");
+        api.updateEvent("access-1", calendar.id(), "g1", arzt);
+        server.verify();
+    }
+
+    @Test
+    void deletingWhatIsAlreadyGoneAtGoogleIsFine() {
+        server.expect(requestTo(FAMILYHUB_URL + "/events/g1"))
+                .andExpect(method(HttpMethod.DELETE))
+                .andRespond(withStatus(HttpStatus.GONE));
+        server.expect(requestTo(FAMILYHUB_URL))
+                .andExpect(method(HttpMethod.DELETE))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND));
+
+        api.deleteEvent("access-1", FAMILYHUB, "g1");
+        api.deleteCalendar("access-1", FAMILYHUB);
+        server.verify();
+    }
+
+    @Test
+    void missingCalendarIsReportedAsNotFound() {
+        server.expect(requestTo(startsWith(FAMILYHUB_URL + "/events?")))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\": {\"code\": 404, \"message\": \"Not Found\"}}"));
+
+        assertThatThrownBy(() -> api.listEvents("access-1", FAMILYHUB,
+                Instant.parse("2025-09-28T00:00:00Z"), Instant.parse("2027-09-28T00:00:00Z")))
+                .isInstanceOfSatisfying(GoogleException.class, e -> {
+                    assertThat(e.notFound()).isTrue();
+                    assertThat(e.reconnectNeeded()).isFalse();
+                });
     }
 }

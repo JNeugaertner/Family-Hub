@@ -1,7 +1,67 @@
 # Änderungen
 
 Alle Versionen von FamilyHub AI mit den wichtigsten Neuerungen. Jede Version ist
-auf `main` mit einem Tag markiert (`v0.1.0`, …).
+auf `main` mit einem Tag markiert (`v0.1.0`, …). Ältere Einträge beschreiben den
+Stand ihrer Version; was sich später geändert hat, steht bei der neueren Version.
+
+## v0.6.0 – 20.10.2026
+
+### Neu
+
+- **Familien-Chat:** Nachrichten in der Familiengruppe und in Einzelchats, die
+  nur die beiden Beteiligten sehen. Ein Zähler in der Seitenleiste zeigt
+  ungelesene Nachrichten. Aus einer Nachricht wird per Menü ein Artikel auf der
+  Einkaufsliste (bei Kindern als Vorschlag), ein Termin oder eine Aufgabe; die
+  Formulare sind dann schon ausgefüllt. Eigene Nachrichten lassen sich löschen,
+  Administratoren löschen auch fremde in der Familiengruppe. Gäste haben keinen
+  Zugang. „Nachrichten“ ist keine Vorschau mehr.
+- **Termine in Google eintragen:** Wer seinen Google Kalender verbunden hat, kann
+  unter „Familie“ zusätzlich die eigenen FamilyHub-Termine in Google eintragen
+  lassen. FamilyHub legt dafür einen eigenen Google-Kalender „FamilyHub“ an und
+  trägt alle freigegebenen Termine ein, an denen die Person beteiligt ist, auch
+  gemeinsame; private sind in Google als privat markiert. Änderungen in FamilyHub
+  erscheinen nach wenigen Sekunden in Google. FamilyHub bleibt führend:
+  Änderungen in Google werden beim nächsten Abgleich überschrieben. Ausschalten
+  oder Trennen löscht den Kalender „FamilyHub“ in Google wieder. Die übrigen
+  Google-Kalender liest FamilyHub weiterhin nur.
+
+### Geändert
+
+- **Aufgaben für Erwachsene:** Erwachsene bekommen keine Punkte mehr. Aufgaben
+  für sie werden ohne Punkte angelegt (das Punkte-Feld ist ausgeblendet) und
+  gelten nach dem Abhaken als erledigt, ohne Bestätigung. Sterne und
+  Punkteangaben fehlen an ihren Aufgaben. Bonus-Aufgaben betrifft das nicht.
+- **Müllabfuhr:** Die Aufgabe für den Vorabend entsteht bis zu sieben Tage vor
+  der Abholung (bisher fünf), angelegt wird täglich um 07:50 Uhr (bisher
+  00:10 Uhr). Die gelbe Tonne erscheint im Kalender in Gelb.
+- **Zutaten auf die Einkaufsliste:** Zutaten aus dem Essensplan stehen in einer
+  eigenen Kategorie „Zutaten Essensplanung“, unabhängig von gleichnamigen
+  Artikeln anderer Kategorien. „Zutaten der Woche“ gleicht diese Kategorie mit
+  dem Plan ab: Gleiche Zutaten werden zusammengezählt (z. B. 500 g + 500 g =
+  1000 g), nicht mehr benötigte entfernt. Abgehakte Zutaten bleiben stehen, bis
+  jemand „Abgehakte entfernen“ klickt; braucht der Plan sie erneut, kommen sie
+  wieder auf die Liste. Von Hand lässt sich die Kategorie nicht wählen.
+
+### Hinweise zum Update
+
+- Neue Endpunkte: `/api/messages` (Chat) und `PUT /api/google/export`;
+  `POST /api/google/connect` nimmt zusätzlich `export=true` (Details in der
+  Swagger UI).
+- Neue Einstellung `familyhub.google.push-delay` (Standard: 10 Sekunden). Die
+  Uhrzeit der Müll-Aufgaben steht jetzt sichtbar in `application.properties`
+  (`familyhub.waste.task-sync-cron=0 50 7 * * *`).
+- Wer Termine in Google eintragen will, ergänzt in der Google Cloud Console den
+  Scope `calendar.app.created` (siehe README). Bestehende Google-Verbindungen
+  bleiben erhalten und lesen weiter nur, bis jemand das Eintragen einschaltet.
+- Zutaten, die vor dem Update auf die Einkaufsliste kamen, stehen in ihren alten
+  Kategorien; der Abgleich lässt sie unberührt.
+- Aufgaben, die Erwachsenen schon vor dem Update mit Punkten zugewiesen waren,
+  einmal öffnen und speichern: Dann stehen sie auf 0 Punkten. Sonst warten sie
+  nach dem Abhaken auf eine Bestätigung, für die es bei Erwachsenen keinen Knopf
+  mehr gibt.
+- Neue Einkaufskategorie `zutaten_essensplanung` für alle, die die
+  REST-Schnittstelle direkt nutzen.
+- 279 automatisierte Backend-Tests.
 
 ## v0.5.0 – 01.10.2026
 

@@ -8,7 +8,7 @@ import type { Dish, Ingredient, MealEntry, MealType, ShoppingTransfer } from '..
 import { useMealData } from '../meals/MealDataContext';
 import { MEAL_STYLES, MEAL_TYPES } from '../meals/mealTypes';
 import type { ShoppingCategory } from '../shopping/api';
-import { SHOPPING_CATEGORIES, SHOPPING_CATEGORY_KEYS } from '../shopping/categories';
+import { SELECTABLE_SHOPPING_CATEGORIES, SHOPPING_CATEGORIES } from '../shopping/categories';
 
 interface Props { onNavigate: (p: any) => void; }
 
@@ -304,7 +304,7 @@ function DishForm({ dish, onClose, onDone }: { dish: Dish | null; onClose: () =>
                 value={row.quantity} onChange={e => setRow(i, { quantity: e.target.value })} />
               <select className={`${INPUT} py-1.5`} aria-label={`Kategorie ${i + 1}`} value={row.category}
                 onChange={e => setRow(i, { category: e.target.value as ShoppingCategory })}>
-                {SHOPPING_CATEGORY_KEYS.map(c => <option key={c} value={c}>{SHOPPING_CATEGORIES[c].icon} {SHOPPING_CATEGORIES[c].label}</option>)}
+                {SELECTABLE_SHOPPING_CATEGORIES.map(c => <option key={c} value={c}>{SHOPPING_CATEGORIES[c].icon} {SHOPPING_CATEGORIES[c].label}</option>)}
               </select>
               <button type="button" onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}
                 className="text-slate-300 hover:text-[#EF4444] p-1" aria-label={`Zutat ${i + 1} entfernen`}>

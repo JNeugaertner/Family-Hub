@@ -96,7 +96,7 @@ class GoogleCalendarSyncTest {
                         new GoogleCalendarChoice(PRIMARY, "Emma", true, true, EventCategory.APPOINTMENT),
                         new GoogleCalendarChoice(FUSSBALL, "Fußball", false, true, EventCategory.SPORTS),
                         new GoogleCalendarChoice(SCHULE, "Schule", false, false, EventCategory.SCHOOL)),
-                null, null, false));
+                null, null, false, false, null));
         when(google.refreshAccessToken("refresh-1")).thenReturn("access-1");
     }
 

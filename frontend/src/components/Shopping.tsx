@@ -3,7 +3,7 @@ import { PlusIcon, CheckIcon, XIcon, ShoppingCartIcon, AlertTriangleIcon, Pencil
 import { useAuth, useMe } from '../auth/AuthContext';
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import type { ShoppingCategory, ShoppingInput, ShoppingItem } from '../shopping/api';
-import { SHOPPING_CATEGORIES, SHOPPING_CATEGORY_KEYS } from '../shopping/categories';
+import { SELECTABLE_SHOPPING_CATEGORIES, SHOPPING_CATEGORIES, SHOPPING_CATEGORY_KEYS } from '../shopping/categories';
 import { useShoppingData } from '../shopping/ShoppingDataContext';
 
 interface Props { onNavigate: (p: any) => void; }
@@ -39,7 +39,9 @@ function EditRow({ item, onSave, onCancel }: {
       <input className={`${INPUT} flex-1 min-w-[140px] py-1.5`} value={name} onChange={e => setName(e.target.value)} aria-label="Artikel" autoFocus />
       <input className={`${INPUT} w-24 py-1.5`} value={quantity} onChange={e => setQuantity(e.target.value)} aria-label="Menge" placeholder="Menge" />
       <select className={`${INPUT} py-1.5`} value={category} onChange={e => setCategory(e.target.value as ShoppingCategory)} aria-label="Kategorie">
-        {SHOPPING_CATEGORY_KEYS.map(c => <option key={c} value={c}>{SHOPPING_CATEGORIES[c].label}</option>)}
+        {/* Artikel aus dem Essensplan behalten ihre Kategorie */}
+        {(item.category === 'zutaten_essensplanung' ? SHOPPING_CATEGORY_KEYS : SELECTABLE_SHOPPING_CATEGORIES)
+          .map(c => <option key={c} value={c}>{SHOPPING_CATEGORIES[c].label}</option>)}
       </select>
       <label className="flex items-center gap-1 text-xs text-slate-600">
         <input type="checkbox" className="accent-[#EF4444]" checked={urgent} onChange={e => setUrgent(e.target.checked)} /> Dringend
@@ -284,7 +286,7 @@ export default function Shopping({ onNavigate }: Props) {
             <input className={`${INPUT} w-28`} placeholder="Menge" aria-label="Menge" maxLength={30}
               value={newQuantity} onChange={e => setNewQuantity(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} />
             <select className={INPUT} value={newCategory} aria-label="Kategorie" onChange={e => setNewCategory(e.target.value as ShoppingCategory)}>
-              {SHOPPING_CATEGORY_KEYS.map(c => <option key={c} value={c}>{SHOPPING_CATEGORIES[c].icon} {SHOPPING_CATEGORIES[c].label}</option>)}
+              {SELECTABLE_SHOPPING_CATEGORIES.map(c => <option key={c} value={c}>{SHOPPING_CATEGORIES[c].icon} {SHOPPING_CATEGORIES[c].label}</option>)}
             </select>
             <label className="flex items-center gap-1.5 text-xs text-slate-600 px-1">
               <input type="checkbox" className="w-4 h-4 accent-[#EF4444]" checked={newUrgent} onChange={e => setNewUrgent(e.target.checked)} />

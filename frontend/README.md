@@ -42,7 +42,7 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Punkte: Punktestände, Rangliste, Historie, Belohnungsanimation; Dashboard „Familienpunkte“ | Backend: `/api/points` |
 | Erfolge: Fortschritt je Kind, Animation bei neuen Erfolgen; Anpassen (Admins) | Backend: `/api/achievements` |
 | Belohnungen: Shop, einlösen, zurückziehen; Genehmigen/Ablehnen und Belohnungen verwalten (Admins) | Backend: `/api/rewards`, `/api/redemptions` |
-| Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter „Familie“) | Backend: `/api/google` |
+| Google Kalender verbinden, Kalender auswählen, abgleichen, eigene Termine in Google eintragen, trennen (Karte unter „Familie“) | Backend: `/api/google` |
 | Einkaufsliste: hinzufügen, vorschlagen, abhaken, bearbeiten, Vorschläge übernehmen; Dashboard „Einkaufsliste“ | Backend: `/api/shopping` |
 | Essensplan: Wochenplan, Gerichte-Sammlung mit Kochanleitung (ein Schritt pro Zeile, Zubereitungszeit, Portionen), Wünsche der Kinder, Zutaten auf die Einkaufsliste; Dashboard „Mahlzeiten heute“ | Backend: `/api/meals`, `/api/dishes` |
 | Wetter mit Kleidungsempfehlung (Dashboard); Wohnort einstellen (Karte unter „Familie“, Admins) | Backend: `/api/weather` |
@@ -81,6 +81,8 @@ Stift (auch ein Klick auf die Karte öffnet das Formular); bestätigte Aufgaben
 lassen sich nur ansehen. Administratoren räumen mit „Erledigte löschen“ in der
 Spalte Done auf: Das entfernt bestätigte Aufgaben und erledigte ohne Punkte,
 wartende Bestätigungen bleiben stehen, die Punkte-Historie bleibt erhalten.
+Erwachsene sammeln keine Punkte: Für sie gibt es im Formular kein Punkte-Feld,
+an ihren Aufgaben keine Sterne und kein Bestätigen; abgehakt ist erledigt.
 
 **Bonus-Aufgaben:** Eltern legen Aufgaben ohne feste Person an (Punkte Pflicht,
 Frist optional, auf Wunsch wiederkehrend). Sie stehen oben auf der Aufgabenseite
@@ -118,16 +120,27 @@ Menge und Kategorie). Kinder sehen den Plan und wünschen sich etwas; der Wunsch
 steht gestrichelt im Plan, nur die Eltern übernehmen ihn (er ersetzt dann den
 bisherigen Eintrag) oder lehnen ab (Zähler an „Essensplan“). Mit dem
 Einkaufswagen an einem Gericht oder „Zutaten der Woche auf die Einkaufsliste“
-kommen die Zutaten auf die Einkaufsliste; was dort schon offen steht, wird nicht
-doppelt angelegt.
+kommen die Zutaten in die eigene Kategorie „Zutaten Essensplanung“. „Zutaten der
+Woche“ gleicht diese Kategorie mit dem Plan ab: gleiche Zutaten werden
+zusammengezählt, nicht mehr benötigte entfernt. Abgehakte Zutaten bleiben stehen
+und kommen neu dazu, wenn der Plan sie wieder braucht. Von Hand ist die Kategorie
+nicht wählbar (`SELECTABLE_SHOPPING_CATEGORIES` in `src/shopping/categories.ts`),
+Artikel aus dem Essensplan behalten sie beim Bearbeiten.
 
 **Google Kalender:** Termine aus Google tragen im Kalender und im Dashboard ein
 „G“ und lassen sich nur ansehen; geändert werden sie in Google. Ganztägige
 Termine stehen in der Wochenansicht oben am Tag und gelten an jedem ihrer
 Tage. Nach der Anmeldung bei Google leitet das Backend auf
-`http://localhost:5173/?google=verbunden|abgebrochen|fehler` zurück; die
-Oberfläche öffnet dann die Profilseite mit einer Meldung. Einrichtung der
-Zugangsdaten: siehe README im Hauptordner.
+`http://localhost:5173/?google=verbunden|abgebrochen|fehler|ohne-eintragen`
+zurück; die Oberfläche öffnet dann die Profilseite mit einer Meldung. Einrichtung
+der Zugangsdaten: siehe README im Hauptordner.
+
+Mit „Meine FamilyHub-Termine in Google eintragen“ auf der Google-Karte schreibt
+FamilyHub alle freigegebenen Termine, an denen die Person beteiligt ist, in einen
+eigenen Google-Kalender „FamilyHub“ (`PUT /api/google/export`). Fehlt das Recht
+dazu noch (`writeGranted`), geht es zuerst über die Anmeldeseite von Google
+(`POST /api/google/connect?export=true`); wählt man das Eintragen dort ab, kommt
+man mit `?google=ohne-eintragen` zurück und FamilyHub liest weiter nur.
 
 ## Rollen in der Oberfläche
 
