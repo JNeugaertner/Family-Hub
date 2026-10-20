@@ -101,13 +101,16 @@ class WasteCollectionControllerTest {
     }
 
     @Test
-    void doesNotCreateTaskEarlierThanFiveDaysBeforePickup() throws Exception {
-        MockMultipartFile file = calendar(LocalDate.now().plusDays(6));
-
-        mvc.perform(multipart("/api/waste/import").file(file).param("points", "15").with(as(parent)))
+    void createsTaskAtMostSevenDaysBeforePickup() throws Exception {
+        mvc.perform(multipart("/api/waste/import").file(calendar(LocalDate.now().plusDays(8))).param("points", "15")
+                        .with(as(parent)))
                 .andExpect(status().isOk());
-
         org.junit.jupiter.api.Assertions.assertEquals(0, tasks.count());
+
+        mvc.perform(multipart("/api/waste/import").file(calendar(LocalDate.now().plusDays(7))).param("points", "15")
+                        .with(as(parent)))
+                .andExpect(status().isOk());
+        org.junit.jupiter.api.Assertions.assertEquals(1, tasks.count());
     }
 
     private static MockMultipartFile calendar(LocalDate pickupDate) {
