@@ -42,7 +42,7 @@ Weitere Befehle: `pnpm build` (Produktions-Build nach `dist/`),
 | Punkte: Punktestände, Rangliste, Historie, Belohnungsanimation; Dashboard „Familienpunkte“ | Backend: `/api/points` |
 | Erfolge: Fortschritt je Kind, Animation bei neuen Erfolgen; Anpassen (Admins) | Backend: `/api/achievements` |
 | Belohnungen: Shop, einlösen, zurückziehen; Genehmigen/Ablehnen und Belohnungen verwalten (Admins) | Backend: `/api/rewards`, `/api/redemptions` |
-| Google Kalender verbinden, Kalender auswählen, abgleichen, trennen (Karte unter „Familie“) | Backend: `/api/google` |
+| Google Kalender verbinden, Kalender auswählen, abgleichen, eigene Termine in Google eintragen, trennen (Karte unter „Familie“) | Backend: `/api/google` |
 | Einkaufsliste: hinzufügen, vorschlagen, abhaken, bearbeiten, Vorschläge übernehmen; Dashboard „Einkaufsliste“ | Backend: `/api/shopping` |
 | Essensplan: Wochenplan, Gerichte-Sammlung mit Kochanleitung (ein Schritt pro Zeile, Zubereitungszeit, Portionen), Wünsche der Kinder, Zutaten auf die Einkaufsliste; Dashboard „Mahlzeiten heute“ | Backend: `/api/meals`, `/api/dishes` |
 | Wetter mit Kleidungsempfehlung (Dashboard); Wohnort einstellen (Karte unter „Familie“, Admins) | Backend: `/api/weather` |
@@ -125,9 +125,16 @@ doppelt angelegt.
 „G“ und lassen sich nur ansehen; geändert werden sie in Google. Ganztägige
 Termine stehen in der Wochenansicht oben am Tag und gelten an jedem ihrer
 Tage. Nach der Anmeldung bei Google leitet das Backend auf
-`http://localhost:5173/?google=verbunden|abgebrochen|fehler` zurück; die
-Oberfläche öffnet dann die Profilseite mit einer Meldung. Einrichtung der
-Zugangsdaten: siehe README im Hauptordner.
+`http://localhost:5173/?google=verbunden|abgebrochen|fehler|ohne-eintragen`
+zurück; die Oberfläche öffnet dann die Profilseite mit einer Meldung. Einrichtung
+der Zugangsdaten: siehe README im Hauptordner.
+
+Mit „Meine FamilyHub-Termine in Google eintragen“ auf der Google-Karte schreibt
+FamilyHub alle freigegebenen Termine, an denen die Person beteiligt ist, in einen
+eigenen Google-Kalender „FamilyHub“ (`PUT /api/google/export`). Fehlt das Recht
+dazu noch (`writeGranted`), geht es zuerst über die Anmeldeseite von Google
+(`POST /api/google/connect?export=true`); wählt man das Eintragen dort ab, kommt
+man mit `?google=ohne-eintragen` zurück und FamilyHub liest weiter nur.
 
 ## Rollen in der Oberfläche
 
