@@ -159,6 +159,26 @@ class ShoppingControllerTest {
     }
 
     @Test
+    void mealPlanCategoryIsFilledOnlyByTheMealPlan() throws Exception {
+        mvc.perform(post("/api/shopping").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content("{\"name\": \"Reis\", \"category\": \"zutaten_essensplanung\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.category")
+                        .value("Diese Kategorie füllt der Essensplan. Bitte eine andere wählen."));
+        mvc.perform(put("/api/shopping/" + milk.id()).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content("{\"name\": \"Milch\", \"category\": \"zutaten_essensplanung\"}"))
+                .andExpect(status().isBadRequest());
+
+        // Was der Essensplan eingetragen hat, lässt sich weiter bearbeiten
+        ShoppingItem rice = items.save(new ShoppingItem(null, "Reis", "500 g", ShoppingCategory.ZUTATEN_ESSENSPLANUNG,
+                false, false, ShoppingItemStatus.APPROVED, sarah.id(), LocalDateTime.now(), null));
+        mvc.perform(put("/api/shopping/" + rice.id()).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content("{\"name\": \"Reis\", \"quantity\": \"1 kg\", \"category\": \"zutaten_essensplanung\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.quantity").value("1 kg"));
+    }
+
+    @Test
     void invalidItemsAreRejectedAndGuestsSeeNothing() throws Exception {
         mvc.perform(post("/api/shopping").with(as(sarah)).contentType(APPLICATION_JSON)
                         .content("{\"name\": \" \", \"category\": null}"))

@@ -5,6 +5,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,11 +24,15 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-// Aufrufe an Google: Anmeldung (OAuth 2.0, Autorisierungs-Code-Ablauf) und Google Calendar API (nur lesen).
+// Aufrufe an Google: Anmeldung (OAuth 2.0, Autorisierungs-Code-Ablauf) und Google Calendar API. Gelesen werden alle
+// Kalender; geschrieben wird nur in den Kalender „FamilyHub“, den FamilyHub selbst anlegt.
 @Component
 public class GoogleApi {
 
-    static final String SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+    static final String READ_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+    // Nur Kalender, die FamilyHub selbst angelegt hat, und deren Termine (Entscheidung vom 19.10.2026); an die
+    // übrigen Kalender kommt FamilyHub damit nicht heran. Wird erst angefragt, wenn jemand das Eintragen einschaltet.
+    static final String WRITE_SCOPE = "https://www.googleapis.com/auth/calendar.app.created";
 
     // Schutz gegen Endlosschleifen beim Blättern; 20 Seiten à 2500 Termine reichen für jeden Familienkalender.
     private static final int MAX_PAGES = 20;
@@ -46,9 +51,16 @@ public class GoogleApi {
         this.rest = builder.build();
     }
 
+    // scope: die tatsächlich erlaubten Berechtigungen, durch Leerzeichen getrennt. Bei Google kann man einzelne
+    // angefragte Berechtigungen abwählen.
     public record Tokens(
             @JsonProperty("access_token") String accessToken,
-            @JsonProperty("refresh_token") String refreshToken) {
+            @JsonProperty("refresh_token") String refreshToken,
+            String scope) {
+
+        public boolean grants(String wanted) {
+            return scope != null && Arrays.asList(scope.split(" ")).contains(wanted);
+        }
     }
 
     public record CalendarInfo(String id, String summary, String summaryOverride, Boolean primary) {
@@ -65,13 +77,17 @@ public class GoogleApi {
     record Page<T>(List<T> items, String nextPageToken) {
     }
 
+    record NewCalendar(String summary, String description, String timeZone) {
+    }
+
     // access_type=offline und prompt=consent: Google liefert einen Refresh-Token, auch beim erneuten Verbinden.
-    public String authorizationUrl(String state) {
+    // write: zusätzlich das Recht, den Kalender „FamilyHub“ anzulegen und dort Termine einzutragen.
+    public String authorizationUrl(String state, boolean write) {
         return UriComponentsBuilder.fromUriString(properties.authUrl())
                 .queryParam("client_id", properties.clientId())
                 .queryParam("redirect_uri", properties.redirectUri())
                 .queryParam("response_type", "code")
-                .queryParam("scope", SCOPE)
+                .queryParam("scope", write ? READ_SCOPE + " " + WRITE_SCOPE : READ_SCOPE)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent")
                 .queryParam("state", state)
@@ -141,6 +157,77 @@ public class GoogleApi {
         });
     }
 
+    // Legt einen weiteren Kalender im Google-Konto an; Google trägt ihn auch in die Kalenderliste der Person ein.
+    public CalendarInfo createCalendar(String accessToken, String summary, String description, String timeZone) {
+        return rest.post().uri(properties.apiUrl() + "/calendars")
+                .headers(headers -> headers.setBearerAuth(accessToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new NewCalendar(summary, description, timeZone))
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (request, response) -> {
+                    throw apiError(response);
+                })
+                .body(CalendarInfo.class);
+    }
+
+    // Ein bereits gelöschter Kalender gilt als erledigt.
+    public void deleteCalendar(String accessToken, String calendarId) {
+        ignoreNotFound(() -> rest.delete().uri(properties.apiUrl() + "/calendars/{calendarId}", calendarId)
+                .headers(headers -> headers.setBearerAuth(accessToken))
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (request, response) -> {
+                    throw apiError(response);
+                })
+                .toBodilessEntity());
+    }
+
+    public GoogleEvent insertEvent(String accessToken, String calendarId, GoogleEventInput event) {
+        return rest.post().uri(properties.apiUrl() + "/calendars/{calendarId}/events", calendarId)
+                .headers(headers -> headers.setBearerAuth(accessToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(event)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (request, response) -> {
+                    throw apiError(response);
+                })
+                .body(GoogleEvent.class);
+    }
+
+    // Ersetzt den ganzen Termin (PUT): Felder, die fehlen, sind danach leer.
+    public GoogleEvent updateEvent(String accessToken, String calendarId, String eventId, GoogleEventInput event) {
+        return rest.put().uri(properties.apiUrl() + "/calendars/{calendarId}/events/{eventId}", calendarId, eventId)
+                .headers(headers -> headers.setBearerAuth(accessToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(event)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (request, response) -> {
+                    throw apiError(response);
+                })
+                .body(GoogleEvent.class);
+    }
+
+    // Ein bereits gelöschter Termin gilt als erledigt (Google antwortet dann mit 410 Gone).
+    public void deleteEvent(String accessToken, String calendarId, String eventId) {
+        ignoreNotFound(() -> rest.delete()
+                .uri(properties.apiUrl() + "/calendars/{calendarId}/events/{eventId}", calendarId, eventId)
+                .headers(headers -> headers.setBearerAuth(accessToken))
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (request, response) -> {
+                    throw apiError(response);
+                })
+                .toBodilessEntity());
+    }
+
+    private static void ignoreNotFound(Runnable call) {
+        try {
+            call.run();
+        } catch (GoogleException e) {
+            if (!e.notFound()) {
+                throw e;
+            }
+        }
+    }
+
     private MultiValueMap<String, String> clientForm() {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("client_id", properties.clientId());
@@ -167,6 +254,10 @@ public class GoogleApi {
 
     // Häufige Ursachen verständlich melden; sonst Googles eigene Meldung anhängen, damit sie im Log steht.
     private static GoogleException apiError(ClientHttpResponse response) throws IOException {
+        int status = response.getStatusCode().value();
+        if (status == 404 || status == 410) {
+            return GoogleException.notFound("Der Kalender oder Termin ist bei Google nicht (mehr) vorhanden.");
+        }
         String body = bodyOf(response);
         if (body.contains("accessNotConfigured") || body.contains("SERVICE_DISABLED")) {
             return new GoogleException("Die Google Calendar API ist im Google-Cloud-Projekt nicht aktiviert.", false);

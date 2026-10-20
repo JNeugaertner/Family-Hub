@@ -90,7 +90,7 @@ public class WasteCollectionService {
         return imported;
     }
 
-    @Scheduled(cron = "${familyhub.waste.task-sync-cron:0 10 05 * * *}")
+    @Scheduled(cron = "${familyhub.waste.task-sync-cron:0 50 7 * * *}")
     public void createUpcomingTasks() {
         WasteCollection collection = collections.current();
         if (collection == null) {
@@ -115,7 +115,7 @@ public class WasteCollectionService {
                 .collect(Collectors.toSet());
         for (WasteCollection.Pickup pickup : collection.pickups()) {
             long daysUntilPickup = ChronoUnit.DAYS.between(today, pickup.date());
-            if (daysUntilPickup < 1 || daysUntilPickup > 5) {
+            if (daysUntilPickup < 1 || daysUntilPickup > 7) {
                 continue;
             }
             LocalDate dueDate = pickup.date().minusDays(1);

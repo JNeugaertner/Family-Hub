@@ -255,7 +255,7 @@ class MealControllerTest {
     }
 
     @Test
-    void weekToShoppingSkipsOpenItemsDuplicatesWishesAndFreeText() throws Exception {
+    void weekToShoppingAddsIngredientsInItsCategoryAlongsideExistingItems() throws Exception {
         shoppingItems.save(new ShoppingItem(null, "SPAGHETTI", null, ShoppingCategory.VORRAT, false, false,
                 ShoppingItemStatus.APPROVED, sarah.id(), LocalDateTime.now(), null));
         // abgehakt: zählt nicht als offen
@@ -270,14 +270,20 @@ class MealControllerTest {
         mvc.perform(post("/api/meals/shopping").with(as(emma)).contentType(APPLICATION_JSON)
                         .content("{\"from\": \"" + MONDAY + "\", \"to\": \"" + MONDAY.plusDays(6) + "\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.added", org.hamcrest.Matchers.contains("Hackfleisch", "Milch", "Mehl", "Eier")))
-                .andExpect(jsonPath("$.skipped", org.hamcrest.Matchers.contains("Spaghetti")));
+                .andExpect(jsonPath("$.added", org.hamcrest.Matchers.contains(
+                        "Spaghetti", "Hackfleisch", "Milch", "Mehl", "Eier")))
+                .andExpect(jsonPath("$.skipped").isEmpty());
+
+        assertThat(shoppingItems.findAll()).filteredOn(i -> i.name().equalsIgnoreCase("Spaghetti"))
+                .hasSize(2)
+                .anySatisfy(i -> assertThat(i.category()).isEqualTo(ShoppingCategory.VORRAT))
+                .anySatisfy(i -> assertThat(i.category()).isEqualTo(ShoppingCategory.ZUTATEN_ESSENSPLANUNG));
 
         assertThat(shoppingItems.findAll()).filteredOn(i -> i.name().equals("Hackfleisch"))
                 .singleElement()
                 .satisfies(i -> {
                     assertThat(i.quantity()).isEqualTo("500 g");
-                    assertThat(i.category()).isEqualTo(ShoppingCategory.FLEISCH);
+                    assertThat(i.category()).isEqualTo(ShoppingCategory.ZUTATEN_ESSENSPLANUNG);
                     assertThat(i.status()).isEqualTo(ShoppingItemStatus.APPROVED);
                     assertThat(i.createdBy()).isEqualTo(emma.id());
                 });
@@ -287,6 +293,68 @@ class MealControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.added").isEmpty())
                 .andExpect(jsonPath("$.skipped", org.hamcrest.Matchers.contains("Spaghetti", "Hackfleisch", "Milch")));
+    }
+
+    @Test
+    void weekToShoppingAddsQuantitiesForRepeatedMealsAndRemovesStaleIngredients() throws Exception {
+        String tuesdayDinner = plan(sarah, MONDAY.plusDays(1), "abendessen", bolognese.id(), null);
+        mvc.perform(post("/api/meals/shopping").with(as(emma)).contentType(APPLICATION_JSON)
+                        .content("{\"from\": \"" + MONDAY + "\", \"to\": \"" + MONDAY.plusDays(6) + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.added", org.hamcrest.Matchers.contains("Spaghetti", "Hackfleisch", "Milch")));
+
+        assertThat(shoppingItems.findAll()).filteredOn(i -> i.name().equals("Hackfleisch"))
+                .singleElement()
+                .satisfies(i -> assertThat(i.quantity()).isEqualTo("1000 g"));
+        assertThat(shoppingItems.findAll()).filteredOn(i -> i.name().equals("Milch"))
+                .singleElement()
+                .satisfies(i -> assertThat(i.quantity()).isEqualTo("400 ml"));
+
+        mvc.perform(post("/api/meals/" + mondayDinner.id() + "/shopping").with(as(sarah)))
+                .andExpect(status().isOk());
+        assertThat(shoppingItems.findAll()).filteredOn(i -> i.name().equals("Hackfleisch"))
+                .singleElement()
+                .satisfies(i -> assertThat(i.quantity()).isEqualTo("1000 g"));
+
+        mvc.perform(delete("/api/meals/" + tuesdayDinner).with(as(sarah))).andExpect(status().isNoContent());
+        mvc.perform(post("/api/meals/shopping").with(as(emma)).contentType(APPLICATION_JSON)
+                        .content("{\"from\": \"" + MONDAY + "\", \"to\": \"" + MONDAY.plusDays(6) + "\"}"))
+                .andExpect(status().isOk());
+
+        assertThat(shoppingItems.findAll()).filteredOn(i -> i.category() == ShoppingCategory.ZUTATEN_ESSENSPLANUNG)
+                .extracting(i -> i.name())
+                .containsExactly("Spaghetti", "Hackfleisch", "Milch");
+        assertThat(shoppingItems.findAll()).filteredOn(i -> i.name().equals("Hackfleisch"))
+                .singleElement()
+                .satisfies(i -> assertThat(i.quantity()).isEqualTo("500 g"));
+    }
+
+    @Test
+    void boughtIngredientsStayAndComeBackWhenThePlanNeedsThemAgain() throws Exception {
+        String week = "{\"from\": \"" + MONDAY + "\", \"to\": \"" + MONDAY.plusDays(6) + "\"}";
+        mvc.perform(post("/api/meals/shopping").with(as(emma)).contentType(APPLICATION_JSON).content(week))
+                .andExpect(status().isOk());
+        ShoppingItem milk = shoppingItems.findAll().stream().filter(i -> i.name().equals("Milch"))
+                .findFirst().orElseThrow();
+        shoppingItems.save(milk.withChecked(true, sarah.id()));
+
+        // Die Milch ist gekauft; der Plan braucht sie weiter, also kommt sie neu auf die Liste
+        mvc.perform(post("/api/meals/shopping").with(as(emma)).contentType(APPLICATION_JSON).content(week))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.added", org.hamcrest.Matchers.contains("Milch")))
+                .andExpect(jsonPath("$.skipped", org.hamcrest.Matchers.contains("Spaghetti", "Hackfleisch")));
+        assertThat(shoppingItems.findAll()).filteredOn(i -> i.name().equals("Milch"))
+                .extracting(ShoppingItem::checked)
+                .containsExactlyInAnyOrder(true, false);
+
+        // Ohne Gericht in der Woche verschwinden die offenen Zutaten, die gekaufte Milch bleibt stehen
+        mvc.perform(delete("/api/meals/" + mondayDinner.id()).with(as(sarah))).andExpect(status().isNoContent());
+        mvc.perform(post("/api/meals/shopping").with(as(emma)).contentType(APPLICATION_JSON).content(week))
+                .andExpect(status().isOk());
+        assertThat(shoppingItems.findAll()).singleElement().satisfies(i -> {
+            assertThat(i.name()).isEqualTo("Milch");
+            assertThat(i.checked()).isTrue();
+        });
     }
 
     @Test

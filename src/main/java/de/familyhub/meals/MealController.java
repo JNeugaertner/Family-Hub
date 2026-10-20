@@ -163,12 +163,13 @@ public class MealController {
 
     @PostMapping("/shopping")
     @Operation(summary = "Zutaten eines Zeitraums auf die Einkaufsliste",
-            description = "Alle eingetragenen Gerichte von from bis to (einschließlich), z. B. die ganze Woche. "
-                    + "Was schon offen auf der Liste steht, wird übersprungen.")
+            description = "Gleicht die Kategorie Zutaten Essensplanung mit den eingetragenen Gerichten von from bis "
+                    + "to (einschließlich) ab. Gleiche Zutaten werden zusammengefasst; nicht mehr benötigte werden "
+                    + "entfernt. Zutaten werden unabhängig von gleichnamigen Artikeln anderer Kategorien ergänzt.")
     public MealShopping.Transfer rangeToShopping(@Valid @RequestBody Range range) {
         FamilyMember viewer = currentMember.get();
         access.requireView(viewer);
-        return shopping.transfer(inRange(range.from(), range.to()).stream().filter(e -> !e.isProposal()).toList(),
+        return shopping.synchronize(inRange(range.from(), range.to()).stream().filter(e -> !e.isProposal()).toList(),
                 viewer);
     }
 

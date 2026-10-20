@@ -107,6 +107,21 @@ class TaskConfirmationTest {
     }
 
     @Test
+    void confirmingAnAdultTaskCompletesWithoutPoints() throws Exception {
+        Task task = task(oma, 20, TaskStatus.DONE);
+
+        mvc.perform(post("/api/tasks/" + task.id() + "/confirm").with(as(sarah)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("confirmed"))
+                .andExpect(jsonPath("$.confirmedBy").value(sarah.id()));
+
+        // Oma (Gast, also Erwachsene) hat keine Punkte erhalten; ihr Stand bleibt 0.
+        assertThat(points.count()).isZero();
+        mvc.perform(get("/api/points").with(as(sarah)))
+                .andExpect(jsonPath("$[?(@.memberId == '" + oma.id() + "')].points").value(0));
+    }
+
+    @Test
     void onlyDoneTasksWithPointsCanBeConfirmed() throws Exception {
         Task open = task(lucas, 20, TaskStatus.IN_PROGRESS);
         Task withoutPoints = task(lucas, 0, TaskStatus.DONE);

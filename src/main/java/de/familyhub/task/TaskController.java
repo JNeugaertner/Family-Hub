@@ -30,6 +30,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import de.familyhub.achievements.AchievementService;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.permission.RoleResolver;
 import de.familyhub.points.PointsService;
 import de.familyhub.security.CurrentMember;
 import de.familyhub.web.ApiException;
@@ -50,18 +51,20 @@ public class TaskController {
     private final TaskAccess access;
     private final PointsService points;
     private final AchievementService achievements;
+    private final RoleResolver roles;
     private final MongoTemplate mongo;
     private final Clock clock;
 
     public TaskController(TaskRepository tasks, FamilyMemberRepository members, CurrentMember currentMember,
-            TaskAccess access, PointsService points, AchievementService achievements, MongoTemplate mongo,
-            Clock clock) {
+            TaskAccess access, PointsService points, AchievementService achievements, RoleResolver roles,
+            MongoTemplate mongo, Clock clock) {
         this.tasks = tasks;
         this.members = members;
         this.currentMember = currentMember;
         this.access = access;
         this.points = points;
         this.achievements = achievements;
+        this.roles = roles;
         this.mongo = mongo;
         this.clock = clock;
     }
@@ -102,9 +105,10 @@ public class TaskController {
                     + "legen nur Administratoren an: ohne Person, mit Punkten, Frist optional.")
     public ResponseEntity<Task> create(@Valid @RequestBody Task task) {
         FamilyMember viewer = currentMember.get();
-        access.requireCreate(viewer, task);
-        Task toSave = copy(null, task, task.bonus() ? null : task.assigneeId(), TaskStatus.TODO, viewer.id(),
-                task.bonus());
+        // Aufgaben für Erwachsene (kein Kind/Jugendlicher) bekommen keine Punkte, da sie keine sammeln
+        Task checked = access.requireCreate(viewer, task);
+        Task toSave = copy(null, checked, checked.bonus() ? null : checked.assigneeId(), TaskStatus.TODO, viewer.id(),
+                checked.bonus());
         requireAssignment(toSave);
         Task saved = tasks.save(toSave);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
@@ -121,7 +125,8 @@ public class TaskController {
         Task changed = existing.bonus()
                 ? copy(id, task, existing.assigneeId(), existing.status(), existing.createdBy(), true)
                 : copy(id, task, task.assigneeId(), existing.status(), existing.createdBy(), false);
-        access.requireEdit(viewer, existing, changed);
+        // Aufgaben für Erwachsene (kein Kind/Jugendlicher) behalten keine Punkte, da sie keine sammeln
+        changed = access.requireEdit(viewer, existing, changed);
         requireAssignment(changed);
         return tasks.save(changed);
     }
@@ -202,7 +207,12 @@ public class TaskController {
         FamilyMember viewer = currentMember.get();
         access.requireConfirmationRight(viewer);
         Task task = findAwaitingConfirmation(id, viewer);
-        points.awardForTask(task, viewer);
+        // Punkte gibt es nur für Kinder und Jugendliche. Die Aufgabe wird trotzdem abgeschlossen;
+        // Erwachsene dürfen Aufgaben übernehmen, bekommen aber keine Punkte gutgeschrieben.
+        FamilyMember assignee = members.findById(task.assigneeId()).orElse(null);
+        if (assignee != null && roles.effectiveRole(assignee).countsAsChild()) {
+            points.awardForTask(task, viewer);
+        }
         Task confirmed = tasks.save(task.confirmed(LocalDateTime.now(clock), viewer.id()));
         achievements.onTaskConfirmed(confirmed, viewer);
         if (confirmed.repeatable()) {

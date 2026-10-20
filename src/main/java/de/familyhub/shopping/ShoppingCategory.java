@@ -12,5 +12,6 @@ public enum ShoppingCategory {
     @JsonProperty("vorrat") VORRAT,
     @JsonProperty("tiefkuehl") TIEFKUEHL,
     @JsonProperty("snacks") SNACKS,
-    @JsonProperty("haushalt") HAUSHALT
+    @JsonProperty("haushalt") HAUSHALT,
+    @JsonProperty("zutaten_essensplanung") ZUTATEN_ESSENSPLANUNG
 }

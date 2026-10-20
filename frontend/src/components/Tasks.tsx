@@ -58,6 +58,9 @@ const isOverdue = (task: ApiTask, todayKey: string) => !isFinished(task) && !!ta
 const isOpenBonus = (task: ApiTask) => task.bonus && task.assigneeId === null;
 const dueLabel = (dueDate: string | null) => (dueDate ? formatDayMonth(dueDate) : 'ohne Frist');
 const awaitsConfirmation = (task: ApiTask) => task.status === 'done' && task.points > 0;
+// Erwachsene (kein Kind/Jugendlicher) sammeln keine Sterne: Die Punkte-Anzeige auf der Karte
+// bleibt ihnen erspart, damit nicht so aussieht, als hätten sie ein Punktekonto.
+const isAdult = (m?: CalendarMember) => !!m && m.effectiveRole !== 'kind' && m.effectiveRole !== 'jugendlicher';
 
 function errorText(err: unknown) {
   return err instanceof Error ? err.message : String(err);
@@ -99,7 +102,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
           {task.bonus && <BonusBadge repeatable={task.repeatable} />}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          {task.points > 0 && (
+          {task.points > 0 && !isAdult(member) && (
             <span className="text-[10px] font-bold text-[#F59E0B] flex items-center gap-0.5">
               ⭐ {task.points}
             </span>
@@ -120,14 +123,14 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
         <p className="text-xs text-slate-500 mb-2 leading-relaxed line-clamp-2">{task.description}</p>
       )}
 
-      {awaitsConfirmation(task) && (
+      {awaitsConfirmation(task) && !isAdult(member) && (
         <div className="mt-2 text-[11px] font-semibold text-[#92400E] bg-[#FFFBEB] border border-[#FDE68A] rounded-lg px-2 py-1">
           ⏳ Wartet auf Bestätigung
         </div>
       )}
       {task.status === 'confirmed' && (
         <div className="mt-2 text-[11px] font-semibold text-[#16A34A] bg-[#F0FDF4] rounded-lg px-2 py-1">
-          ✅ Bestätigt · +{task.points} Punkte
+          {isAdult(member) ? '✅ Bestätigt' : `✅ Bestätigt · +${task.points} Punkte`}
         </div>
       )}
 
@@ -142,8 +145,8 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
         </div>
       </div>
 
-      {/* Bestätigen (Administratoren) */}
-      {awaitsConfirmation(task) && onConfirm && onReopen && (
+      {/* Bestätigen (Administratoren); Erwachsene geben keine Punkte aus, daher kein Bestätigen/Zurückgeben */}
+      {awaitsConfirmation(task) && !isAdult(member) && onConfirm && onReopen && (
         <div className="flex gap-1.5 mt-3 pt-2.5 border-t border-slate-50">
           <button onClick={only(onReopen)}
             className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50">
@@ -151,7 +154,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
           </button>
           <button onClick={only(onConfirm)}
             className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold bg-[#22C55E] text-white hover:bg-[#16A34A]">
-            Bestätigen +{task.points} ⭐
+            {isAdult(member) ? 'Bestätigen' : `Bestätigen +${task.points} ⭐`}
           </button>
         </div>
       )}
@@ -279,6 +282,10 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Erwachsene sammeln keine Sterne: für eine erwachsene Person gibt es kein Punkte-Feld (0 Punkte).
+  // Bonus-Aufgaben betreffen nur Kinder/Jugendliche und behalten ihr Punkte-Feld.
+  const assigneeIsAdult = !bonus && isAdult(assignable.find(m => m.id === assigneeId));
+  const showPoints = mayAssignPoints && !assigneeIsAdult;
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -306,7 +313,7 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
       dueDate: dueDate || null,
       priority,
       category,
-      points: mayAssignPoints ? points : task?.points ?? 0,
+      points: mayAssignPoints ? (assigneeIsAdult ? 0 : points) : task?.points ?? 0,
       bonus,
       repeatable: bonus && repeatable,
     }, task?.id));
@@ -388,7 +395,7 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
               </select>
             </Field>
           </div>
-          {mayAssignPoints && (
+          {showPoints && (
             <Field id="task-points" label="Punkte nach Bestätigung ⭐" error={errors.points}>
               <input id="task-points" type="number" min={bonus ? 1 : 0} max={1000} className={inputClass(!!errors.points)}
                 value={points} onChange={e => setPoints(Number(e.target.value))} />
@@ -471,7 +478,11 @@ export default function Tasks({ onNavigate }: Props) {
 
   const confirm = (task: ApiTask) => act(async () => {
     await confirmTask(task.id);
-    setCelebration(`+${task.points} Punkte für ${memberById(task.assigneeId ?? '')?.name ?? 'das Kind'}!`);
+    const assignee = memberById(task.assigneeId ?? '');
+    // Punkte-Animation nur für Kinder und Jugendliche: Erwachsene bekommen keine Punkte.
+    if (assignee && (assignee.effectiveRole === 'kind' || assignee.effectiveRole === 'jugendlicher')) {
+      setCelebration(`+${task.points} Punkte für ${assignee.name}!`);
+    }
   });
 
   const assignableFor = (task?: ApiTask) => members.filter(m => m.effectiveRole !== 'gast'

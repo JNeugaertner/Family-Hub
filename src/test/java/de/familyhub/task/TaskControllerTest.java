@@ -74,6 +74,28 @@ class TaskControllerTest {
     }
 
     @Test
+    void administratorCreatesTaskForAdultWithoutPoints() throws Exception {
+        FamilyMember paul = members.save(TestUsers.member("Paul", Role.GAST));
+        mvc.perform(post("/api/tasks").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Garten wässern", paul, "2026-09-30", 20)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.points").value(0));
+    }
+
+    @Test
+    void updateAssigningTaskToAdultRemovesPoints() throws Exception {
+        FamilyMember paul = members.save(TestUsers.member("Paul", Role.GAST));
+        Task task = tasks.save(new Task(null, "Zimmer aufräumen", null, lucas.id(), LocalDate.of(2026, 9, 30),
+                TaskPriority.HIGH, TaskCategory.SCHOOL, 25).withStatus(TaskStatus.IN_PROGRESS));
+
+        mvc.perform(put("/api/tasks/" + task.id()).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(json("Mathe-Hausaufgaben", paul, "2026-10-01", 30)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assigneeId").value(paul.id()))
+                .andExpect(jsonPath("$.points").value(0));
+    }
+
+    @Test
     void pointsAreOptionalAndDefaultToZero() throws Exception {
         mvc.perform(post("/api/tasks").with(as(sarah)).contentType(APPLICATION_JSON).content("""
                         {"title": "Blumen gießen", "assigneeId": "%s", "dueDate": "2026-09-30",

@@ -66,6 +66,7 @@ public class ShoppingController {
     public ResponseEntity<ShoppingItem> create(@Valid @RequestBody ShoppingItem item) {
         FamilyMember viewer = currentMember.get();
         ShoppingItemStatus status = access.statusForNewItem(viewer);
+        requireSelectable(item.category(), null);
         ShoppingItem saved = items.save(new ShoppingItem(null, item.name().strip(),
                 ShoppingItem.blankToNull(item.quantity()), item.category(), item.urgent(), false, status, viewer.id(),
                 LocalDateTime.now(clock), null));
@@ -79,7 +80,17 @@ public class ShoppingController {
         FamilyMember viewer = currentMember.get();
         ShoppingItem existing = findVisible(id, viewer);
         access.requireEdit(viewer);
+        requireSelectable(item.category(), existing.category());
         return items.save(existing.withContent(item));
+    }
+
+    // „Zutaten Essensplanung“ füllt nur der Essensplan (MealShopping); sein Abgleich würde von Hand eingetragene
+    // Artikel wieder löschen. Artikel, die schon dort stehen, dürfen ihre Kategorie behalten.
+    private static void requireSelectable(ShoppingCategory category, ShoppingCategory current) {
+        if (category == ShoppingCategory.ZUTATEN_ESSENSPLANUNG && current != ShoppingCategory.ZUTATEN_ESSENSPLANUNG) {
+            throw ApiException.invalidField("category",
+                    "Diese Kategorie füllt der Essensplan. Bitte eine andere wählen.");
+        }
     }
 
     @PatchMapping("/{id}/checked")

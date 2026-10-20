@@ -8,6 +8,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -98,5 +100,51 @@ class GoogleEventMapperTest {
                 at("2026-09-29T08:00:00Z"), at("2026-09-29T09:00:00Z"));
 
         assertThat(mapper.toEvent(cancelled, "m", FUSSBALL)).isNull();
+    }
+
+    @Test
+    void entriesFamilyHubWroteItselfAreNotImported() {
+        GoogleEvent written = new GoogleEvent("e1", "confirmed", "Training", null, null, null,
+                at("2026-09-29T08:00:00Z"), at("2026-09-29T09:00:00Z"),
+                new GoogleEvent.ExtendedProperties(Map.of(GoogleEvent.FAMILYHUB_ID, "abc")));
+
+        assertThat(mapper.toEvent(written, "m", FUSSBALL)).isNull();
+    }
+
+    private static CalendarEvent familyHubEvent(boolean privateEvent, String description) {
+        return new CalendarEvent("abc", "Arzt", LocalDateTime.of(2026, 10, 1, 10, 0),
+                LocalDateTime.of(2026, 10, 1, 11, 0), List.of("m"), EventCategory.APPOINTMENT, "Praxis", description,
+                privateEvent, EventStatus.APPROVED, "m", null);
+    }
+
+    @Test
+    void familyHubEventsBecomeGoogleEntriesInFamilyHubTimeZone() {
+        GoogleEventInput input = mapper.toGoogle(familyHubEvent(true, " "));
+
+        assertThat(input.summary()).isEqualTo("Arzt");
+        assertThat(input.start()).isEqualTo(new GoogleEventInput.Time("2026-10-01T10:00:00+02:00", "Europe/Berlin"));
+        assertThat(input.end()).isEqualTo(new GoogleEventInput.Time("2026-10-01T11:00:00+02:00", "Europe/Berlin"));
+        assertThat(input.location()).isEqualTo("Praxis");
+        assertThat(input.description()).isNull();
+        assertThat(input.visibility()).isEqualTo("private");
+        assertThat(input.extendedProperties().privateProperties()).containsEntry(GoogleEvent.FAMILYHUB_ID, "abc");
+        assertThat(mapper.toGoogle(familyHubEvent(false, null)).visibility()).isEqualTo("default");
+    }
+
+    @Test
+    void entryIsUpToDateOnlyWhileItMatchesTheFamilyHubEvent() {
+        CalendarEvent event = familyHubEvent(false, "Impfpass mitbringen");
+        GoogleEvent same = new GoogleEvent("g1", "confirmed", "Arzt", "Impfpass mitbringen", "Praxis", null,
+                at("2026-10-01T08:00:00Z"), at("2026-10-01T09:00:00Z"));
+
+        assertThat(mapper.isUpToDate(same, event)).isTrue();
+        assertThat(mapper.isUpToDate(new GoogleEvent("g1", "confirmed", "Arzt (in Google geändert)",
+                "Impfpass mitbringen", "Praxis", null, same.start(), same.end()), event)).isFalse();
+        assertThat(mapper.isUpToDate(new GoogleEvent("g1", "confirmed", "Arzt", "Impfpass mitbringen", "Praxis", null,
+                at("2026-10-01T09:00:00Z"), at("2026-10-01T10:00:00Z")), event)).isFalse();
+        assertThat(mapper.isUpToDate(new GoogleEvent("g1", "confirmed", "Arzt", "Impfpass mitbringen", "Praxis",
+                "private", same.start(), same.end()), event)).isFalse();
+        assertThat(mapper.isUpToDate(new GoogleEvent("g1", "confirmed", "Arzt", "Impfpass mitbringen", "Praxis", null,
+                day("2026-10-01"), day("2026-10-02")), event)).isFalse();
     }
 }
