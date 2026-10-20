@@ -1,6 +1,7 @@
 package de.familyhub.whatsapp;
 
 import static de.familyhub.testsupport.TestUsers.as;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -10,12 +11,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.HexFormat;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
@@ -85,10 +89,19 @@ class WhatsAppWebhookControllerTest {
                 .andExpect(content().string("OK"));
     }
 
+    // So schickt Meta einen Webhook: der Body mit dem App-Secret signiert (test-app-secret aus den Test-Einstellungen)
+    private static MockHttpServletRequestBuilder signed(String body) {
+        return post("/api/whatsapp").contentType(APPLICATION_JSON).content(body)
+                .header(WhatsAppSignature.HEADER, signature(body));
+    }
+
+    private static String signature(String body) {
+        return "sha256=" + HexFormat.of().formatHex(WhatsAppSignature.sign("test-app-secret", body.getBytes(UTF_8)));
+    }
+
     @Test
     void incomingTextMessageIsStoredRawWithoutLogin() throws Exception {
-        mvc.perform(post("/api/whatsapp").contentType(APPLICATION_JSON)
-                .content(payload("wamid.A", "4915712345678", "Hallo")))
+        mvc.perform(signed(payload("wamid.A", "4915712345678", "Hallo")))
                 .andExpect(status().isOk());
 
         WhatsAppMessage stored = messages.findById("wamid.A").orElseThrow();
@@ -102,19 +115,49 @@ class WhatsAppWebhookControllerTest {
     @Test
     void repeatedDeliveryIsNotStoredTwice() throws Exception {
         String body = payload("wamid.A", "4915712345678", "Hallo");
-        mvc.perform(post("/api/whatsapp").contentType(APPLICATION_JSON).content(body)).andExpect(status().isOk());
-        mvc.perform(post("/api/whatsapp").contentType(APPLICATION_JSON).content(body)).andExpect(status().isOk());
+        mvc.perform(signed(body)).andExpect(status().isOk());
+        mvc.perform(signed(body)).andExpect(status().isOk());
 
         assertThat(messages.count()).isEqualTo(1);
     }
 
     @Test
     void webhookWithoutEntriesIsIgnoredGracefully() throws Exception {
-        mvc.perform(post("/api/whatsapp").contentType(APPLICATION_JSON)
-                .content("{\"object\":\"whatsapp_business_account\",\"entry\":[]}"))
+        mvc.perform(signed("{\"object\":\"whatsapp_business_account\",\"entry\":[]}"))
                 .andExpect(status().isOk());
 
         assertThat(messages.count()).isEqualTo(0);
+    }
+
+    @Test
+    void messagesWithoutValidSignatureAreRejected() throws Exception {
+        String body = payload("wamid.A", "4915712345678", "Hallo");
+
+        // ohne Signatur
+        mvc.perform(post("/api/whatsapp").contentType(APPLICATION_JSON).content(body))
+                .andExpect(status().isUnauthorized());
+        // mit falschem Schlüssel signiert
+        mvc.perform(post("/api/whatsapp").contentType(APPLICATION_JSON).content(body)
+                        .header(WhatsAppSignature.HEADER, "sha256=" + HexFormat.of()
+                                .formatHex(WhatsAppSignature.sign("fremdes-secret", body.getBytes(UTF_8)))))
+                .andExpect(status().isUnauthorized());
+        // Signatur eines anderen Bodys (nachträglich veränderte Nachricht)
+        mvc.perform(post("/api/whatsapp").contentType(APPLICATION_JSON).content(body)
+                        .header(WhatsAppSignature.HEADER, signature(payload("wamid.A", "4915712345678", "Hallo!"))))
+                .andExpect(status().isUnauthorized());
+        // kein gültiger Hex-Wert
+        mvc.perform(post("/api/whatsapp").contentType(APPLICATION_JSON).content(body)
+                        .header(WhatsAppSignature.HEADER, "sha256=xyz"))
+                .andExpect(status().isUnauthorized());
+
+        assertThat(messages.count()).isZero();
+    }
+
+    @Test
+    void signedButInvalidJsonIsRejected() throws Exception {
+        mvc.perform(signed("kein json")).andExpect(status().isBadRequest());
+
+        assertThat(messages.count()).isZero();
     }
 
     @Test

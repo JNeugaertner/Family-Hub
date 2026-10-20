@@ -18,7 +18,7 @@ import org.springframework.web.client.RestClient;
 class WhatsAppApiTest {
 
     private static final WhatsAppProperties PROPERTIES = new WhatsAppProperties("access-token", "12345",
-            "verify-token", "https://graph.invalid");
+            "verify-token", "app-secret", "https://graph.invalid");
 
     private MockRestServiceServer server;
     private WhatsAppApi api;
@@ -47,7 +47,8 @@ class WhatsAppApiTest {
 
     @Test
     void sendTextWithoutCredentialsIsRejected() {
-        WhatsAppApi unconfigured = new WhatsAppApi(new WhatsAppProperties("", "", "verify-token", "https://graph.invalid"),
+        WhatsAppApi unconfigured = new WhatsAppApi(new WhatsAppProperties("", "", "verify-token", "app-secret",
+                "https://graph.invalid"),
                 RestClient.builder());
 
         assertThatThrownBy(() -> unconfigured.sendText("49157", "Hallo"))
