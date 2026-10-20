@@ -15,7 +15,8 @@ Erfolge mit Bonuspunkten, die Einkaufsliste (Kinder schlagen vor, Eltern
 übernehmen), der Essensplan mit Gerichte-Sammlung (Zutaten per Knopf auf die
 Einkaufsliste, Kinder äußern Wünsche), das Wetter am Wohnort mit
 Kleidungsempfehlung (OpenWeather), das Einbinden des eigenen Google
-Kalenders (nur lesen) sowie der Familien-Chat (Familiengruppe und Einzelchats;
+Kalenders (Termine aus Google übernehmen, auf Wunsch die eigenen Termine in einen
+Google-Kalender „FamilyHub“ eintragen) sowie der Familien-Chat (Familiengruppe und Einzelchats;
 aus einer Nachricht per Knopf ein Artikel, ein Termin oder eine Aufgabe).
 Die Müllabfuhrtermine werden nach dem Import einer kommunalen ICS-Datei in den Profileinstellungen angezeigt; eine konfigurierbare Aufgabe für den Vorabend erscheint fünf Tage vor der Abholung. Die übrigen noch nicht genannten Bereiche der Oberfläche zeigen feste Beispieldaten.
 
@@ -82,14 +83,27 @@ voraus) und übernimmt sie schreibgeschützt; geändert wird weiter in Google.
 Abgeglichen wird beim Verbinden, per Knopf und alle 15 Minuten. Beim Trennen
 werden die übernommenen Termine wieder entfernt.
 
+Auf Wunsch geht es auch andersherum: Mit „Meine FamilyHub-Termine in Google
+eintragen“ legt FamilyHub im Google-Konto einen eigenen Kalender „FamilyHub“ an
+und trägt dort alle freigegebenen Termine ein, an denen die Person beteiligt ist
+(auch gemeinsame; private sind in Google privat, offene Vorschläge fehlen).
+Änderungen in FamilyHub erscheinen nach wenigen Sekunden in Google. FamilyHub
+bleibt führend: Wer einen dieser Termine in Google ändert, findet beim nächsten
+Abgleich wieder den Stand aus FamilyHub. Die übrigen Google-Kalender bleiben
+unberührt. Das Recht zum Eintragen fragt Google erst beim Einschalten ab;
+Ausschalten oder Trennen löscht den Kalender „FamilyHub“ in Google wieder.
+
 Dafür braucht das Backend eigene Zugangsdaten von Google:
 
 1. In der [Google Cloud Console](https://console.cloud.google.com) ein Projekt
    anlegen und die **Google Calendar API** aktivieren (`calendar-json.googleapis.com`,
    nicht die ähnlich benannte „CalDAV API“).
 2. Unter „OAuth-Zustimmungsbildschirm“ den Typ **Extern** wählen, die
-   Berechtigung `.../auth/calendar.readonly` hinzufügen und alle Google-Konten,
-   die testen sollen, als **Testnutzer** eintragen.
+   Berechtigungen `.../auth/calendar.readonly` und (für das Eintragen in Google)
+   `.../auth/calendar.app.created` hinzufügen und alle Google-Konten, die testen
+   sollen, als **Testnutzer** eintragen. `calendar.app.created` erlaubt nur
+   Kalender, die FamilyHub selbst anlegt, an die übrigen kommt FamilyHub damit
+   nicht heran.
 3. Unter „Anmeldedaten“ eine **OAuth-Client-ID** vom Typ „Webanwendung“ anlegen
    mit der autorisierten Weiterleitungs-URI
    `http://localhost:8080/api/google/callback`.

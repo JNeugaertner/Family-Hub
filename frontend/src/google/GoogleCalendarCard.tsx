@@ -4,20 +4,25 @@ import { CATEGORY_OPTIONS } from '../calendar/categories';
 import type { EventCategory } from '../components/data';
 import GoogleBadge from './GoogleBadge';
 import {
-  disconnectGoogle, getGoogleStatus, googleReturnFromUrl, selectGoogleCalendars, startGoogleConnect, syncGoogle,
-  type GoogleCalendar, type GoogleReturn, type GoogleStatus,
+  disconnectGoogle, getGoogleStatus, googleReturnFromUrl, selectGoogleCalendars, setGoogleExport, startGoogleConnect,
+  syncGoogle, type GoogleCalendar, type GoogleReturn, type GoogleStatus,
 } from './api';
 
 const RETURN_MESSAGES: Record<GoogleReturn, { text: string; ok: boolean }> = {
   verbunden: { text: 'Google Kalender verbunden. Deine Termine werden übernommen.', ok: true },
   abgebrochen: { text: 'Die Verbindung wurde bei Google abgebrochen.', ok: false },
   fehler: { text: 'Die Verbindung mit Google hat nicht geklappt. Bitte versuche es erneut.', ok: false },
+  'ohne-eintragen': {
+    text: 'Google Kalender verbunden. Das Eintragen hast du bei Google nicht erlaubt, FamilyHub liest daher nur.',
+    ok: false,
+  },
 };
 
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
-// Eigenen Google Kalender verbinden (nur lesen): Termine erscheinen schreibgeschützt im FamilyHub-Kalender.
+// Eigenen Google Kalender verbinden: Termine aus Google erscheinen schreibgeschützt im FamilyHub-Kalender. Wahlweise
+// trägt FamilyHub die eigenen Termine in einen eigenen Google-Kalender „FamilyHub“ ein.
 export default function GoogleCalendarCard() {
   const { reload: reloadCalendar } = useCalendarData();
   const [status, setStatus] = useState<GoogleStatus | null>(null);
@@ -45,11 +50,11 @@ export default function GoogleCalendarCard() {
     }
   }, [reloadCalendar]);
 
-  const connect = async () => {
+  const connect = async (exportToGoogle = false) => {
     setBusy(true);
     setError(null);
     try {
-      const { authorizationUrl } = await startGoogleConnect();
+      const { authorizationUrl } = await startGoogleConnect(exportToGoogle);
       window.location.assign(authorizationUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -63,6 +68,13 @@ export default function GoogleCalendarCard() {
       const next = c.calendarId === calendar.calendarId ? { ...c, ...update } : c;
       return { calendarId: next.calendarId, enabled: next.enabled, category: next.category };
     })));
+  };
+
+  // Das Recht zum Eintragen fragt Google erst beim ersten Einschalten ab (Umweg über die Anmeldeseite von Google).
+  const changeExport = (enabled: boolean) => {
+    if (!status) return;
+    if (enabled && !status.writeGranted) { connect(true); return; }
+    run(() => setGoogleExport(enabled));
   };
 
   const disconnect = () => {
@@ -94,9 +106,10 @@ export default function GoogleCalendarCard() {
       ) : !status.connected ? (
         <>
           <p className="text-sm text-slate-500">
-            Übernimm die Termine aus deinem Google Kalender in FamilyHub. FamilyHub liest nur und ändert nichts in Google.
+            Übernimm die Termine aus deinem Google Kalender in FamilyHub. Deine Google-Kalender ändert FamilyHub nicht;
+            auf Wunsch trägt es deine Termine aber in einen eigenen Google-Kalender „FamilyHub“ ein.
           </p>
-          <button type="button" onClick={connect} disabled={busy}
+          <button type="button" onClick={() => connect()} disabled={busy}
             className="py-2 px-4 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
             Google Kalender verbinden
           </button>
@@ -110,7 +123,7 @@ export default function GoogleCalendarCard() {
           {status.needsReconnect ? (
             <div role="alert" className="bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] text-sm rounded-xl p-3 space-y-2">
               <p>Der Zugang zu Google ist abgelaufen. Bitte verbinde deinen Kalender neu.</p>
-              <button type="button" onClick={connect} disabled={busy}
+              <button type="button" onClick={() => connect()} disabled={busy}
                 className="py-1.5 px-3 rounded-lg bg-[#2563EB] text-white text-xs font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
                 Neu verbinden
               </button>
@@ -137,6 +150,21 @@ export default function GoogleCalendarCard() {
             ))}
           </fieldset>
 
+          <div className="border-t border-slate-100 pt-3">
+            <label className="flex items-start gap-2 text-sm text-slate-700">
+              <input type="checkbox" className="w-4 h-4 mt-0.5 accent-[#2563EB]" checked={status.exportEnabled}
+                disabled={busy} onChange={e => changeExport(e.target.checked)} />
+              <span>
+                <span className="font-semibold">Meine FamilyHub-Termine in Google eintragen</span>
+                <span className="block text-xs text-slate-500 mt-0.5">
+                  {status.exportEnabled
+                    ? 'Deine Termine stehen in Google im Kalender „FamilyHub“. Ändere sie hier in FamilyHub, Änderungen in Google werden überschrieben. Ausschalten entfernt den Kalender aus Google.'
+                    : 'Alle Termine, an denen du beteiligt bist, erscheinen in Google in einem eigenen Kalender „FamilyHub“. Deine übrigen Google-Kalender bleiben unverändert.'}
+                </span>
+              </span>
+            </label>
+          </div>
+
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button type="button" onClick={() => run(syncGoogle)} disabled={busy}
               className="py-2 px-4 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
@@ -144,7 +172,9 @@ export default function GoogleCalendarCard() {
             </button>
             <button type="button" onClick={disconnect} disabled={busy}
               className={`py-2 px-4 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${confirmDisconnect ? 'bg-[#EF4444] text-white hover:bg-[#DC2626]' : 'border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]'}`}>
-              {confirmDisconnect ? 'Wirklich trennen? Google-Termine werden entfernt' : 'Verbindung trennen'}
+              {!confirmDisconnect ? 'Verbindung trennen'
+                : status.exportEnabled ? 'Wirklich trennen? Google-Termine und der Kalender „FamilyHub“ werden entfernt'
+                  : 'Wirklich trennen? Google-Termine werden entfernt'}
             </button>
           </div>
         </>
