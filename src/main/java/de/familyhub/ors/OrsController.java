@@ -1,5 +1,7 @@
 package de.familyhub.ors;
 
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,12 +23,11 @@ public class OrsController {
 
     @GetMapping 
     @Operation(summary = "Terminort", description = "Der Ort des Termins, der in der App angezeigt wird.")
-    public OrsLocation get(@RequestParam String q) {
+    public List<OrsLocation> get(@RequestParam String q) {
         if (q.isBlank()) {
             throw ApiException.invalidField("q", "Bitte einen Ort eingeben.");
         }
-        System.out.println("get Terminort: " + q);
-        return service.getTerminort(q);
+        return service.findPlaces(q);
     }
 
 

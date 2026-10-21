@@ -6,6 +6,7 @@ import { ApiError } from '../api/client';
 import { CATEGORY_OPTIONS } from '../calendar/categories';
 import GoogleBadge from '../google/GoogleBadge';
 import { eventColor, memberColors } from '../calendar/eventStyle';
+import {findPlaces} from './OrsApi';
 
 // Das Backend meldet "Ende nach Beginn" unter endAfterStart; im Formular gehört es zum Feld "Ende".
 const FIELD_ALIASES: Record<string, string> = { endAfterStart: 'end' };

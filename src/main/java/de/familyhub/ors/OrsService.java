@@ -22,11 +22,13 @@ public class OrsService {
         this.properties = properties;
 
         }
-        public OrsLocation getTerminort(String query) {
+        public List<OrsLocation> findPlaces(String query) {
             OrsApi.SearchResponse response = api.findPlaces(query);
-            return new OrsLocation(response.features().get(0).properties().label(),
-                    response.features().get(0).geometry().coordinates().get(1),
-                    response.features().get(0).geometry().coordinates().get(0));
+            return response.features().stream()
+                    .map(feature -> new OrsLocation(feature.properties().label(),
+                            feature.geometry().coordinates().get(1),
+                            feature.geometry().coordinates().get(0)))
+                    .toList();
         }
 
  //Test ob API Aufruf funktioniert
