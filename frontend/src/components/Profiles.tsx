@@ -14,7 +14,9 @@ import { FAMILY_COLORS } from '../family/colors';
 import GoogleCalendarCard from '../google/GoogleCalendarCard';
 import WeatherLocationCard from '../weather/WeatherLocationCard';
 import WasteCalendarCard from '../waste/WasteCalendarCard';
+import WhatsAppCard from '../whatsapp/WhatsAppCard';
 import { hasPermission, permissionKey, ROLE_NAMES, type Permission, type RoleId } from '../roles';
+import { useFlashFocus } from '../navigation/focus';
 
 function ShieldLock({ size = 16, className = '' }: { size?: number; className?: string }) {
   return (
@@ -188,6 +190,8 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
   const [roleFixed, setRoleFixed] = useState(member?.roleFixed ?? false);
   const [extra, setExtra] = useState<Permission[]>(member?.extraPermissions ?? []);
   const [revoked, setRevoked] = useState<Permission[]>(member?.revokedPermissions ?? []);
+  // Gespeichert sind nur Ziffern mit Ländervorwahl; mit + davor ist die Nummer besser lesbar
+  const [phone, setPhone] = useState(member?.phone ? `+${member.phone}` : '');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -247,6 +251,7 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
       // Einzelrechte nur für Nicht-Administratoren, im Rollenwechsel bereinigt
       extraPermissions: role === 'administrator' ? [] : extra.filter(p => !inRole(p)),
       revokedPermissions: role === 'administrator' ? [] : revoked.filter(inRole),
+      phone: phone.trim() || null,
     };
     run(() => (member ? updateMember(member.id, input) : createMember(input)));
   };
@@ -296,6 +301,14 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
                 disabled={birthDateLocked} onChange={e => setBirthDate(e.target.value)} />
             </Field>
           </div>
+
+          {/* Die Nummer bestimmt, wessen WhatsApp-Nachrichten jemand sieht; ändern dürfen sie nur Administratoren */}
+          <Field id="member-phone" label="Handynummer für WhatsApp (optional)" error={errors.phone}>
+            <input id="member-phone" type="tel" className={inputClass(!!errors.phone)} value={phone}
+              disabled={!mayManageRights} placeholder="+49 170 1234567" autoComplete="off"
+              onChange={e => setPhone(e.target.value)} />
+            <span className="block text-xs text-slate-400 mt-1">Darüber sieht die Person ihre WhatsApp-Nachrichten.</span>
+          </Field>
 
           {role === 'kind' && (
             <label className="flex items-start gap-2.5 text-sm text-slate-700">
@@ -497,6 +510,8 @@ export default function Profiles({ onNavigate }: Props) {
   const me = useMe();
   const { can } = useAuth();
   const { reload: reloadCalendar } = useCalendarData();
+  // Aus den Nachrichten hierher gesprungen (WhatsApp-Button): die WhatsApp-Karte aufleuchten lassen
+  useFlashFocus('whatsapp', true);
   const mayManage = can('familie', 'verwalten', 'familie');
   const mayManageRights = can('system', 'verwalten', 'familie');
   // Wie im Backend (GoogleController): alle außer Gästen, die ihre eigenen Termine sehen dürfen
@@ -578,6 +593,7 @@ export default function Profiles({ onNavigate }: Props) {
         {mayManageRights && <WeatherLocationCard />}
         {mayManageRights && <WasteCalendarCard members={members} />}
         <PasswordCard />
+        <WhatsAppCard />
         {mayConnectGoogle && <GoogleCalendarCard />}
       </div>
 

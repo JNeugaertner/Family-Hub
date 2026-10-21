@@ -21,6 +21,7 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | Einkaufsliste | Gemeinsame Liste mit Kategorien und „dringend“; Kinder schlagen Artikel vor, die Eltern übernehmen |
 | Essensplan | Wochenplan mit Gerichte-Sammlung, Zutaten und Kochanleitung; Kinder äußern Wünsche; Zutaten per Knopf auf die Einkaufsliste |
 | Nachrichten | Familiengruppe und Einzelchats; aus einer Nachricht wird ein Artikel, ein Termin oder eine Aufgabe |
+| WhatsApp (in Arbeit) | Nachrichten an die WhatsApp-Nummer der Familie empfangen; jede Person sieht die von ihrer eigenen Handynummer |
 | Müllabfuhr | Abfuhrkalender der Gemeinde (ICS-Datei) importieren; Termine im Kalender und eine Aufgabe für den Vorabend |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
@@ -91,9 +92,9 @@ den ersten Administrator an.
 ## Einstellungen
 
 Die Einstellungen stehen in `src/main/resources/application.properties`.
-Zugangsdaten für Google und OpenWeather gehören **nie** dorthin, sondern in eine
-Datei `local.properties` im Projektordner. Sie steht in `.gitignore` und wird
-beim Start automatisch gelesen.
+Zugangsdaten für Google, OpenWeather und WhatsApp gehören **nie** dorthin,
+sondern in eine Datei `local.properties` im Projektordner. Sie steht in
+`.gitignore` und wird beim Start automatisch gelesen.
 
 | Einstellung | Standard | Bedeutung |
 |---|---|---|
@@ -187,6 +188,51 @@ Abholtermine erscheinen im Kalender. Bis zu sieben Tage vor jeder Abholung legt
 FamilyHub die Aufgabe „… rausbringen“ für den Vorabend an. Für die Müllabfuhr
 gibt es keine Beispieldaten.
 
+## WhatsApp einrichten (optional)
+
+FamilyHub nimmt Nachrichten an die WhatsApp-Nummer der Familie über die
+offizielle **WhatsApp Cloud API** von Meta entgegen und speichert sie. Ausgewertet
+oder beantwortet werden sie noch nicht; das übernimmt später der KI-Assistent.
+
+**Wer was sieht:** Jede Person sieht die Nachrichten von ihrer eigenen
+Handynummer, Administratoren sehen alle, Gäste keine. Die Handynummern tragen
+Administratoren unter „Familie“ beim Familienmitglied ein (mit Ländervorwahl;
+ohne gilt Deutschland). Abrufen lassen sich die Nachrichten über
+`GET /api/whatsapp/messages`, die Anzahl über `GET /api/whatsapp/status`.
+
+Der Webhook `/api/whatsapp` ist öffentlich, weil Meta ihn ohne Anmeldung
+aufruft. Er nimmt nur Aufrufe an, die Meta mit dem App-Secret signiert hat
+(Header `X-Hub-Signature-256`); alle anderen lehnt er ab.
+
+1. Unter [developers.facebook.com](https://developers.facebook.com) eine App
+   anlegen und das Produkt **WhatsApp** hinzufügen. Dort brauchst du vier Werte:
+   - **Zugriffstoken** (`WHATSAPP_ACCESS_TOKEN`): unter „WhatsApp → API Setup“.
+     Der Token dort läuft nach 24 Stunden ab; dauerhaft geht es mit dem Token
+     eines System-Users.
+   - **Phone Number ID** (`WHATSAPP_PHONE_NUMBER_ID`): ebenfalls unter „API Setup“.
+   - **App-Secret** (`WHATSAPP_APP_SECRET`): unter „App-Einstellungen → Allgemein“
+     („App-Geheimcode“).
+   - **Verify-Token** (`WHATSAPP_VERIFY_TOKEN`): einen beliebigen Wert selbst
+     wählen, z. B. eine lange Zufallszeichenkette.
+2. Die Werte als Umgebungsvariablen setzen oder in `local.properties` eintragen
+   (`local.properties` gewinnt):
+
+   ```properties
+   familyhub.whatsapp.access-token=<Zugriffstoken>
+   familyhub.whatsapp.phone-number-id=<Phone Number ID>
+   familyhub.whatsapp.app-secret=<App-Secret>
+   familyhub.whatsapp.verify-token=<Verify-Token>
+   ```
+3. Backend neu starten. Der Webhook muss über HTTPS von außen erreichbar sein;
+   lokal geht das mit einem Tunnel wie ngrok, z. B.
+   `https://<tunnel>.ngrok.io/api/whatsapp`.
+4. In der Meta Developer Platform unter „WhatsApp → Configuration“ die
+   **Callback URL** (die Tunnel-Adresse mit `/api/whatsapp`) und denselben
+   **Verify-Token** eintragen und das Webhook-Feld `messages` abonnieren. Meta
+   prüft die Adresse sofort; FamilyHub antwortet nur, wenn der Token stimmt.
+5. Als Administrator unter „Familie“ bei jedem Familienmitglied die Handynummer
+   eintragen, damit es seine Nachrichten sieht.
+
 ## Als App installieren
 
 FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im
@@ -210,7 +256,7 @@ Oberfläche nur auf dem eigenen Rechner erreichbar.
 
 Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
 `points`, `rewards`, `achievements`, `shopping`, `meals`, `messages`, `waste`,
-`weather`, `family` und `settings`. Querschnittsthemen liegen in `security`
+`weather`, `whatsapp`, `family` und `settings`. Querschnittsthemen liegen in `security`
 (Anmeldung), `permission` (Rollen und Rechte), `live` (Live-Aktualisierung),
 `web` (Fehlerbehandlung, CORS, Swagger) und `sampledata` (Beispielfamilie).
 

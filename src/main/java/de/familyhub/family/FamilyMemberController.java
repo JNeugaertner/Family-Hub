@@ -108,11 +108,13 @@ public class FamilyMemberController {
             throw ApiException.invalidField("password", "Passwort ist Pflicht");
         }
         requireFreeUsername(request.username(), null);
+        String phone = MemberRules.normalizePhone(request.phone());
+        requireFreePhone(phone, null);
         rules.checkLimits(request.role(), null);
 
         FamilyMember saved = members.save(new FamilyMember(null, request.name(), request.color(), request.username(),
                 passwordEncoder.encode(request.password()), request.role(), request.birthDate(), request.isRoleFixed(),
-                orEmpty(request.extraPermissions()), orEmpty(request.revokedPermissions())));
+                orEmpty(request.extraPermissions()), orEmpty(request.revokedPermissions()), phone));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(responses.of(saved, admin));
     }
@@ -128,11 +130,14 @@ public class FamilyMemberController {
                 ? existing.extraPermissions() : request.extraPermissions();
         Set<Permission> revoked = request.revokedPermissions() == null
                 ? existing.revokedPermissions() : request.revokedPermissions();
+        String phone = MemberRules.normalizePhone(request.phone());
         FamilyMember updated = new FamilyMember(id, request.name(), request.color(), request.username(),
-                existing.passwordHash(), request.role(), request.birthDate(), request.isRoleFixed(), extra, revoked);
+                existing.passwordHash(), request.role(), request.birthDate(), request.isRoleFixed(), extra, revoked,
+                phone);
         requireAllowedChange(admin, existing, updated, request.password() != null);
         checkRoleAssignable(request.role());
         requireFreeUsername(request.username(), id);
+        requireFreePhone(phone, id);
         rules.checkLimits(request.role(), id);
         rules.checkAdministratorRemains(existing, request.role());
 
@@ -221,6 +226,10 @@ public class FamilyMemberController {
         if (loginChanged && !before.id().equals(manager.id())) {
             requireRightsManager(manager, "Nur Administratoren dürfen Benutzername und Passwort anderer ändern.");
         }
+        // Die Nummer entscheidet, wessen WhatsApp-Nachrichten jemand sieht, auch bei der eigenen
+        if (!Objects.equals(before.phone(), after.phone())) {
+            requireRightsManager(manager, "Nur Administratoren dürfen Handynummern eintragen.");
+        }
     }
 
     private static Set<Permission> orEmpty(Set<Permission> permissions) {
@@ -238,6 +247,19 @@ public class FamilyMemberController {
                 .filter(other -> !other.id().equals(ownId))
                 .ifPresent(other -> {
                     throw ApiException.invalidField("username", "Benutzername ist bereits vergeben");
+                });
+    }
+
+    // Eine Nummer gehört zu höchstens einer Person, sonst wären ihre WhatsApp-Nachrichten nicht eindeutig zugeordnet.
+    private void requireFreePhone(String phone, String ownId) {
+        if (phone == null) {
+            return;
+        }
+        members.findByPhone(phone)
+                .filter(other -> !other.id().equals(ownId))
+                .ifPresent(other -> {
+                    throw ApiException.invalidField("phone", "Diese Nummer ist schon bei " + other.name()
+                            + " eingetragen");
                 });
     }
 

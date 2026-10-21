@@ -43,7 +43,12 @@ public record MemberRequest(
         Set<@Valid Permission> extraPermissions,
 
         @Schema(description = "Entzogene Einzelrechte. Weglassen, um sie beim Ändern unverändert zu lassen")
-        Set<@Valid Permission> revokedPermissions) {
+        Set<@Valid Permission> revokedPermissions,
+
+        @Schema(description = "Handynummer mit Ländervorwahl, z. B. +49 170 1234567 (ohne Vorwahl gilt Deutschland). "
+                + "Darüber sieht die Person ihre WhatsApp-Nachrichten. Leer: keine Nummer")
+        @Size(max = 30, message = MemberRules.PHONE_MESSAGE)
+        String phone) {
 
     public boolean isRoleFixed() {
         return Boolean.TRUE.equals(roleFixed);

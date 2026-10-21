@@ -16,7 +16,8 @@ import { ApiError } from '../api/client';
 import { ROLE_NAMES } from '../roles';
 import type { Focus } from '../navigation/focus';
 import EventFormModal from './EventFormModal';
-import { CalendarIcon, CheckSquareIcon, ChevronLeftIcon, SearchIcon, SendIcon, ShoppingCartIcon, XIcon } from './Icons';
+import { CalendarIcon, CheckSquareIcon, ChevronLeftIcon, SearchIcon, SendIcon, ShoppingCartIcon, WhatsAppIcon, XIcon } from './Icons';
+import { getWhatsAppStatus } from '../whatsapp/api';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
 type Navigate = (p: Page, focus?: Focus) => void;
@@ -537,6 +538,12 @@ export default function Messenger({ onNavigate }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [chatOpenOnMobile, setChatOpenOnMobile] = useState(false);
   const [search, setSearch] = useState('');
+  // Nur noch nicht verbunden: oben rechts den WhatsApp-Hinweis zeigen (null = Status noch unbekannt)
+  const [whatsappConfigured, setWhatsAppConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    getWhatsAppStatus().then(s => setWhatsAppConfigured(s.configured)).catch(() => setWhatsAppConfigured(null));
+  }, []);
 
   const sorted = useMemo(() => sortConversations(conversations, title), [conversations, title]);
 
@@ -571,11 +578,21 @@ export default function Messenger({ onNavigate }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5">
         <section aria-label="Unterhaltungen" className={`${panel} ${showChat && !desktop ? 'hidden' : 'flex'}`}>
           <div className="p-3 border-b border-slate-100">
-            <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2">
-              <SearchIcon size={14} className="text-slate-400 flex-shrink-0" />
-              <label htmlFor="conversation-search" className="sr-only">Unterhaltungen durchsuchen</label>
-              <input id="conversation-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Suchen…"
-                className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none" />
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 min-w-0">
+                <SearchIcon size={14} className="text-slate-400 flex-shrink-0" />
+                <label htmlFor="conversation-search" className="sr-only">Unterhaltungen durchsuchen</label>
+                <input id="conversation-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Suchen…"
+                  className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none" />
+              </div>
+              {whatsappConfigured === false && (
+                <button type="button" onClick={() => onNavigate('profiles', { kind: 'whatsapp' })}
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#128C7E] bg-[#25D366]/10 border border-[#25D366]/40 px-3 py-2 rounded-xl hover:bg-[#25D366]/20 transition-colors"
+                  title="WhatsApp ist noch nicht verbunden – in den Einstellungen einrichten">
+                  <WhatsAppIcon size={16} className="text-[#25D366]" />
+                  <span className="hidden sm:inline">WhatsApp verbinden</span>
+                </button>
+              )}
             </div>
           </div>
           <div className="flex-1 overflow-y-auto divide-y divide-slate-50">

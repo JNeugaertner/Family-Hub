@@ -23,5 +23,8 @@ public record MemberResponse(
         @Schema(description = "Zusätzlich vergebene Einzelrechte, nur für Administratoren sichtbar")
         List<Permission> extraPermissions,
         @Schema(description = "Entzogene Einzelrechte, nur für Administratoren sichtbar")
-        List<Permission> revokedPermissions) {
+        List<Permission> revokedPermissions,
+        @Schema(description = "Handynummer (nur Ziffern mit Ländervorwahl), nur für Administratoren und die Person selbst "
+                + "sichtbar")
+        String phone) {
 }
