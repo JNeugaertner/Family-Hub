@@ -6,7 +6,7 @@ import { ApiError } from '../api/client';
 import { CATEGORY_OPTIONS } from '../calendar/categories';
 import GoogleBadge from '../google/GoogleBadge';
 import { eventColor, memberColors } from '../calendar/eventStyle';
-import {findPlaces} from './OrsApi';
+import {findPlaces, OrsLocation} from './OrsApi';
 
 // Das Backend meldet "Ende nach Beginn" unter endAfterStart; im Formular gehört es zum Feld "Ende".
 const FIELD_ALIASES: Record<string, string> = { endAfterStart: 'end' };
@@ -59,6 +59,9 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   const [location, setLocation] = useState(event?.location ?? '');
   const [description, setDescription] = useState(event?.description ?? '');
   const [privateEvent, setPrivateEvent] = useState(event?.private ?? false);
+
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<OrsLocation[] | null>(null);  
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -135,6 +138,18 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     if (!confirmDelete) { setConfirmDelete(true); return; }
     run(() => removeEvent(event.id));
   };
+
+  const search = async () => {
+    if (!query.trim()) return;
+    const places = await findPlaces(query.trim());
+    setResults(places);
+  };
+
+  const choose = (place: OrsLocation) => {
+    setLocation(place.label);
+    setResults(null);
+    setQuery('');
+  };  
 
   const heading = readOnly ? 'Termin' : isProposal ? 'Vorschlag bearbeiten' : isEdit ? 'Termin bearbeiten'
     : willBeProposal ? 'Neuer Vorschlag' : 'Neuer Termin';
@@ -230,8 +245,25 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
           </Field>
 
           <Field id="event-location" label="Ort (optional)" error={fieldErrors.location}>
-            <input {...fieldProps('location')} value={location} onChange={e => setLocation(e.target.value)} />
+            <input {...fieldProps('location')} value={location} onChange={e => {setQuery(e.target.value);setLocation(e.target.value)}}/>
           </Field>
+
+          <button onClick={search} type="button" disabled={!query.trim()}
+          className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
+          Suchen
+        </button>
+
+        {results && (
+        <div className="mt-2 space-y-1" aria-label="Suchergebnisse">
+          {results.length === 0 && <p className="text-xs text-slate-400 px-1">Kein Ort gefunden.</p>}
+          {results.map(p => (
+            <button key={`${p.lat},${p.lon}`} type="button" disabled={busy} onClick={() => choose(p)}
+              className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-sm text-slate-700 disabled:opacity-50">
+                {p.label}
+            </button>
+          ))}
+        </div>
+      )}        
 
           <Field id="event-description" label="Beschreibung (optional)" error={fieldErrors.description}>
             <textarea rows={3} {...fieldProps('description')} value={description} onChange={e => setDescription(e.target.value)} />
