@@ -15,6 +15,7 @@ import GoogleCalendarCard from '../google/GoogleCalendarCard';
 import WeatherLocationCard from '../weather/WeatherLocationCard';
 import WasteCalendarCard from '../waste/WasteCalendarCard';
 import WhatsAppCard from '../whatsapp/WhatsAppCard';
+import TelegramCard from '../telegram/TelegramCard';
 import { hasPermission, permissionKey, ROLE_NAMES, type Permission, type RoleId } from '../roles';
 import { useFlashFocus } from '../navigation/focus';
 
@@ -516,6 +517,8 @@ export default function Profiles({ onNavigate }: Props) {
   const mayManageRights = can('system', 'verwalten', 'familie');
   // Wie im Backend (GoogleController): alle außer Gästen, die ihre eigenen Termine sehen dürfen
   const mayConnectGoogle = me.role !== 'gast' && can('kalender', 'ansehen', 'eigen');
+  // Telegram verknüpfen darf, wer Nachrichten hat, wie im Backend (InboxAccess)
+  const mayUseMessenger = can('messenger', 'ansehen', 'eigen');
 
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [roles, setRoles] = useState<RoleInfo[]>([]);
@@ -594,6 +597,7 @@ export default function Profiles({ onNavigate }: Props) {
         {mayManageRights && <WasteCalendarCard members={members} />}
         <PasswordCard />
         <WhatsAppCard />
+        {mayUseMessenger && <TelegramCard />}
         {mayConnectGoogle && <GoogleCalendarCard />}
       </div>
 

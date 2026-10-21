@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.inbox.InboundMessageRepository;
 import de.familyhub.permission.Role;
 import de.familyhub.testsupport.TestUsers;
 
@@ -34,7 +35,7 @@ class WhatsAppNotConfiguredTest {
     private FamilyMemberRepository members;
 
     @Autowired
-    private WhatsAppMessageRepository messages;
+    private InboundMessageRepository messages;
 
     private FamilyMember sarah;
 

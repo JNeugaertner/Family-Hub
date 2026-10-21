@@ -7,6 +7,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -16,16 +18,18 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import de.familyhub.inbox.Channel;
+import de.familyhub.inbox.InboundMessage;
+import de.familyhub.inbox.Inbox;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-// Der Service zerlegt eingehende Payloads und legt jede Nachricht roh ab; bereits bekannte IDs werden
-// übersprungen, Payloads ohne Einträge bleiben leer.
+// Zerlegen eines WhatsApp-Payloads in Einzelnachrichten für den gemeinsamen Eingang
 @ExtendWith(MockitoExtension.class)
 class WhatsAppServiceTest {
 
     @Mock
-    private WhatsAppMessageRepository repository;
+    private Inbox inbox;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -33,11 +37,7 @@ class WhatsAppServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new WhatsAppService(repository);
-    }
-
-    private WhatsAppMessage saved(WhatsAppMessage in) {
-        return new WhatsAppMessage(in.id(), in.from(), in.text(), in.timestamp(), in.receivedAt(), in.raw());
+        service = new WhatsAppService(inbox, Clock.systemUTC());
     }
 
     private JsonNode parse(String json) throws Exception {
@@ -46,10 +46,9 @@ class WhatsAppServiceTest {
 
     @Test
     void storesEachMessageRawWithExtractedFields() throws Exception {
-        when(repository.existsById("wamid.A")).thenReturn(false);
-        when(repository.save(any())).thenAnswer(inv -> saved(inv.getArgument(0, WhatsAppMessage.class)));
+        when(inbox.store(any())).thenReturn(true);
 
-        List<WhatsAppMessage> stored = service.storeIncoming(parse("""
+        List<InboundMessage> stored = service.storeIncoming(parse("""
                 {"object":"whatsapp_business_account","entry":[{"id":"E","changes":[{"field":"messages","value":{
                 "messaging_product":"whatsapp",
                 "messages":[
@@ -58,32 +57,34 @@ class WhatsAppServiceTest {
                 ]}
                 }] }]}"""));
 
-        assertThat(stored).extracting(WhatsAppMessage::id).containsExactly("wamid.A", "wamid.B");
-        assertThat(stored.get(0).from()).isEqualTo("491571");
-        assertThat(stored.get(0).text()).isEqualTo("Hallo");
-        assertThat(stored.get(0).timestamp()).isNotNull();
-        assertThat(stored.get(0).raw()).contains("wamid.A").contains("Hallo");
+        assertThat(stored).extracting(InboundMessage::id).containsExactly("whatsapp:wamid.A", "whatsapp:wamid.B");
+        InboundMessage first = stored.get(0);
+        assertThat(first.channel()).isEqualTo(Channel.WHATSAPP);
+        assertThat(first.sender()).isEqualTo("491571");
+        assertThat(first.senderKey()).isEqualTo("whatsapp:491571");
+        assertThat(first.text()).isEqualTo("Hallo");
+        assertThat(first.sentAt()).isEqualTo(Instant.ofEpochSecond(1700000000));
+        assertThat(first.receivedAt()).isNotNull();
+        assertThat(first.raw()).contains("wamid.A").contains("Hallo");
     }
 
     @Test
     void skipsMessagesThatAreAlreadyKnown() throws Exception {
-        when(repository.existsById("wamid.A")).thenReturn(true);
+        when(inbox.store(any())).thenReturn(false);
 
-        List<WhatsAppMessage> stored = service.storeIncoming(parse("""
+        List<InboundMessage> stored = service.storeIncoming(parse("""
                 {"entry":[{"changes":[{"value":{"messages":[
                   {"from":"491571","id":"wamid.A","timestamp":"1700000000","type":"text","text":{"body":"Hallo"}}
                 ]}}]}] }"""));
 
         assertThat(stored).isEmpty();
-        verify(repository, never()).save(any());
     }
 
     @Test
     void messageWithoutTextStillStoresRawPayload() throws Exception {
-        when(repository.existsById("wamid.A")).thenReturn(false);
-        when(repository.save(any())).thenAnswer(inv -> saved(inv.getArgument(0, WhatsAppMessage.class)));
+        when(inbox.store(any())).thenReturn(true);
 
-        List<WhatsAppMessage> stored = service.storeIncoming(parse("""
+        List<InboundMessage> stored = service.storeIncoming(parse("""
                 {"entry":[{"changes":[{"value":{"messages":[
                   {"from":"491571","id":"wamid.A","timestamp":"1700000000","type":"image","image":{"id":"IMG1"}}
                 ]}}]}] }"""));
@@ -95,11 +96,11 @@ class WhatsAppServiceTest {
 
     @Test
     void payloadWithoutEntriesStoresNothing() throws Exception {
-        List<WhatsAppMessage> stored = service.storeIncoming(parse(
+        List<InboundMessage> stored = service.storeIncoming(parse(
                 "{\"object\":\"whatsapp_business_account\",\"entry\":[]}"));
 
         assertThat(stored).isEmpty();
-        verify(repository, never()).save(any());
+        verify(inbox, never()).store(any());
     }
 
     @Test
@@ -109,8 +110,7 @@ class WhatsAppServiceTest {
 
     @Test
     void rawPayloadKeepsUnparsedStructure() throws Exception {
-        when(repository.existsById("wamid.A")).thenReturn(false);
-        when(repository.save(any())).thenAnswer(inv -> saved(inv.getArgument(0, WhatsAppMessage.class)));
+        when(inbox.store(any())).thenReturn(true);
 
         service.storeIncoming(parse("""
                 {"entry":[{"changes":[{"value":{"messages":[
@@ -118,8 +118,8 @@ class WhatsAppServiceTest {
                    "text":{"body":"Hallo","mentioned_jid":[]},"customer_id":"C1"}
                 ]}}]}] }"""));
 
-        ArgumentCaptor<WhatsAppMessage> captor = ArgumentCaptor.forClass(WhatsAppMessage.class);
-        verify(repository).save(captor.capture());
+        ArgumentCaptor<InboundMessage> captor = ArgumentCaptor.forClass(InboundMessage.class);
+        verify(inbox).store(captor.capture());
         assertThat(captor.getValue().raw()).contains("customer_id").contains("mentioned_jid");
     }
 }

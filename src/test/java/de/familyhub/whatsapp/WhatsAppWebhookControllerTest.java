@@ -24,6 +24,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.inbox.InboundMessage;
+import de.familyhub.inbox.InboundMessageRepository;
 import de.familyhub.permission.Role;
 import de.familyhub.testsupport.TestUsers;
 
@@ -38,7 +40,7 @@ class WhatsAppWebhookControllerTest {
     private MockMvc mvc;
 
     @Autowired
-    private WhatsAppMessageRepository messages;
+    private InboundMessageRepository messages;
 
     @Autowired
     private FamilyMemberRepository members;
@@ -105,10 +107,10 @@ class WhatsAppWebhookControllerTest {
         mvc.perform(signed(payload("wamid.A", "4915712345678", "Hallo")))
                 .andExpect(status().isOk());
 
-        WhatsAppMessage stored = messages.findById("wamid.A").orElseThrow();
-        assertThat(stored.from()).isEqualTo("4915712345678");
+        InboundMessage stored = messages.findById("whatsapp:wamid.A").orElseThrow();
+        assertThat(stored.sender()).isEqualTo("4915712345678");
         assertThat(stored.text()).isEqualTo("Hallo");
-        assertThat(stored.timestamp()).isNotNull();
+        assertThat(stored.sentAt()).isNotNull();
         assertThat(stored.receivedAt()).isNotNull();
         assertThat(stored.raw()).contains("Hallo").contains("wamid.A");
     }
@@ -175,20 +177,20 @@ class WhatsAppWebhookControllerTest {
         mvc.perform(signed(payload("wamid.B", "4917011111111", "Von jemand anderem"))).andExpect(status().isOk());
         mvc.perform(signed(payload("wamid.C", "4917099999999", "Von Oma"))).andExpect(status().isOk());
 
-        mvc.perform(get("/api/whatsapp/messages").with(as(emma)))
+        mvc.perform(get("/api/inbox").param("channel", "whatsapp").with(as(emma)))
                 .andExpect(jsonPath("$[*].text", contains("Von Emma")));
         mvc.perform(get("/api/whatsapp/status").with(as(emma)))
                 .andExpect(jsonPath("$.messageCount").value(1));
         // Ohne eingetragene Nummer: nichts
-        mvc.perform(get("/api/whatsapp/messages").with(as(lucas)))
+        mvc.perform(get("/api/inbox").param("channel", "whatsapp").with(as(lucas)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
         // Gäste haben keinen Zugang, auch mit Nummer
-        mvc.perform(get("/api/whatsapp/messages").with(as(oma)))
+        mvc.perform(get("/api/inbox").param("channel", "whatsapp").with(as(oma)))
                 .andExpect(status().isForbidden());
         mvc.perform(get("/api/whatsapp/status").with(as(oma)))
                 .andExpect(jsonPath("$.messageCount").value(0));
-        mvc.perform(get("/api/whatsapp/messages").with(as(sarah)))
+        mvc.perform(get("/api/inbox").param("channel", "whatsapp").with(as(sarah)))
                 .andExpect(jsonPath("$", hasSize(3)));
         mvc.perform(get("/api/whatsapp/status").with(as(sarah)))
                 .andExpect(jsonPath("$.messageCount").value(3));
@@ -197,14 +199,14 @@ class WhatsAppWebhookControllerTest {
     @Test
     void statusAndMessagesRequireLogin() throws Exception {
         mvc.perform(get("/api/whatsapp/status")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/whatsapp/messages")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/inbox").param("channel", "whatsapp")).andExpect(status().isUnauthorized());
 
         mvc.perform(get("/api/whatsapp/status").with(as(sarah)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.configured").value(true))
                 .andExpect(jsonPath("$.messageCount").value(0));
 
-        mvc.perform(get("/api/whatsapp/messages").with(as(sarah)))
+        mvc.perform(get("/api/inbox").param("channel", "whatsapp").with(as(sarah)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
     }
