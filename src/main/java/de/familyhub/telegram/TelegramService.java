@@ -53,6 +53,10 @@ public class TelegramService {
         this.clock = clock;
     }
 
+    public boolean isConfigured() {
+        return properties.isConfigured();
+    }
+
     public String botUsername() {
         if (botUsername == null && properties.isConfigured()) {
             botUsername = api.getMe().username();

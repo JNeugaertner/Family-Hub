@@ -23,6 +23,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.notifications.EventNotifications;
 import de.familyhub.security.CurrentMember;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,13 +40,15 @@ public class CalendarEventController {
     private final FamilyMemberRepository members;
     private final CurrentMember currentMember;
     private final CalendarAccess access;
+    private final EventNotifications notifications;
 
     public CalendarEventController(CalendarEventRepository events, FamilyMemberRepository members,
-            CurrentMember currentMember, CalendarAccess access) {
+            CurrentMember currentMember, CalendarAccess access, EventNotifications notifications) {
         this.events = events;
         this.members = members;
         this.currentMember = currentMember;
         this.access = access;
+        this.notifications = notifications;
     }
 
     @GetMapping
@@ -101,6 +104,7 @@ public class CalendarEventController {
         EventStatus status = access.statusForNewEvent(viewer, event);
         requireMembers(event.memberIds());
         CalendarEvent saved = events.save(copy(null, event, status, viewer.id(), null));
+        notifications.saved(null, saved, viewer);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(saved);
     }
@@ -113,7 +117,9 @@ public class CalendarEventController {
         requireNotImported(existing);
         access.requireUpdate(viewer, existing, event);
         requireMembers(event.memberIds());
-        return events.save(copy(id, event, existing.status(), existing.createdBy(), null));
+        CalendarEvent saved = events.save(copy(id, event, existing.status(), existing.createdBy(), null));
+        notifications.saved(existing, saved, viewer);
+        return saved;
     }
 
     @DeleteMapping("/{id}")
@@ -133,7 +139,10 @@ public class CalendarEventController {
         FamilyMember viewer = currentMember.get();
         access.requireDecision(viewer);
         CalendarEvent proposal = findOpenProposal(id, viewer);
-        return events.save(copy(id, proposal, EventStatus.APPROVED, proposal.createdBy(), proposal.external()));
+        CalendarEvent approved = events.save(copy(id, proposal, EventStatus.APPROVED, proposal.createdBy(),
+                proposal.external()));
+        notifications.saved(proposal, approved, viewer);
+        return approved;
     }
 
     @PostMapping("/{id}/reject")

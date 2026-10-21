@@ -30,6 +30,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import de.familyhub.achievements.AchievementService;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.notifications.TaskNotifications;
 import de.familyhub.permission.RoleResolver;
 import de.familyhub.points.PointsService;
 import de.familyhub.security.CurrentMember;
@@ -53,11 +54,12 @@ public class TaskController {
     private final AchievementService achievements;
     private final RoleResolver roles;
     private final MongoTemplate mongo;
+    private final TaskNotifications notifications;
     private final Clock clock;
 
     public TaskController(TaskRepository tasks, FamilyMemberRepository members, CurrentMember currentMember,
             TaskAccess access, PointsService points, AchievementService achievements, RoleResolver roles,
-            MongoTemplate mongo, Clock clock) {
+            MongoTemplate mongo, TaskNotifications notifications, Clock clock) {
         this.tasks = tasks;
         this.members = members;
         this.currentMember = currentMember;
@@ -66,6 +68,7 @@ public class TaskController {
         this.achievements = achievements;
         this.roles = roles;
         this.mongo = mongo;
+        this.notifications = notifications;
         this.clock = clock;
     }
 
@@ -111,6 +114,7 @@ public class TaskController {
                 checked.bonus());
         requireAssignment(toSave);
         Task saved = tasks.save(toSave);
+        notifications.saved(null, saved, viewer);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(saved);
     }
@@ -128,7 +132,9 @@ public class TaskController {
         // Aufgaben für Erwachsene (kein Kind/Jugendlicher) behalten keine Punkte, da sie keine sammeln
         changed = access.requireEdit(viewer, existing, changed);
         requireAssignment(changed);
-        return tasks.save(changed);
+        Task saved = tasks.save(changed);
+        notifications.saved(existing, saved, viewer);
+        return saved;
     }
 
     @PostMapping("/{id}/claim")

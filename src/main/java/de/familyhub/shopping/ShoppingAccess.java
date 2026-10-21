@@ -74,6 +74,10 @@ public class ShoppingAccess {
         require(viewer, LOESCHEN, "Keine Berechtigung, Artikel zu löschen.");
     }
 
+    public boolean mayDecide(FamilyMember viewer) {
+        return can(viewer, FREIGEBEN);
+    }
+
     public void requireDecision(FamilyMember viewer) {
         require(viewer, FREIGEBEN, "Nur Administratoren dürfen Vorschläge übernehmen oder ablehnen.");
     }

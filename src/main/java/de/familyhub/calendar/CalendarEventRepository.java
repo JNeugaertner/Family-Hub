@@ -28,4 +28,6 @@ public interface CalendarEventRepository extends MongoRepository<CalendarEvent, 
 
     @Query(value = "{ 'memberIds': ?0, 'start': { $lt: ?2 }, 'end': { $gt: ?1 } }", sort = "{ 'start': 1 }")
     List<CalendarEvent> findOverlappingForMember(String memberId, LocalDateTime from, LocalDateTime to);
+
+    List<CalendarEvent> findByStatus(EventStatus status);
 }

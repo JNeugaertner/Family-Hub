@@ -13,4 +13,8 @@ public interface TaskRepository extends MongoRepository<Task, String> {
     List<Task> findByDescription(String description);
 
     long countByAssigneeId(String assigneeId);
+
+    List<Task> findByStatus(TaskStatus status);
+
+    List<Task> findByDueDateAndPriority(java.time.LocalDate dueDate, TaskPriority priority);
 }
