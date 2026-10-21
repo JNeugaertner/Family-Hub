@@ -1,0 +1,6 @@
+background: solid
+background.color: #20252d
+window.font: DejaVu Sans-10
+toolbar.font: DejaVu Sans-10
+menu.frame.font: DejaVu Sans-10
+menu.title.font: DejaVu Sans-10
