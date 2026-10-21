@@ -22,6 +22,7 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | Essensplan | Wochenplan mit Gerichte-Sammlung, Zutaten und Kochanleitung; Kinder äußern Wünsche; Zutaten per Knopf auf die Einkaufsliste |
 | Nachrichten | Familiengruppe und Einzelchats; aus einer Nachricht wird ein Artikel, ein Termin oder eine Aufgabe |
 | WhatsApp (in Arbeit) | Nachrichten an die WhatsApp-Nummer der Familie empfangen; jede Person sieht die von ihrer eigenen Handynummer |
+| Telegram (in Arbeit) | Bot der Familie: Nachrichten an den Bot landen in FamilyHub, FamilyHub schickt Nachrichten an verbundene Konten |
 | Müllabfuhr | Abfuhrkalender der Gemeinde (ICS-Datei) importieren; Termine im Kalender und eine Aufgabe für den Vorabend |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
@@ -92,7 +93,7 @@ den ersten Administrator an.
 ## Einstellungen
 
 Die Einstellungen stehen in `src/main/resources/application.properties`.
-Zugangsdaten für Google, OpenWeather und WhatsApp gehören **nie** dorthin,
+Zugangsdaten für Google, OpenWeather, WhatsApp und Telegram gehören **nie** dorthin,
 sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 `.gitignore` und wird beim Start automatisch gelesen.
 
@@ -106,6 +107,7 @@ sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 | `familyhub.google.sync-interval` | `PT15M` | Takt des Abgleichs mit Google |
 | `familyhub.google.push-delay` | `PT10S` | So schnell kommen geänderte Termine in den Google-Kalender „FamilyHub“ |
 | `familyhub.weather.cache-duration` | `PT10M` | So lange merkt sich das Backend eine Wetterabfrage |
+| `familyhub.telegram.polling` | `true` | Nachrichten an den Telegram-Bot selbst abholen |
 | `familyhub.cors.allowed-origins` | `http://localhost:5173` | Adresse der Oberfläche |
 
 ## Google Kalender einrichten (optional)
@@ -197,8 +199,8 @@ oder beantwortet werden sie noch nicht; das übernimmt später der KI-Assistent.
 **Wer was sieht:** Jede Person sieht die Nachrichten von ihrer eigenen
 Handynummer, Administratoren sehen alle, Gäste keine. Die Handynummern tragen
 Administratoren unter „Familie“ beim Familienmitglied ein (mit Ländervorwahl;
-ohne gilt Deutschland). Abrufen lassen sich die Nachrichten über
-`GET /api/whatsapp/messages`, die Anzahl über `GET /api/whatsapp/status`.
+ohne gilt Deutschland). Abrufen lassen sich die Nachrichten über den gemeinsamen
+Eingang `GET /api/inbox?channel=whatsapp`, die Anzahl über `GET /api/whatsapp/status`.
 
 Der Webhook `/api/whatsapp` ist öffentlich, weil Meta ihn ohne Anmeldung
 aufruft. Er nimmt nur Aufrufe an, die Meta mit dem App-Secret signiert hat
@@ -233,6 +235,42 @@ aufruft. Er nimmt nur Aufrufe an, die Meta mit dem App-Secret signiert hat
 5. Als Administrator unter „Familie“ bei jedem Familienmitglied die Handynummer
    eintragen, damit es seine Nachrichten sieht.
 
+## Telegram einrichten (optional)
+
+Die Familie bekommt einen eigenen Telegram-Bot. Wer sein Telegram-Konto unter
+„Familie“ verbindet, kann dem Bot schreiben; die Nachrichten landen wie die von
+WhatsApp im gemeinsamen Eingang (`GET /api/inbox?channel=telegram`). Umgekehrt
+kann FamilyHub ihm Nachrichten schicken, die Grundlage für Benachrichtigungen.
+Ausgewertet oder beantwortet werden eingehende Nachrichten noch nicht.
+
+FamilyHub holt die Nachrichten selbst bei Telegram ab (Long Polling). Anders als
+bei WhatsApp braucht es deshalb keine öffentliche Adresse und keinen Tunnel, nur
+ausgehende Verbindungen zu `api.telegram.org`. Nachrichten von Konten, die mit
+niemandem in der Familie verbunden sind, verwirft FamilyHub, ohne sie zu
+speichern. **Wer was sieht**, regelt der Eingang wie bei WhatsApp: jede Person
+ihre eigenen, Administratoren alle, Gäste keine; Gäste können Telegram auch
+nicht verbinden.
+
+1. In Telegram den Chat mit **@BotFather** öffnen, `/newbot` senden und einen
+   Namen sowie einen Benutzernamen wählen (endet auf `bot`). BotFather antwortet
+   mit dem **Bot-Token**.
+2. Den Token als Umgebungsvariable `TELEGRAM_BOT_TOKEN` setzen oder in
+   `local.properties` eintragen:
+
+   ```properties
+   familyhub.telegram.bot-token=<Bot-Token>
+   ```
+3. Backend neu starten. Im Log steht dann „Telegram: Nachrichten an den Bot
+   werden abgeholt“.
+4. Jede Person öffnet unter „Familie“ die Karte **Telegram**, klickt auf „Mit
+   Telegram verbinden“ und „In Telegram öffnen“ und tippt dort auf **Starten**.
+   Der Bot bestätigt die Verbindung; der Link gilt zehn Minuten.
+
+Ein Bot darf nur von einem FamilyHub gleichzeitig abgeholt werden. Laufen zwei,
+etwa auf zwei Rechnern, meldet Telegram einen Konflikt; dann für jeden Rechner
+einen eigenen Bot anlegen. Chats mit Bots sind bei Telegram nicht
+Ende-zu-Ende-verschlüsselt.
+
 ## Als App installieren
 
 FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im
@@ -256,9 +294,11 @@ Oberfläche nur auf dem eigenen Rechner erreichbar.
 
 Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
 `points`, `rewards`, `achievements`, `shopping`, `meals`, `messages`, `waste`,
-`weather`, `whatsapp`, `family` und `settings`. Querschnittsthemen liegen in `security`
-(Anmeldung), `permission` (Rollen und Rechte), `live` (Live-Aktualisierung),
-`web` (Fehlerbehandlung, CORS, Swagger) und `sampledata` (Beispielfamilie).
+`weather`, `whatsapp`, `telegram`, `family` und `settings`. Querschnittsthemen
+liegen in `security` (Anmeldung), `permission` (Rollen und Rechte), `inbox`
+(gemeinsamer Eingang für Nachrichten von WhatsApp und Telegram), `live`
+(Live-Aktualisierung), `web` (Fehlerbehandlung, CORS, Swagger) und `sampledata`
+(Beispielfamilie).
 
 ## Dokumentation
 
