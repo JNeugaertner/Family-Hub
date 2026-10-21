@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAutoRefresh } from '../api/useAutoRefresh';
 import { SendIcon } from '../components/Icons';
+import NotificationToggles from '../notifications/NotificationToggles';
 import { getTelegramStatus, sendTelegramTest, startTelegramLink, unlinkTelegram, type TelegramStatus } from './api';
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
@@ -8,8 +9,8 @@ const errorText = (err: unknown) => (err instanceof Error ? err.message : String
 const BUTTON = 'py-2 px-4 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50';
 
 // Eigenes Telegram-Konto mit dem Bot der Familie verknüpfen. Danach landen eigene Nachrichten an den Bot im
-// Eingang, und FamilyHub kann einem Nachrichten schicken. Die Karte springt von selbst auf „verbunden“, sobald
-// man in Telegram auf „Starten“ getippt hat (Live-Aktualisierung, Bereich "telegram").
+// Eingang, und FamilyHub schickt einem Benachrichtigungen (welche, stellt man darunter ein). Die Karte springt von
+// selbst auf „verbunden“, sobald man in Telegram auf „Starten“ getippt hat (Live-Aktualisierung, Bereich "telegram").
 export default function TelegramCard() {
   const [status, setStatus] = useState<TelegramStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +86,8 @@ export default function TelegramCard() {
           </p>
           <p className="text-sm text-slate-600">
             Schreib dem Bot <span className="font-semibold">@{status.botUsername}</span>, deine Nachrichten landen in
-            FamilyHub ({status.messageCount} bisher). Benachrichtigungen von FamilyHub kommen dort an.
+            FamilyHub ({status.messageCount} bisher). Benachrichtigungen von FamilyHub kommen dort an. Antworten
+            darauf landen ebenfalls im Eingang, nicht im Chat.
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button type="button" onClick={test} disabled={busy}
@@ -97,6 +99,7 @@ export default function TelegramCard() {
               {confirmUnlink ? 'Wirklich trennen?' : 'Trennen'}
             </button>
           </div>
+          <NotificationToggles />
         </>
       ) : (
         <>

@@ -26,6 +26,7 @@ import de.familyhub.google.GoogleAccountService;
 import de.familyhub.meals.MealEntryRepository;
 import de.familyhub.messages.MessageService;
 import de.familyhub.meals.MealStatus;
+import de.familyhub.notifications.Notifications;
 import de.familyhub.permission.Action;
 import de.familyhub.permission.Module;
 import de.familyhub.permission.Permission;
@@ -64,12 +65,14 @@ public class FamilyMemberController {
     private final ShoppingItemRepository shopping;
     private final MessageService messages;
     private final TelegramService telegram;
+    private final Notifications notifications;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
             TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
             PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts,
             RedemptionRepository redemptions, AchievementService achievements, MealEntryRepository meals,
-            ShoppingItemRepository shopping, MessageService messages, TelegramService telegram) {
+            ShoppingItemRepository shopping, MessageService messages, TelegramService telegram,
+            Notifications notifications) {
         this.members = members;
         this.events = events;
         this.tasks = tasks;
@@ -85,6 +88,7 @@ public class FamilyMemberController {
         this.shopping = shopping;
         this.messages = messages;
         this.telegram = telegram;
+        this.notifications = notifications;
     }
 
     @GetMapping
@@ -189,6 +193,7 @@ public class FamilyMemberController {
         shopping.deleteByCreatedByAndStatus(id, ShoppingItemStatus.PROPOSED);
         messages.forgetMember(id);
         telegram.forgetMember(id);
+        notifications.forgetMember(id);
         members.deleteById(id);
     }
 

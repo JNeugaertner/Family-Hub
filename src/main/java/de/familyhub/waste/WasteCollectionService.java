@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.notifications.TaskNotifications;
 import de.familyhub.permission.Role;
 import de.familyhub.task.Task;
 import de.familyhub.task.TaskAccess;
@@ -40,14 +41,16 @@ public class WasteCollectionService {
     private final TaskRepository tasks;
     private final FamilyMemberRepository members;
     private final TaskAccess taskAccess;
+    private final TaskNotifications taskNotifications;
     private final Clock clock;
 
     public WasteCollectionService(WasteCollectionRepository collections, TaskRepository tasks,
-            FamilyMemberRepository members, TaskAccess taskAccess, Clock clock) {
+            FamilyMemberRepository members, TaskAccess taskAccess, TaskNotifications taskNotifications, Clock clock) {
         this.collections = collections;
         this.tasks = tasks;
         this.members = members;
         this.taskAccess = taskAccess;
+        this.taskNotifications = taskNotifications;
         this.clock = clock;
     }
 
@@ -86,7 +89,7 @@ public class WasteCollectionService {
 
         WasteCollection imported = collections.save(new WasteCollection(WasteCollection.ID, file.getOriginalFilename(),
                 LocalDateTime.now(clock), points, assignedMember, creator.id(), pickups));
-        createUpcomingTasks(imported, creator);
+        createUpcomingTasks(imported, creator, creator);
         return imported;
     }
 
@@ -103,11 +106,12 @@ public class WasteCollectionService {
                     .findFirst().orElse(null);
         }
         if (creator != null) {
-            createUpcomingTasks(collection, creator);
+            createUpcomingTasks(collection, creator, null);
         }
     }
 
-    private void createUpcomingTasks(WasteCollection collection, FamilyMember creator) {
+    // actor: wer den Kalender gerade importiert; null beim täglichen Abgleich (Benachrichtigungen an alle)
+    private void createUpcomingTasks(WasteCollection collection, FamilyMember creator, FamilyMember actor) {
         LocalDate today = LocalDate.now(clock);
         Set<String> activeTasks = collection.pickups().stream()
                 .filter(pickup -> !pickup.date().isBefore(today))
@@ -128,7 +132,7 @@ public class WasteCollectionService {
                             TaskPriority.HIGH, TaskCategory.CHORES, collection.points(), TaskStatus.TODO,
                             task.createdBy(), null, null, collection.assigneeId() == null, false);
                     taskAccess.requireCreate(creator, updated);
-                    tasks.save(updated);
+                    taskNotifications.saved(task, tasks.save(updated), actor);
                 }
                 continue;
             }
@@ -136,7 +140,7 @@ public class WasteCollectionService {
                     TaskPriority.HIGH, TaskCategory.CHORES, collection.points(), TaskStatus.TODO, creator.id(), null,
                     null, collection.assigneeId() == null, false);
             taskAccess.requireCreate(creator, task);
-            tasks.save(task);
+            taskNotifications.saved(null, tasks.save(task), actor);
         }
         for (Task existing : tasks.findByDescription(TASK_DESCRIPTION)) {
             if (existing.dueDate() != null && existing.status() == TaskStatus.TODO

@@ -139,8 +139,12 @@ public class TaskAccess {
         }
     }
 
+    public boolean mayConfirm(FamilyMember viewer) {
+        return permissions.can(viewer, PUNKTE, FREIGEBEN, Scope.FAMILIE);
+    }
+
     public void requireConfirmationRight(FamilyMember viewer) {
-        if (!permissions.can(viewer, PUNKTE, FREIGEBEN, Scope.FAMILIE)) {
+        if (!mayConfirm(viewer)) {
             throw ApiException.forbidden("Nur Administratoren dürfen erledigte Aufgaben bestätigen oder zurückgeben.");
         }
     }
