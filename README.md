@@ -131,6 +131,18 @@ nächsten vier Tage und eine Kleidungsempfehlung). Die Daten kommen von
 Das Backend fragt OpenWeather höchstens alle zehn Minuten
 (`familyhub.weather.cache-duration`).
 
+## OpenRouteService einrichten 
+
+Für die Ortssuche und später auch Fahrzeitberechnung.
+
+1. Bei OpenRouteService Api-Key generieren lassen.
+2. In `local.properties` im Projektordner eintragen (steht in `.gitignore`,
+   **nie einchecken**):
+
+   ```properties
+   familyhub.ors.api-key=<API-Schlüssel>
+   ```
+
 ## Als App installieren
 
 FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im
