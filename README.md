@@ -22,13 +22,14 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | Essensplan | Wochenplan mit Gerichte-Sammlung, Zutaten und Kochanleitung; Kinder äußern Wünsche; Zutaten per Knopf auf die Einkaufsliste |
 | Nachrichten | Familiengruppe und Einzelchats; aus einer Nachricht wird ein Artikel, ein Termin oder eine Aufgabe |
 | WhatsApp (in Arbeit) | Nachrichten an die WhatsApp-Nummer der Familie empfangen; jede Person sieht die von ihrer eigenen Handynummer |
-| Telegram (in Arbeit) | Bot der Familie: Nachrichten an den Bot landen in FamilyHub, FamilyHub schickt Nachrichten an verbundene Konten |
+| Telegram (in Arbeit) | Bot der Familie: Nachrichten an den Bot landen in FamilyHub; Benachrichtigungen zu dringenden Aufgaben, kurzfristigen Terminen, offenen Bestätigungen und Chat-Nachrichten |
 | Müllabfuhr | Abfuhrkalender der Gemeinde (ICS-Datei) importieren; Termine im Kalender und eine Aufgabe für den Vorabend |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
 | Sonstiges | Änderungen anderer erscheinen ohne Neuladen; als App installierbar; Konto-Sperre nach fünf falschen Passwörtern |
 
-Noch nicht umgesetzt sind der KI-Assistent, Benachrichtigungen, die
+Noch nicht umgesetzt sind der KI-Assistent, die Glocke mit Benachrichtigungen
+in der App (Benachrichtigungen kommen bisher nur über Telegram), die
 Sprachsteuerung sowie Fahrzeiten und Terminkonflikte. Die Oberfläche
 kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 (`frontend/src/placeholders.ts`).
@@ -108,6 +109,9 @@ sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 | `familyhub.google.push-delay` | `PT10S` | So schnell kommen geänderte Termine in den Google-Kalender „FamilyHub“ |
 | `familyhub.weather.cache-duration` | `PT10M` | So lange merkt sich das Backend eine Wetterabfrage |
 | `familyhub.telegram.polling` | `true` | Nachrichten an den Telegram-Bot selbst abholen |
+| `familyhub.notifications.due-reminder-cron` | `0 0 7 * * *` | Täglich um 07:00 Uhr an dringende Aufgaben erinnern, die heute fällig sind |
+| `familyhub.notifications.short-notice` | `PT24H` | Termine, die so bald beginnen, gelten als kurzfristig |
+| `familyhub.notifications.pending-after` | `PT24H` | So lange darf eine Bestätigung offen sein, bevor FamilyHub erinnert |
 | `familyhub.cors.allowed-origins` | `http://localhost:5173` | Adresse der Oberfläche |
 
 ## Google Kalender einrichten (optional)
@@ -240,8 +244,9 @@ aufruft. Er nimmt nur Aufrufe an, die Meta mit dem App-Secret signiert hat
 Die Familie bekommt einen eigenen Telegram-Bot. Wer sein Telegram-Konto unter
 „Familie“ verbindet, kann dem Bot schreiben; die Nachrichten landen wie die von
 WhatsApp im gemeinsamen Eingang (`GET /api/inbox?channel=telegram`). Umgekehrt
-kann FamilyHub ihm Nachrichten schicken, die Grundlage für Benachrichtigungen.
-Ausgewertet oder beantwortet werden eingehende Nachrichten noch nicht.
+schickt FamilyHub ihm Benachrichtigungen (siehe unten). Ausgewertet oder
+beantwortet werden eingehende Nachrichten noch nicht, auch keine Antworten auf
+Benachrichtigungen; die landen ebenfalls im Eingang.
 
 FamilyHub holt die Nachrichten selbst bei Telegram ab (Long Polling). Anders als
 bei WhatsApp braucht es deshalb keine öffentliche Adresse und keinen Tunnel, nur
@@ -271,6 +276,26 @@ etwa auf zwei Rechnern, meldet Telegram einen Konflikt; dann für jeden Rechner
 einen eigenen Bot anlegen. Chats mit Bots sind bei Telegram nicht
 Ende-zu-Ende-verschlüsselt.
 
+### Benachrichtigungen
+
+Wer Telegram verbunden hat, bekommt dort Nachrichten von FamilyHub. Was man
+selbst auslöst, meldet FamilyHub einem nicht.
+
+| Art | Wann | An wen |
+|---|---|---|
+| Dringende Aufgaben | Eine Aufgabe mit Priorität „hoch“ wird jemandem zugewiesen oder auf „hoch“ gestellt; außerdem um 07:00 Uhr am Fälligkeitstag, solange sie offen ist (auch für die Müll-Aufgaben) | Die zuständige Person |
+| Kurzfristige Termine | Ein Termin, der in den nächsten 24 Stunden beginnt, wird angelegt, freigegeben oder verschoben (auch aus diesem Zeitraum heraus) | Alle Beteiligten; wer neu dazukommt, allein |
+| Offene Bestätigungen | Eine erledigte Aufgabe, ein Termin-, Einkaufs- oder Essensvorschlag oder eine eingelöste Belohnung wartet seit 24 Stunden; einmal als Sammelnachricht | Alle, die bestätigen dürfen |
+| Chat-Nachrichten | Jede neue Nachricht in der Familiengruppe oder im Einzelchat | Alle, die den Chat lesen dürfen |
+
+Jede Person schaltet einzelne Arten in der Karte **Telegram** unter
+„Benachrichtigungen“ ab. Termine aus Google melden die Termin-Benachrichtigungen
+nicht, Terminvorschläge erst mit der Freigabe. Die Wartezeit für Bestätigungen
+zählt ab dem Moment, in dem FamilyHub den offenen Punkt bemerkt (alle
+15 Minuten); was beim ersten Start schon offen ist, meldet FamilyHub also erst
+einen Tag später. Ist Telegram nicht erreichbar, steht das im Log; nachgeholt
+wird die Nachricht nicht.
+
 ## Als App installieren
 
 FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im
@@ -296,9 +321,9 @@ Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
 `points`, `rewards`, `achievements`, `shopping`, `meals`, `messages`, `waste`,
 `weather`, `whatsapp`, `telegram`, `family` und `settings`. Querschnittsthemen
 liegen in `security` (Anmeldung), `permission` (Rollen und Rechte), `inbox`
-(gemeinsamer Eingang für Nachrichten von WhatsApp und Telegram), `live`
-(Live-Aktualisierung), `web` (Fehlerbehandlung, CORS, Swagger) und `sampledata`
-(Beispielfamilie).
+(gemeinsamer Eingang für Nachrichten von WhatsApp und Telegram), `notifications`
+(Benachrichtigungen über Telegram), `live` (Live-Aktualisierung), `web`
+(Fehlerbehandlung, CORS, Swagger) und `sampledata` (Beispielfamilie).
 
 ## Dokumentation
 
