@@ -38,6 +38,7 @@ import de.familyhub.security.CurrentMember;
 import de.familyhub.shopping.ShoppingItemRepository;
 import de.familyhub.shopping.ShoppingItemStatus;
 import de.familyhub.task.TaskRepository;
+import de.familyhub.telegram.TelegramService;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -62,12 +63,13 @@ public class FamilyMemberController {
     private final MealEntryRepository meals;
     private final ShoppingItemRepository shopping;
     private final MessageService messages;
+    private final TelegramService telegram;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
             TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
             PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts,
             RedemptionRepository redemptions, AchievementService achievements, MealEntryRepository meals,
-            ShoppingItemRepository shopping, MessageService messages) {
+            ShoppingItemRepository shopping, MessageService messages, TelegramService telegram) {
         this.members = members;
         this.events = events;
         this.tasks = tasks;
@@ -82,6 +84,7 @@ public class FamilyMemberController {
         this.meals = meals;
         this.shopping = shopping;
         this.messages = messages;
+        this.telegram = telegram;
     }
 
     @GetMapping
@@ -153,7 +156,7 @@ public class FamilyMemberController {
             description = "Nur für Administratoren und nur, wenn das Mitglied an keinem Termin allein beteiligt ist. "
                     + "Aus gemeinsamen Terminen wird es ausgetragen; aus Google importierte Termine und die "
                     + "Google-Verbindung werden mitgelöscht, ebenso offene Essenswünsche, Einkaufsvorschläge und "
-                    + "Einzelchats. Nachrichten in der Familiengruppe bleiben.")
+                    + "Einzelchats und die Verknüpfung mit Telegram. Nachrichten in der Familiengruppe bleiben.")
     public void delete(@PathVariable String id) {
         FamilyMember admin = requireManager();
         FamilyMember member = find(id);
@@ -185,6 +188,7 @@ public class FamilyMemberController {
         meals.deleteByCreatedByAndStatus(id, MealStatus.PROPOSED);
         shopping.deleteByCreatedByAndStatus(id, ShoppingItemStatus.PROPOSED);
         messages.forgetMember(id);
+        telegram.forgetMember(id);
         members.deleteById(id);
     }
 
