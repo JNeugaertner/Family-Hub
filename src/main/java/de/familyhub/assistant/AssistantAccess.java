@@ -27,6 +27,11 @@ public class AssistantAccess {
         permissions.require(viewer, SPRACHASSISTENT, ANSEHEN, Scope.EIGEN, "Keine Berechtigung für den KI-Assistenten.");
     }
 
+    // Hinweise der ganzen Familie statt nur der eigenen (Entscheidung vom 22.10.2026: "Eltern sehen alle")
+    public boolean seesFamilyInsights(FamilyMember viewer) {
+        return permissions.can(viewer, SPRACHASSISTENT, VERWALTEN, Scope.FAMILIE);
+    }
+
     public void requireManage(FamilyMember viewer) {
         permissions.require(viewer, SPRACHASSISTENT, VERWALTEN, Scope.FAMILIE,
                 "Nur Administratoren dürfen den KI-Assistenten einrichten und testen.");
