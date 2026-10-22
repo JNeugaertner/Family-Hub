@@ -12,9 +12,14 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+
+import javax.net.ssl.SSLHandshakeException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -159,13 +164,30 @@ class GroqLanguageModelTest {
                 .isEqualTo("Groq hat die Anfrage abgelehnt (HTTP 400): messages: must not be empty");
     }
 
-    @Test
-    void networkProblemsMeanNotReachable() {
-        server.expect(requestTo(URL)).andRespond(withException(new IOException("Connection refused")));
+    private String networkFailure(IOException cause) {
+        setUp();
+        server.expect(requestTo(URL)).andRespond(withException(cause));
+        Throwable thrown = catchThrowable(() -> model.complete(question("Hallo")));
+        assertThat(thrown).isInstanceOf(LanguageModelException.class);
+        return thrown.getMessage();
+    }
 
-        assertThatThrownBy(() -> model.complete(question("Hallo")))
-                .isInstanceOf(LanguageModelException.class)
-                .hasMessage("Groq ist gerade nicht erreichbar.");
+    // Die Ursache genau benennen, damit man z. B. ein sperrendes Firmennetz erkennt
+    @Test
+    void networkProblemsNameTheirCause() {
+        assertThat(networkFailure(new UnknownHostException("groq.test")))
+                .isEqualTo("Groq ist gerade nicht erreichbar: Die Adresse groq.test ist unbekannt (kein Internet, oder "
+                        + "das Netz sperrt sie).");
+        assertThat(networkFailure(new SSLHandshakeException("PKIX path building failed")))
+                .contains("Zertifikat").contains("Firmennetzen");
+        assertThat(networkFailure(new ConnectException("Connection refused")))
+                .contains("wurde abgelehnt (Firewall oder Proxy)");
+        assertThat(networkFailure(new SocketTimeoutException("Connect timed out")))
+                .contains("innerhalb von 10 Sekunden");
+        assertThat(networkFailure(new SocketTimeoutException("Read timed out")))
+                .isEqualTo("Groq ist gerade nicht erreichbar: Groq hat nicht rechtzeitig geantwortet.");
+        assertThat(networkFailure(new IOException("irgendwas")))
+                .isEqualTo("Groq ist gerade nicht erreichbar.");
     }
 
     @Test

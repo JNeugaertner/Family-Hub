@@ -3,14 +3,22 @@ package de.familyhub.assistant.groq;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.net.ssl.SSLException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -40,6 +48,7 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class GroqLanguageModel implements LanguageModel {
 
+    private static final Logger LOG = LoggerFactory.getLogger(GroqLanguageModel.class);
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private final AssistantProperties properties;
@@ -93,9 +102,33 @@ public class GroqLanguageModel implements LanguageModel {
                     })
                     .body(JsonNode.class);
         } catch (RestClientException e) {
-            throw new LanguageModelException("Groq ist gerade nicht erreichbar.");
+            throw unreachable(e);
         }
         return reply(response);
+    }
+
+    // Netzprobleme genauer benennen, damit man z. B. ein sperrendes Firmennetz erkennt. Die Adresse enthält keinen
+    // Schlüssel (der steckt im Header), deshalb darf die Ursache ins Log.
+    private LanguageModelException unreachable(RestClientException e) {
+        Throwable cause = e;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        LOG.warn("Groq nicht erreichbar: {}", cause.toString());
+        String host = URI.create(properties.baseUrl()).getHost();
+        String reason = switch (cause) {
+            case UnknownHostException _ -> "Die Adresse " + host + " ist unbekannt (kein Internet, oder das Netz "
+                    + "sperrt sie).";
+            case SSLException _ -> "Java vertraut dem Zertifikat der Verbindung nicht. Das passiert oft in "
+                    + "Firmennetzen, die verschlüsselte Verbindungen prüfen.";
+            case ConnectException _ -> "Die Verbindung zu " + host + " wurde abgelehnt (Firewall oder Proxy).";
+            case SocketTimeoutException timeout when String.valueOf(timeout.getMessage()).toLowerCase(Locale.ROOT)
+                    .contains("connect") -> "Keine Verbindung zu " + host + " innerhalb von 10 Sekunden (Firewall "
+                            + "oder Proxy).";
+            case SocketTimeoutException _ -> "Groq hat nicht rechtzeitig geantwortet.";
+            default -> null;
+        };
+        return new LanguageModelException("Groq ist gerade nicht erreichbar" + (reason == null ? "." : ": " + reason));
     }
 
     private static List<Map<String, Object>> messages(ModelRequest request) {
