@@ -23,6 +23,15 @@ public class OrsApi {
                 .retrieve()
                 .body(SearchResponse.class);
     }
+
+    public RouteResponse gettravelTime(double startLat, double startLon, double endLat, double endLon) {
+        return rest.get()
+                .uri(properties.baseUrl() + "/v2/directions/driving-car?start="+startLon+","+startLat+"&end="+endLon+","+endLat)
+                .header("Authorization", properties.apiKey())
+                .retrieve()
+                .body(RouteResponse.class);
+    }
+
     record SearchResponse(List<Feature> features) {
     }
     record Feature(Geometry geometry, FeatureProperties properties) {
@@ -32,4 +41,13 @@ public class OrsApi {
     record FeatureProperties(String label) {
     }
 
+
+    record RouteResponse(List<RouteFeature> features) {
+    }
+    record RouteFeature(RouteProperties properties) {
+    }
+    record RouteProperties(RouteSummary summary) {
+    }
+    record RouteSummary(double distance, double duration) {
+    }
 }

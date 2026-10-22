@@ -8,6 +8,4 @@ export const PLACEHOLDER = {
   voice: true,
   // Glocke: Beispielmeldungen
   notifications: true,
-  // Fahrzeiten und Terminkonflikte: werden nicht berechnet (Legende im Kalender ausgeblendet)
-  travelTimes: true,
 } as const;

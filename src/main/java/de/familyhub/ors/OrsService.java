@@ -31,9 +31,15 @@ public class OrsService {
                     .toList();
         }
 
+        public double gettravelTime(double startLat, double startLon, double endLat, double endLon) {
+            OrsApi.RouteResponse response = api.gettravelTime(startLat, startLon, endLat, endLon);
+            return response.features().get(0).properties().summary().duration();
+        }
+
  //Test ob API Aufruf funktioniert
 @PostConstruct
 public void test() {
     System.out.println("test");
+    System.out.println(gettravelTime(49.41461, 8.681495, 49.420318, 8.687872));
 }
 }

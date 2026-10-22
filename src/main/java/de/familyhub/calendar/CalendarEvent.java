@@ -52,7 +52,7 @@ public record CalendarEvent(
         @DecimalMax(value = "180", message = "Ungültiger Längengrad")
         Double lon,
         
-        Integer travelTime,
+        Double travelTime,
 
         @Size(max = 1000, message = "Beschreibung darf höchstens 1000 Zeichen lang sein")
         String description,
@@ -82,14 +82,14 @@ public record CalendarEvent(
     }
 
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
-            EventCategory category, String location, Double lat, Double lon, Integer travelTime, String description, Boolean privateEvent, EventStatus status,
+            EventCategory category, String location, Double lat, Double lon, Double travelTime, String description, Boolean privateEvent, EventStatus status,
             String createdBy) {
         this(id, title, start, end, List.of(memberId), category, location, lat, lon, travelTime, description, privateEvent, status, createdBy,
                 null);
     }
 
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
-            EventCategory category, String location, Double lat, Double lon, Integer travelTime, String description) {
+            EventCategory category, String location, Double lat, Double lon, Double travelTime, String description) {
         this(id, title, start, end, memberId, category, location, lat, lon, travelTime, description, false, EventStatus.APPROVED, null);
     }
 
