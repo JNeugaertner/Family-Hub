@@ -57,6 +57,9 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   const [memberIds, setMemberIds] = useState<string[]>(initialMembers);
   const [category, setCategory] = useState<EventCategory>(event?.category ?? 'family');
   const [location, setLocation] = useState(event?.location ?? '');
+  const [lat, setLat] = useState<number | null>(event?.lat ?? null);
+  const [lon, setLon] = useState<number | null>(event?.lon ?? null);
+  const [travelTime, setTravelTime] = useState<number | null>(event?.travelTime ?? null);
   const [description, setDescription] = useState(event?.description ?? '');
   const [privateEvent, setPrivateEvent] = useState(event?.private ?? false);
 
@@ -128,6 +131,9 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
       memberIds,
       category,
       location: location.trim() || null,
+      lat: lat,
+      lon: lon,
+      travelTime: travelTime,
       description: description.trim() || null,
       private: privateEvent,
     }, event?.id));
@@ -147,6 +153,9 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
 
   const choose = (place: OrsLocation) => {
     setLocation(place.label);
+    setLat(place.lat);
+    setLon(place.lon);
+    //setTravelTime(place.travelTime);
     setResults(null);
     setQuery('');
   };  

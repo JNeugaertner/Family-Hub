@@ -10,6 +10,9 @@ export interface ApiEvent {
   memberIds: string[];
   category: EventCategory;
   location: string | null;
+  lat: number | null;
+  lon: number | null;
+  travelTime: number | null;
   description: string | null;
   private: boolean;
   status: EventStatus;
@@ -25,6 +28,9 @@ export interface EventInput {
   memberIds: string[];
   category: EventCategory;
   location: string | null;
+  lat: number | null;
+  lon: number | null;
+  travelTime: number | null;
   description: string | null;
   private: boolean;
 }

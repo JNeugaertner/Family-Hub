@@ -21,6 +21,9 @@ export interface CalendarEvent {
   memberIds: string[];
   category: EventCategory;
   location?: string;
+  lat?: number;
+  lon?: number;
+  travelTime?: number;
   description?: string;
   private: boolean;
   status: EventStatus;
@@ -29,7 +32,6 @@ export interface CalendarEvent {
   source?: 'google';
   // Von 00:00 bis 00:00 eines späteren Tages (z. B. ganztägige Google-Termine)
   allDay?: boolean;
-  travelTime?: number;
   transportMode?: TransportMode;
   conflict?: boolean;
   travelConflict?: boolean; // travel time overlaps with previous/next event

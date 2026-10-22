@@ -13,6 +13,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -42,6 +44,16 @@ public record CalendarEvent(
         @Size(max = 200, message = "Ort darf höchstens 200 Zeichen lang sein")
         String location,
 
+        @DecimalMin(value = "-90", message = "Ungültiger Breitengrad")
+        @DecimalMax(value = "90", message = "Ungültiger Breitengrad")
+        Double lat,
+
+        @DecimalMin(value = "-180", message = "Ungültiger Längengrad")
+        @DecimalMax(value = "180", message = "Ungültiger Längengrad")
+        Double lon,
+        
+        Integer travelTime,
+
         @Size(max = 1000, message = "Beschreibung darf höchstens 1000 Zeichen lang sein")
         String description,
 
@@ -70,15 +82,15 @@ public record CalendarEvent(
     }
 
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
-            EventCategory category, String location, String description, Boolean privateEvent, EventStatus status,
+            EventCategory category, String location, Double lat, Double lon, Integer travelTime, String description, Boolean privateEvent, EventStatus status,
             String createdBy) {
-        this(id, title, start, end, List.of(memberId), category, location, description, privateEvent, status, createdBy,
+        this(id, title, start, end, List.of(memberId), category, location, lat, lon, travelTime, description, privateEvent, status, createdBy,
                 null);
     }
 
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
-            EventCategory category, String location, String description) {
-        this(id, title, start, end, memberId, category, location, description, false, EventStatus.APPROVED, null);
+            EventCategory category, String location, Double lat, Double lon, Integer travelTime, String description) {
+        this(id, title, start, end, memberId, category, location, lat, lon, travelTime, description, false, EventStatus.APPROVED, null);
     }
 
     @JsonIgnore
@@ -94,7 +106,7 @@ public record CalendarEvent(
 
     public CalendarEvent withoutMember(String memberId) {
         return new CalendarEvent(id, title, start, end, memberIds.stream().filter(m -> !m.equals(memberId)).toList(),
-                category, location, description, privateEvent, status, createdBy, external);
+                category, location, lat, lon, travelTime, description, privateEvent, status, createdBy, external);
     }
 
     @JsonIgnore
