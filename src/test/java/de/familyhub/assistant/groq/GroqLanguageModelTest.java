@@ -16,6 +16,7 @@ import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -162,6 +163,65 @@ class GroqLanguageModelTest {
         assertThat(failureMessage(HttpStatus.BAD_REQUEST,
                 "{\"error\": {\"message\": \"messages: must not be empty\"}}"))
                 .isEqualTo("Groq hat die Anfrage abgelehnt (HTTP 400): messages: must not be empty");
+    }
+
+    private static final String HELLO = """
+            {"model": "groq-model", "choices": [{"message": {"role": "assistant", "content": "Hallo!"},
+             "finish_reason": "stop"}], "usage": {"prompt_tokens": 3, "completion_tokens": 2}}""";
+
+    // Kostenloses Konto: Nennt Groq eine kurze Wartezeit, wartet FamilyHub und versucht es noch einmal
+    @Test
+    void waitsBrieflyWhenGroqAsksForIt() {
+        List<Duration> waits = new ArrayList<>();
+        model = new GroqLanguageModel(properties(KEY), builderWith(), waits::add);
+        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).header("retry-after", "3"));
+        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"error\": {\"message\": \"Rate limit reached. Please try again in 7.5s. Need more tokens?\"}}"));
+        server.expect(requestTo(URL)).andRespond(withSuccess(HELLO, MediaType.APPLICATION_JSON));
+
+        assertThat(model.complete(question("Hallo")).text()).isEqualTo("Hallo!");
+
+        assertThat(waits).containsExactly(Duration.ofSeconds(3), Duration.ofMillis(7500));
+    }
+
+    // Das Modell hat ein Werkzeug falsch aufgerufen; Groq lehnt ab, ein neuer Versuch erzeugt eine neue Antwort
+    @Test
+    void invalidToolCallsOfTheModelAreTriedAgainAtOnce() {
+        List<Duration> waits = new ArrayList<>();
+        model = new GroqLanguageModel(properties(KEY), builderWith(), waits::add);
+        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"error\": {\"message\": \"Tool call validation failed: attempted to call tool 'terminе_lesen' "
+                        + "which was not in request.tools\", \"code\": \"tool_use_failed\"}}"));
+        server.expect(requestTo(URL)).andRespond(withSuccess(HELLO, MediaType.APPLICATION_JSON));
+
+        assertThat(model.complete(question("Hallo")).text()).isEqualTo("Hallo!");
+        assertThat(waits).isEmpty();
+    }
+
+    @Test
+    void longWaitsOrTooManyAttemptsAreReported() {
+        List<Duration> waits = new ArrayList<>();
+        model = new GroqLanguageModel(properties(KEY), builderWith(), waits::add);
+        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).header("retry-after", "120"));
+
+        assertThatThrownBy(() -> model.complete(question("Hallo"))).hasMessageContaining("zu viele Anfragen");
+        assertThat(waits).isEmpty();
+
+        model = new GroqLanguageModel(properties(KEY), builderWith(), waits::add);
+        for (int i = 0; i <= GroqLanguageModel.RETRIES; i++) {
+            server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).header("retry-after", "1"));
+        }
+        assertThatThrownBy(() -> model.complete(question("Hallo"))).hasMessageContaining("zu viele Anfragen");
+        assertThat(waits).hasSize(GroqLanguageModel.RETRIES);
+    }
+
+    // Neuer simulierter Server; das Modell darauf baut der Test selbst (z. B. mit eigener Pause)
+    private RestClient.Builder builderWith() {
+        RestClient.Builder builder = RestClient.builder();
+        server = MockRestServiceServer.bindTo(builder).build();
+        return builder;
     }
 
     private String networkFailure(IOException cause) {

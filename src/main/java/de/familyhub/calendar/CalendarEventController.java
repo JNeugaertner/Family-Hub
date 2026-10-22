@@ -103,7 +103,7 @@ public class CalendarEventController {
         FamilyMember viewer = currentMember.get();
         EventStatus status = access.statusForNewEvent(viewer, event);
         requireMembers(event.memberIds());
-        CalendarEvent saved = events.save(copy(null, event, status, viewer.id(), null));
+        CalendarEvent saved = events.save(copy(null, event, status, viewer.id(), null, false));
         notifications.saved(null, saved, viewer);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(saved);
@@ -117,7 +117,8 @@ public class CalendarEventController {
         requireNotImported(existing);
         access.requireUpdate(viewer, existing, event);
         requireMembers(event.memberIds());
-        CalendarEvent saved = events.save(copy(id, event, existing.status(), existing.createdBy(), null));
+        CalendarEvent saved = events.save(copy(id, event, existing.status(), existing.createdBy(), null,
+                existing.viaAssistant()));
         notifications.saved(existing, saved, viewer);
         return saved;
     }
@@ -140,7 +141,7 @@ public class CalendarEventController {
         access.requireDecision(viewer);
         CalendarEvent proposal = findOpenProposal(id, viewer);
         CalendarEvent approved = events.save(copy(id, proposal, EventStatus.APPROVED, proposal.createdBy(),
-                proposal.external()));
+                proposal.external(), proposal.viaAssistant()));
         notifications.saved(proposal, approved, viewer);
         return approved;
     }
@@ -183,10 +184,11 @@ public class CalendarEventController {
         }
     }
 
-    // Eine mitgeschickte Herkunft (external) wird nie übernommen; nur der Google-Abgleich setzt sie.
+    // Eine mitgeschickte Herkunft (external, viaAssistant) wird nie übernommen; nur der Google-Abgleich bzw. das
+    // Übernehmen eines Entwurfs des KI-Assistenten setzt sie.
     private static CalendarEvent copy(String id, CalendarEvent e, EventStatus status, String createdBy,
-            ExternalRef external) {
+            ExternalRef external, boolean viaAssistant) {
         return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberIds(), e.category(), e.location(),
-                e.description(), e.privateEvent(), status, createdBy, external);
+                e.description(), e.privateEvent(), status, createdBy, external, viaAssistant);
     }
 }

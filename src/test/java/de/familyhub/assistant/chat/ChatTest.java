@@ -62,8 +62,10 @@ import de.familyhub.testsupport.TestUsers;
 @Import(FakeLanguageModel.Config.class)
 class ChatTest {
 
-    private static final List<String> ALL_TOOLS = List.of("termine_lesen", "aufgaben_lesen", "konflikte_pruefen",
-            "einkaufsliste_lesen", "essensplan_lesen", "wetter_lesen", "muellabfuhr_lesen");
+    // Was ein Kind bekommt: alle Lese-Werkzeuge, Entwürfe aber nicht für Termine (Kinder legen keine an)
+    private static final List<String> CHILD_TOOLS = List.of("kalender_lesen", "aufgaben_lesen", "konflikte_pruefen",
+            "einkaufsliste_lesen", "essensplan_lesen", "wetter_lesen", "muellabfuhr_lesen", "aufgaben_entwerfen",
+            "einkauf_entwerfen", "essen_entwerfen");
 
     @Autowired
     private MockMvc mvc;
@@ -142,10 +144,10 @@ class ChatTest {
                 .andExpect(jsonPath("$.turns[0].text").value("Hallo"));
         ModelRequest request = model.requests().getFirst();
         assertThat(request.system())
-                .contains("Du kannst nur lesen")
+                .contains("Du änderst nie selbst etwas")
                 .contains("Du sprichst mit Lucas (Kind).")
                 .contains("Zur Familie gehören: Sarah (Administrator), Emma (Jugendlicher), Lucas (Kind), Oma (Gast).");
-        assertThat(request.tools()).extracting(ToolSpec::name).containsExactlyInAnyOrderElementsOf(ALL_TOOLS);
+        assertThat(request.tools()).extracting(ToolSpec::name).containsExactlyInAnyOrderElementsOf(CHILD_TOOLS);
         // Sarahs Verlauf bleibt davon unberührt
         mvc.perform(get("/api/assistant/conversation").with(as(sarah))).andExpect(jsonPath("$.turns").isEmpty());
     }
@@ -155,8 +157,8 @@ class ChatTest {
         event("Familienessen", false, sarah, sarah, lucas);
         event("Frauenarzt", true, sarah, sarah);
         String args = "{\"von\": \"" + today + "\", \"bis\": \"" + today.plusDays(3) + "\"}";
-        model.callTools(400, 20, new ToolCall("c1", "termine_lesen", args)).answer("Morgen ist Familienessen.", 600, 15)
-                .callTools(400, 20, new ToolCall("c2", "termine_lesen", args)).answer("Zwei Termine.", 600, 15);
+        model.callTools(400, 20, new ToolCall("c1", "kalender_lesen", args)).answer("Morgen ist Familienessen.", 600, 15)
+                .callTools(400, 20, new ToolCall("c2", "kalender_lesen", args)).answer("Zwei Termine.", 600, 15);
 
         ask(lucas, "Was steht an?").andExpect(jsonPath("$.sources[0]").value("Kalender"));
         assertThat(toolResult(1, "c1")).contains("Familienessen").contains("\"Sarah\",\"Lucas\"")
@@ -209,14 +211,14 @@ class ChatTest {
         ask(noShopping, "Was fehlt?");
 
         assertThat(model.requests().getFirst().tools()).extracting(ToolSpec::name)
-                .doesNotContain("einkaufsliste_lesen").contains("termine_lesen");
+                .doesNotContain("einkaufsliste_lesen", "einkauf_entwerfen").contains("kalender_lesen");
         assertThat(toolResult(1, "x")).contains("gibt es nicht");
     }
 
     @Test
     void invalidArgumentsGoBackToTheModel() throws Exception {
-        model.callTools(1, 1, new ToolCall("d", "termine_lesen", "{\"von\": \"morgen\"}"),
-                new ToolCall("j", "termine_lesen", "kein json")).answer("Welcher Tag?", 1, 1);
+        model.callTools(1, 1, new ToolCall("d", "kalender_lesen", "{\"von\": \"morgen\"}"),
+                new ToolCall("j", "kalender_lesen", "kein json")).answer("Welcher Tag?", 1, 1);
 
         ask(sarah, "Was ist morgen?").andExpect(jsonPath("$.text").value("Welcher Tag?"))
                 .andExpect(jsonPath("$.sources").isEmpty());

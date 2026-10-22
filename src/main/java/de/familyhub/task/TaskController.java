@@ -111,7 +111,7 @@ public class TaskController {
         // Aufgaben für Erwachsene (kein Kind/Jugendlicher) bekommen keine Punkte, da sie keine sammeln
         Task checked = access.requireCreate(viewer, task);
         Task toSave = copy(null, checked, checked.bonus() ? null : checked.assigneeId(), TaskStatus.TODO, viewer.id(),
-                checked.bonus());
+                checked.bonus(), false);
         requireAssignment(toSave);
         Task saved = tasks.save(toSave);
         notifications.saved(null, saved, viewer);
@@ -127,8 +127,10 @@ public class TaskController {
         Task existing = findVisible(id, viewer);
         // Ob Bonus-Aufgabe, bleibt; bei Bonus-Aufgaben bleibt auch, wer sie übernommen hat (claim/release)
         Task changed = existing.bonus()
-                ? copy(id, task, existing.assigneeId(), existing.status(), existing.createdBy(), true)
-                : copy(id, task, task.assigneeId(), existing.status(), existing.createdBy(), false);
+                ? copy(id, task, existing.assigneeId(), existing.status(), existing.createdBy(), true,
+                        existing.viaAssistant())
+                : copy(id, task, task.assigneeId(), existing.status(), existing.createdBy(), false,
+                        existing.viaAssistant());
         // Aufgaben für Erwachsene (kein Kind/Jugendlicher) behalten keine Punkte, da sie keine sammeln
         changed = access.requireEdit(viewer, existing, changed);
         requireAssignment(changed);
@@ -272,9 +274,10 @@ public class TaskController {
         }
     }
 
+    // Ob die Aufgabe über den KI-Assistenten entstand (viaAssistant), setzt nur das Übernehmen eines Entwurfs.
     private static Task copy(String id, Task t, String assigneeId, TaskStatus status, String createdBy,
-            boolean bonus) {
+            boolean bonus, boolean viaAssistant) {
         return new Task(id, t.title(), t.description(), assigneeId, t.dueDate(), t.priority(), t.category(),
-                t.points(), status, createdBy, null, null, bonus, t.repeatable());
+                t.points(), status, createdBy, null, null, bonus, t.repeatable(), viaAssistant);
     }
 }

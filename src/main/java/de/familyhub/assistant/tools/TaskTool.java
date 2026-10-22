@@ -89,6 +89,7 @@ public class TaskTool implements AssistantTool {
 
     private static Map<String, Object> row(Task t, Map<String, String> names, LocalDate today) {
         Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", t.id());
         row.put("titel", t.title());
         row.put("person", t.assigneeId() == null ? "noch niemand (Bonus-Aufgabe)"
                 : names.getOrDefault(t.assigneeId(), "ehemaliges Mitglied"));

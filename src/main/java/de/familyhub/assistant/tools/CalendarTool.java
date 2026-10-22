@@ -24,7 +24,7 @@ import de.familyhub.permission.Scope;
 @Component
 public class CalendarTool implements AssistantTool {
 
-    static final String NAME = "termine_lesen";
+    static final String NAME = "kalender_lesen";
     static final int MAX_DAYS = 62;
     static final int MAX_EVENTS = 60;
 
@@ -87,6 +87,7 @@ public class CalendarTool implements AssistantTool {
 
     private static Map<String, Object> row(CalendarEvent e, Map<String, String> names) {
         Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", e.id());
         row.put("titel", e.title());
         if (ConflictFinder.isAllDay(e)) {
             row.put("ganztaegig_von", e.start().toLocalDate().toString());

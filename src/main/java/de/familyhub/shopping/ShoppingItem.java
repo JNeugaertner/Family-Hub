@@ -40,13 +40,23 @@ public record ShoppingItem(
 
         @Schema(accessMode = Schema.AccessMode.READ_ONLY) String createdBy,
         @Schema(accessMode = Schema.AccessMode.READ_ONLY) LocalDateTime createdAt,
-        @Schema(accessMode = Schema.AccessMode.READ_ONLY) String checkedBy) {
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY) String checkedBy,
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY,
+                description = "Über den KI-Assistenten entstanden: ein Mensch hat einen Entwurf übernommen")
+        Boolean viaAssistant) {
 
     @PersistenceCreator
     public ShoppingItem {
         urgent = Boolean.TRUE.equals(urgent);
         checked = Boolean.TRUE.equals(checked);
         status = status == null ? ShoppingItemStatus.APPROVED : status;
+        viaAssistant = Boolean.TRUE.equals(viaAssistant);
+    }
+
+    public ShoppingItem(String id, String name, String quantity, ShoppingCategory category, Boolean urgent,
+            Boolean checked, ShoppingItemStatus status, String createdBy, LocalDateTime createdAt, String checkedBy) {
+        this(id, name, quantity, category, urgent, checked, status, createdBy, createdAt, checkedBy, false);
     }
 
     @JsonIgnore
@@ -57,17 +67,17 @@ public record ShoppingItem(
     // Inhalt aus einer Änderung übernehmen; Status, Abhaken und Ersteller bleiben.
     public ShoppingItem withContent(ShoppingItem changed) {
         return new ShoppingItem(id, changed.name().strip(), blankToNull(changed.quantity()), changed.category(),
-                changed.urgent(), checked, status, createdBy, createdAt, checkedBy);
+                changed.urgent(), checked, status, createdBy, createdAt, checkedBy, viaAssistant);
     }
 
     public ShoppingItem withChecked(boolean newChecked, String by) {
         return new ShoppingItem(id, name, quantity, category, urgent, newChecked, status, createdBy, createdAt,
-                newChecked ? by : null);
+                newChecked ? by : null, viaAssistant);
     }
 
     public ShoppingItem approved() {
         return new ShoppingItem(id, name, quantity, category, urgent, checked, ShoppingItemStatus.APPROVED, createdBy,
-                createdAt, checkedBy);
+                createdAt, checkedBy, viaAssistant);
     }
 
     static String blankToNull(String text) {

@@ -58,7 +58,11 @@ public record CalendarEvent(
 
         @Schema(accessMode = Schema.AccessMode.READ_ONLY,
                 description = "Nur bei importierten Terminen (z. B. Google Kalender); diese sind schreibgeschützt")
-        ExternalRef external) {
+        ExternalRef external,
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY,
+                description = "Über den KI-Assistenten entstanden: ein Mensch hat einen Entwurf übernommen")
+        Boolean viaAssistant) {
 
     @PersistenceCreator
     public CalendarEvent {
@@ -67,6 +71,14 @@ public record CalendarEvent(
                 : memberIds.stream().filter(Objects::nonNull).filter(m -> !m.isBlank()).distinct().toList();
         privateEvent = Boolean.TRUE.equals(privateEvent);
         status = status == null ? EventStatus.APPROVED : status;
+        viaAssistant = Boolean.TRUE.equals(viaAssistant);
+    }
+
+    public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, List<String> memberIds,
+            EventCategory category, String location, String description, Boolean privateEvent, EventStatus status,
+            String createdBy, ExternalRef external) {
+        this(id, title, start, end, memberIds, category, location, description, privateEvent, status, createdBy,
+                external, false);
     }
 
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
@@ -94,7 +106,7 @@ public record CalendarEvent(
 
     public CalendarEvent withoutMember(String memberId) {
         return new CalendarEvent(id, title, start, end, memberIds.stream().filter(m -> !m.equals(memberId)).toList(),
-                category, location, description, privateEvent, status, createdBy, external);
+                category, location, description, privateEvent, status, createdBy, external, viaAssistant);
     }
 
     @JsonIgnore

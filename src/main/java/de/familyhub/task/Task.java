@@ -62,7 +62,11 @@ public record Task(
         Boolean bonus,
 
         @Schema(description = "Nur bei Bonus-Aufgaben: nach der Bestätigung automatisch wieder offen")
-        Boolean repeatable) {
+        Boolean repeatable,
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY,
+                description = "Über den KI-Assistenten entstanden: ein Mensch hat einen Entwurf übernommen")
+        Boolean viaAssistant) {
 
     @PersistenceCreator
     public Task {
@@ -71,6 +75,14 @@ public record Task(
         bonus = Boolean.TRUE.equals(bonus);
         repeatable = bonus && Boolean.TRUE.equals(repeatable);
         assigneeId = assigneeId == null || assigneeId.isBlank() ? null : assigneeId;
+        viaAssistant = Boolean.TRUE.equals(viaAssistant);
+    }
+
+    public Task(String id, String title, String description, String assigneeId, LocalDate dueDate,
+            TaskPriority priority, TaskCategory category, Integer points, TaskStatus status, String createdBy,
+            LocalDateTime confirmedAt, String confirmedBy, Boolean bonus, Boolean repeatable) {
+        this(id, title, description, assigneeId, dueDate, priority, category, points, status, createdBy, confirmedAt,
+                confirmedBy, bonus, repeatable, false);
     }
 
     public Task(String id, String title, String description, String assigneeId, LocalDate dueDate,
@@ -106,28 +118,28 @@ public record Task(
 
     public Task withStatus(TaskStatus newStatus) {
         return new Task(id, title, description, assigneeId, dueDate, priority, category, points, newStatus, createdBy,
-                confirmedAt, confirmedBy, bonus, repeatable);
+                confirmedAt, confirmedBy, bonus, repeatable, viaAssistant);
     }
 
     // Aufgabe ohne Punkte (Erwachsene sammeln keine Sterne)
     public Task withoutPoints() {
         return new Task(id, title, description, assigneeId, dueDate, priority, category, 0, status, createdBy,
-                confirmedAt, confirmedBy, bonus, repeatable);
+                confirmedAt, confirmedBy, bonus, repeatable, viaAssistant);
     }
 
     public Task withAssignee(String newAssigneeId, TaskStatus newStatus) {
         return new Task(id, title, description, newAssigneeId, dueDate, priority, category, points, newStatus,
-                createdBy, confirmedAt, confirmedBy, bonus, repeatable);
+                createdBy, confirmedAt, confirmedBy, bonus, repeatable, viaAssistant);
     }
 
     public Task confirmed(LocalDateTime at, String by) {
         return new Task(id, title, description, assigneeId, dueDate, priority, category, points, TaskStatus.CONFIRMED,
-                createdBy, at, by, bonus, repeatable);
+                createdBy, at, by, bonus, repeatable, viaAssistant);
     }
 
     // Wiederkehrende Bonus-Aufgabe: nach der Bestätigung eine neue, offene Aufgabe ohne Frist
     public Task nextRound() {
         return new Task(null, title, description, null, null, priority, category, points, TaskStatus.TODO, createdBy,
-                null, null, true, true);
+                null, null, true, true, viaAssistant);
     }
 }

@@ -71,6 +71,7 @@ public class MealTool implements AssistantTool {
 
     private static Map<String, Object> row(MealEntry entry) {
         Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", entry.id());
         row.put("datum", entry.date().toString());
         row.put("mahlzeit", switch (entry.type()) {
             case FRUEHSTUECK -> "Frühstück";

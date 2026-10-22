@@ -64,6 +64,7 @@ public class ShoppingTool implements AssistantTool {
 
     private static Map<String, Object> row(ShoppingItem item) {
         Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", item.id());
         row.put("name", item.name());
         if (item.quantity() != null && !item.quantity().isBlank()) {
             row.put("menge", item.quantity());

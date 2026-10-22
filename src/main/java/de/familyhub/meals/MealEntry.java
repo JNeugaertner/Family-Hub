@@ -24,11 +24,19 @@ public record MealEntry(
         String name,
         @Schema(description = "approved oder proposed (Wunsch, wartet auf einen Administrator)") MealStatus status,
         String createdBy,
-        LocalDateTime createdAt) {
+        LocalDateTime createdAt,
+        @Schema(description = "Über den KI-Assistenten entstanden: ein Mensch hat einen Entwurf übernommen")
+        Boolean viaAssistant) {
 
     @PersistenceCreator
     public MealEntry {
         status = status == null ? MealStatus.APPROVED : status;
+        viaAssistant = Boolean.TRUE.equals(viaAssistant);
+    }
+
+    public MealEntry(String id, LocalDate date, MealType type, String dishId, String name, MealStatus status,
+            String createdBy, LocalDateTime createdAt) {
+        this(id, date, type, dishId, name, status, createdBy, createdAt, false);
     }
 
     @JsonIgnore
@@ -37,10 +45,10 @@ public record MealEntry(
     }
 
     MealEntry withDish(String newDishId, String newName) {
-        return new MealEntry(id, date, type, newDishId, newName, status, createdBy, createdAt);
+        return new MealEntry(id, date, type, newDishId, newName, status, createdBy, createdAt, viaAssistant);
     }
 
     MealEntry approved() {
-        return new MealEntry(id, date, type, dishId, name, MealStatus.APPROVED, createdBy, createdAt);
+        return new MealEntry(id, date, type, dishId, name, MealStatus.APPROVED, createdBy, createdAt, viaAssistant);
     }
 }

@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLException;
 
@@ -51,8 +53,35 @@ public class GroqLanguageModel implements LanguageModel {
     private static final Logger LOG = LoggerFactory.getLogger(GroqLanguageModel.class);
     private static final ObjectMapper JSON = new ObjectMapper();
 
+    // Zwei Fehler gehen oft beim nächsten Versuch weg, deshalb versucht FamilyHub es dann noch einmal (höchstens
+    // RETRIES-mal), statt die ganze Frage scheitern zu lassen:
+    // - Das kostenlose Groq-Konto erlaubt nur wenige Tokens pro Minute, eine Frage mit Nachschlagen und Entwurf braucht
+    //   aber mehrere Anfragen kurz hintereinander. Nennt Groq eine kurze Wartezeit (429), wartet FamilyHub so lange.
+    // - Das Modell hat ein Werkzeug falsch aufgerufen (z. B. den Namen mit einem kyrillischen Buchstaben geschrieben);
+    //   Groq lehnt das mit 400 und dem Code tool_use_failed ab. Ein neuer Versuch erzeugt eine neue Antwort.
+    static final Duration MAX_WAIT = Duration.ofSeconds(20);
+    static final int RETRIES = 2;
+    private static final Pattern TRY_AGAIN = Pattern.compile("try again in (\\d+(?:\\.\\d+)?)s");
+
+    // Warten zwischen zwei Versuchen; in Tests ersetzbar
+    interface Pause {
+        void sleep(Duration duration) throws InterruptedException;
+    }
+
+    // Ein Fehler, nach dem sich ein neuer Versuch lohnen kann; wait ist die Wartezeit davor (null: kein neuer Versuch)
+    private static final class Retryable extends LanguageModelException {
+
+        private final Duration wait;
+
+        Retryable(String message, Duration wait) {
+            super(message);
+            this.wait = wait;
+        }
+    }
+
     private final AssistantProperties properties;
     private final RestClient rest;
+    private final Pause pause;
 
     @Autowired
     public GroqLanguageModel(AssistantProperties properties) {
@@ -61,8 +90,13 @@ public class GroqLanguageModel implements LanguageModel {
 
     // Für Tests, die Groq mit MockRestServiceServer simulieren
     GroqLanguageModel(AssistantProperties properties, RestClient.Builder builder) {
+        this(properties, builder, duration -> Thread.sleep(duration));
+    }
+
+    GroqLanguageModel(AssistantProperties properties, RestClient.Builder builder, Pause pause) {
         this.properties = properties;
         this.rest = builder.build();
+        this.pause = pause;
     }
 
     private static SimpleClientHttpRequestFactory requestFactory(Duration timeout) {
@@ -89,9 +123,29 @@ public class GroqLanguageModel implements LanguageModel {
             body.put("tools", request.tools().stream().map(GroqLanguageModel::tool).toList());
             body.put("tool_choice", "auto");
         }
-        JsonNode response;
+        for (int attempt = 0; ; attempt++) {
+            try {
+                return reply(send(body));
+            } catch (Retryable e) {
+                if (attempt >= RETRIES || e.wait == null || e.wait.compareTo(MAX_WAIT) > 0) {
+                    throw e;
+                }
+                LOG.info("Groq: neuer Versuch in {} ms nach „{}“", e.wait.toMillis(), e.getMessage());
+                try {
+                    if (e.wait.isPositive()) {
+                        pause.sleep(e.wait);
+                    }
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private JsonNode send(Map<String, Object> body) {
         try {
-            response = rest.post()
+            return rest.post()
                     .uri(URI.create(properties.baseUrl() + "/chat/completions"))
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + properties.apiKey())
                     .contentType(MediaType.APPLICATION_JSON)
@@ -104,7 +158,6 @@ public class GroqLanguageModel implements LanguageModel {
         } catch (RestClientException e) {
             throw unreachable(e);
         }
-        return reply(response);
     }
 
     // Netzprobleme genauer benennen, damit man z. B. ein sperrendes Firmennetz erkennt. Die Adresse enthält keinen
@@ -204,15 +257,40 @@ public class GroqLanguageModel implements LanguageModel {
                     + "“ nicht. Bitte familyhub.assistant.model prüfen.");
         }
         if (status == 429) {
-            return new LanguageModelException(
-                    "Groq meldet zu viele Anfragen oder ein ausgeschöpftes Kontingent. Bitte später noch einmal.");
+            return new Retryable("Groq meldet zu viele Anfragen oder ein ausgeschöpftes Kontingent. Bitte später "
+                    + "noch einmal.", retryAfter(response));
         }
         if (status >= 500) {
             return new LanguageModelException("Groq ist gerade gestört (HTTP " + status + ").");
         }
-        String detail = errorMessage(new String(response.getBody().readAllBytes(), UTF_8));
-        return new LanguageModelException("Groq hat die Anfrage abgelehnt (HTTP " + status + ")"
-                + (detail.isEmpty() ? "." : ": " + detail));
+        String body = new String(response.getBody().readAllBytes(), UTF_8);
+        String detail = errorMessage(body);
+        String message = "Groq hat die Anfrage abgelehnt (HTTP " + status + ")" + (detail.isEmpty() ? "." : ": " + detail);
+        return status == 400 && "tool_use_failed".equals(errorCode(body)) ? new Retryable(message, Duration.ZERO)
+                : new LanguageModelException(message);
+    }
+
+    private static String errorCode(String body) {
+        try {
+            return textOrNull(JSON.readTree(body).path("error").path("code"));
+        } catch (JacksonException e) {
+            return null;
+        }
+    }
+
+    // Wartezeit aus dem Header retry-after (Sekunden) oder aus der Meldung ("Please try again in 7.5s")
+    private static Duration retryAfter(ClientHttpResponse response) throws IOException {
+        String header = response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER);
+        String seconds = header;
+        if (seconds == null) {
+            Matcher matcher = TRY_AGAIN.matcher(new String(response.getBody().readAllBytes(), UTF_8));
+            seconds = matcher.find() ? matcher.group(1) : null;
+        }
+        try {
+            return seconds == null ? null : Duration.ofMillis(Math.round(Double.parseDouble(seconds.strip()) * 1000));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     // Die Meldung aus dem Fehler-JSON, sonst der Text; gekürzt, damit keine langen Antworten im Log landen
