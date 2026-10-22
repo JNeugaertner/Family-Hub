@@ -2,13 +2,12 @@
 // mit „🚧 Demnächst“ oder blendet sie aus. Wird eine Funktion echt, hier ihre Zeile auf false setzen: Die
 // Kennzeichnung verschwindet dann überall.
 export const PLACEHOLDER = {
-  // KI-Assistent: feste Antworten (Seite, Knopf „KI fragen“). Die Hinweise im KI-Streifen der Übersicht sind echt
-  // (Terminkonflikte, überfällige Aufgaben; ohne KI ermittelt).
-  assistant: true,
+  // KI-Assistent: seit Phase 3 echt (lesender Chat über Groq, Hinweise im KI-Streifen der Übersicht)
+  assistant: false,
   // Sprachassistent: schwebender Mikrofon-Knopf ohne Spracherkennung (ausgeblendet)
   voice: true,
   // Glocke: Beispielmeldungen
   notifications: true,
-  // Fahrzeiten und Terminkonflikte: werden nicht berechnet (Legende im Kalender ausgeblendet)
+  // Fahrzeiten: werden nicht berechnet (Legende im Kalender ausgeblendet); Terminkonflikte sind echt (KI-Assistent)
   travelTimes: true,
 } as const;

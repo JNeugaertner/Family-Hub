@@ -25,12 +25,13 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | Telegram (in Arbeit) | Bot der Familie: Nachrichten an den Bot landen in FamilyHub; Benachrichtigungen zu dringenden Aufgaben, kurzfristigen Terminen, offenen Bestätigungen und Chat-Nachrichten |
 | Müllabfuhr | Abfuhrkalender der Gemeinde (ICS-Datei) importieren; Termine im Kalender und eine Aufgabe für den Vorabend |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
+| KI-Assistent (in Arbeit) | Chat, der in Kalender, Aufgaben, Einkauf, Essensplan, Wetter und Müllabfuhr nachschlägt (Groq, nur lesen); Hinweise zu Terminkonflikten und überfälligen Aufgaben in der Übersicht |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
 | Sonstiges | Änderungen anderer erscheinen ohne Neuladen; als App installierbar; Konto-Sperre nach fünf falschen Passwörtern |
 
-Noch nicht umgesetzt sind der KI-Assistent, die Glocke mit Benachrichtigungen
-in der App (Benachrichtigungen kommen bisher nur über Telegram), die
-Sprachsteuerung sowie Fahrzeiten. Die Oberfläche
+Noch nicht umgesetzt sind Entwürfe des KI-Assistenten (er kann bisher nur
+lesen), die Glocke mit Benachrichtigungen in der App (Benachrichtigungen kommen
+bisher nur über Telegram), die Sprachsteuerung sowie Fahrzeiten. Die Oberfläche
 kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 (`frontend/src/placeholders.ts`).
 
@@ -301,9 +302,20 @@ wird die Nachricht nicht.
 
 ## KI-Assistent einrichten (optional, in Arbeit)
 
-Der KI-Assistent entsteht in mehreren Schritten. Bisher stehen die Verbindung
-zum Sprachmodell und die **Hinweise ohne KI**; Fragen stellen kann man noch
-nicht, und die KI bekommt noch keine Familiendaten.
+Der KI-Assistent entsteht in mehreren Schritten. Bisher stehen die **Hinweise
+ohne KI** und der **lesende Chat**; Entwürfe, die man übernehmen kann, folgen.
+
+- **Chat** (Seite „KI-Assistent“, braucht den API-Schlüssel): Man fragt z. B.
+  „Was steht diese Woche an?“ oder „Welche Aufgaben hat Lucas noch offen?“. Der
+  Assistent schlägt dafür mit Werkzeugen in Kalender, Aufgaben,
+  Terminkonflikten, Einkaufsliste, Essensplan, Wetter und Müllabfuhr nach und
+  nennt unter der Antwort, wo. Er sieht dabei nur, was die fragende Person
+  sehen darf, und auch nur Bereiche, die die Rolle KI-Agent lesen darf
+  (Punkte und Nachrichten nicht). Er ändert nichts; wer etwas anlegen möchte,
+  bekommt gesagt, wo das in FamilyHub geht. Der Verlauf ist pro Person
+  gespeichert (auch auf anderen Geräten sichtbar) und wird 30 Tage nach der
+  letzten Nachricht gelöscht, mit „Neues Gespräch“ sofort. Die Familiendaten,
+  die er nachschlägt, gehen an Groq.
 
 - **Hinweise ohne KI** (funktionieren auch ohne API-Schlüssel): Der Streifen
   „FamilyHub KI“ in der Übersicht zeigt Terminkonflikte der nächsten 14 Tage,
@@ -319,7 +331,7 @@ nicht, und die KI bekommt noch keine Familiendaten.
   Schnittstelle (`LanguageModel`); ein anderer Anbieter wäre ein weiterer
   Adapter.
 
-Leitlinien für alle weiteren Schritte: Der Assistent liest nur, was die fragende
+Leitlinien für alle Schritte: Der Assistent liest nur, was die fragende
 Person selbst sehen darf, und ändert nie selbst etwas. Er schlägt Entwürfe vor
 (Termin, Einkaufsartikel, Essen, Aufgabe ohne Person und Punkte), die ein Mensch
 übernimmt. Senden, Punkte vergeben, Aufgaben zuweisen und Löschen kann er nicht.
@@ -345,7 +357,10 @@ Administratoren (Recht „Sprachassistent“).
    `"toolCalling": true`, kann das Modell Werkzeuge aufrufen und ist bereit.
 
 Der Rechner muss `api.groq.com` erreichen können; in Firmennetzen ist das nicht
-selbstverständlich. Jeder Aufruf des Sprachmodells wird ohne Inhalte
+selbstverständlich. Ein kostenloses Groq-Konto erlaubt nur wenige Tokens pro
+Minute; eine Frage mit Nachschlagen braucht einige Tausend. Meldet der
+Assistent „zu viele Anfragen“, eine Minute warten oder bei Groq ein höheres
+Kontingent buchen. Jeder Aufruf des Sprachmodells wird ohne Inhalte
 protokolliert (Zeit, Person, Modell, Tokens, Dauer, Fehler). MongoDB löscht die
 Einträge nach 30 Tagen von selbst, beim Löschen eines Mitglieds sofort.
 
