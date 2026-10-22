@@ -23,6 +23,8 @@ export interface ApiTask {
   // Bonus-Aufgabe: offen für alle Kinder und Jugendlichen; repeatable: nach der Bestätigung wieder offen
   bonus: boolean;
   repeatable: boolean;
+  // Über einen Entwurf des KI-Assistenten angelegt
+  viaAssistant: boolean;
 }
 
 export interface TaskInput {

@@ -16,6 +16,8 @@ export interface ApiEvent {
   createdBy: string | null;
   // Nur bei importierten Terminen (Google Kalender); diese sind schreibgeschützt
   external: { provider: string; calendarId: string; eventId: string } | null;
+  // Über einen Entwurf des KI-Assistenten angelegt
+  viaAssistant: boolean;
 }
 
 export interface EventInput {

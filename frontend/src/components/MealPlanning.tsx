@@ -7,6 +7,7 @@ import { addDays, fromDateKey, mondayOf, startOfToday, toDateKey } from '../cale
 import type { Dish, Ingredient, MealEntry, MealType, ShoppingTransfer } from '../meals/api';
 import { useMealData } from '../meals/MealDataContext';
 import { MEAL_STYLES, MEAL_TYPES } from '../meals/mealTypes';
+import ViaAssistantBadge from '../assistant/ViaAssistantBadge';
 import type { ShoppingCategory } from '../shopping/api';
 import { SELECTABLE_SHOPPING_CATEGORIES, SHOPPING_CATEGORIES } from '../shopping/categories';
 
@@ -633,7 +634,10 @@ export default function MealPlanning({ onNavigate }: Props) {
                               role={canOpen ? 'button' : undefined}
                               aria-label={canOpen ? `${style.label} am ${dayLabel(day)}: ${entry.name}${onlyWishes ? ', etwas anderes wünschen' : ', ändern'}` : undefined}
                             >
-                              <p className="text-xs font-medium leading-snug break-words" style={{ color: style.text }}>{entry.name}</p>
+                              <p className="text-xs font-medium leading-snug break-words" style={{ color: style.text }}>
+                                {entry.name}
+                                {entry.viaAssistant && <ViaAssistantBadge compact className="ml-1 align-middle" />}
+                              </p>
                               {(hasRecipe || hasCart) && (
                                 <div className="flex justify-end gap-1 mt-1.5">
                                   {hasRecipe && dish && (

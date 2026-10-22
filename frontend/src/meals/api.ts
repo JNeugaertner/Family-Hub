@@ -42,6 +42,8 @@ export interface MealEntry {
   status: 'approved' | 'proposed';
   createdBy: string;
   createdAt: string;
+  // Über einen Entwurf des KI-Assistenten angelegt
+  viaAssistant: boolean;
 }
 
 export interface MealInput {

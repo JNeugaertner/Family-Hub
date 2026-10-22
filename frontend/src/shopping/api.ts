@@ -15,6 +15,8 @@ export interface ShoppingItem {
   createdBy: string;
   createdAt: string;
   checkedBy: string | null;
+  // Über einen Entwurf des KI-Assistenten angelegt
+  viaAssistant: boolean;
 }
 
 export interface ShoppingInput {

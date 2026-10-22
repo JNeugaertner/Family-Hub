@@ -25,13 +25,13 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | Telegram (in Arbeit) | Bot der Familie: Nachrichten an den Bot landen in FamilyHub; Benachrichtigungen zu dringenden Aufgaben, kurzfristigen Terminen, offenen Bestätigungen und Chat-Nachrichten |
 | Müllabfuhr | Abfuhrkalender der Gemeinde (ICS-Datei) importieren; Termine im Kalender und eine Aufgabe für den Vorabend |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
-| KI-Assistent (in Arbeit) | Chat, der in Kalender, Aufgaben, Einkauf, Essensplan, Wetter und Müllabfuhr nachschlägt (Groq, nur lesen); Hinweise zu Terminkonflikten und überfälligen Aufgaben in der Übersicht |
+| KI-Assistent (in Arbeit) | Chat, der in Kalender, Aufgaben, Einkauf, Essensplan, Wetter und Müllabfuhr nachschlägt und Änderungen als Entwurf vorbereitet, den man selbst übernimmt (Groq); Hinweise zu Terminkonflikten und überfälligen Aufgaben in der Übersicht |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
 | Sonstiges | Änderungen anderer erscheinen ohne Neuladen; als App installierbar; Konto-Sperre nach fünf falschen Passwörtern |
 
-Noch nicht umgesetzt sind Entwürfe des KI-Assistenten (er kann bisher nur
-lesen), die Glocke mit Benachrichtigungen in der App (Benachrichtigungen kommen
-bisher nur über Telegram), die Sprachsteuerung sowie Fahrzeiten. Die Oberfläche
+Noch nicht umgesetzt sind Nachrichten im KI-Assistenten, die Glocke mit
+Benachrichtigungen in der App (Benachrichtigungen kommen bisher nur über
+Telegram), die Sprachsteuerung sowie Fahrzeiten. Die Oberfläche
 kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 (`frontend/src/placeholders.ts`).
 
@@ -303,7 +303,8 @@ wird die Nachricht nicht.
 ## KI-Assistent einrichten (optional, in Arbeit)
 
 Der KI-Assistent entsteht in mehreren Schritten. Bisher stehen die **Hinweise
-ohne KI** und der **lesende Chat**; Entwürfe, die man übernehmen kann, folgen.
+ohne KI**, der **Chat** und **Entwürfe**, die man selbst übernimmt; Nachrichten
+und Einstellungen für Administratoren folgen.
 
 - **Chat** (Seite „KI-Assistent“, braucht den API-Schlüssel): Man fragt z. B.
   „Was steht diese Woche an?“ oder „Welche Aufgaben hat Lucas noch offen?“. Der
@@ -311,11 +312,24 @@ ohne KI** und der **lesende Chat**; Entwürfe, die man übernehmen kann, folgen.
   Terminkonflikten, Einkaufsliste, Essensplan, Wetter und Müllabfuhr nach und
   nennt unter der Antwort, wo. Er sieht dabei nur, was die fragende Person
   sehen darf, und auch nur Bereiche, die die Rolle KI-Agent lesen darf
-  (Punkte und Nachrichten nicht). Er ändert nichts; wer etwas anlegen möchte,
-  bekommt gesagt, wo das in FamilyHub geht. Der Verlauf ist pro Person
-  gespeichert (auch auf anderen Geräten sichtbar) und wird 30 Tage nach der
-  letzten Nachricht gelöscht, mit „Neues Gespräch“ sofort. Die Familiendaten,
-  die er nachschlägt, gehen an Groq.
+  (Punkte und Nachrichten nicht). Der Verlauf ist pro Person gespeichert (auch
+  auf anderen Geräten sichtbar) und wird 30 Tage nach der letzten Nachricht
+  gelöscht, mit „Neues Gespräch“ sofort. Die Familiendaten, die er nachschlägt,
+  gehen an Groq.
+- **Entwürfe:** Bittet man den Assistenten, etwas anzulegen, zu ändern oder zu
+  löschen („Setz Milch und Brot auf die Einkaufsliste“, „Verschieb das Training
+  auf 18 Uhr“), ändert er nichts selbst, sondern legt unter seiner Antwort eine
+  Karte an: Termine, Aufgaben, Artikel der Einkaufsliste oder Mahlzeiten im
+  Essensplan. Auf der Karte lassen sich die Felder anpassen und bei mehreren
+  Einträgen einzelne abwählen. Erst mit „Übernehmen“ ändert sich etwas, mit den
+  Rechten der Person, die übernimmt: Wer auf einer Seite nur vorschlagen darf
+  (Kinder bei Einkauf und Essen, Jugendliche bei Terminen für andere), macht
+  auch hier einen Vorschlag; was jemand dort gar nicht darf, bietet der
+  Assistent nicht an. Bei neuen Aufgaben wählt die Person auf der Karte, wer sie
+  bekommt; Punkte vergibt der Assistent nie, und bestätigen kann er Aufgaben
+  nicht. Was über einen Entwurf entstanden ist, trägt im Kalender, bei den
+  Aufgaben, auf der Einkaufsliste und im Essensplan einen kleinen Hinweis „KI“.
+  Entwürfe verfallen nach 30 Tagen, wie der Verlauf.
 
 - **Hinweise ohne KI** (funktionieren auch ohne API-Schlüssel): Der Streifen
   „FamilyHub KI“ in der Übersicht zeigt Terminkonflikte der nächsten 14 Tage,
@@ -332,9 +346,9 @@ ohne KI** und der **lesende Chat**; Entwürfe, die man übernehmen kann, folgen.
   Adapter.
 
 Leitlinien für alle Schritte: Der Assistent liest nur, was die fragende
-Person selbst sehen darf, und ändert nie selbst etwas. Er schlägt Entwürfe vor
-(Termin, Einkaufsartikel, Essen, Aufgabe ohne Person und Punkte), die ein Mensch
-übernimmt. Senden, Punkte vergeben, Aufgaben zuweisen und Löschen kann er nicht.
+Person selbst sehen darf, und ändert nie selbst etwas. Anlegen, Ändern und
+Löschen gehen nur über Entwürfe, die ein Mensch übernimmt. Senden, Punkte
+vergeben sowie Aufgaben zuweisen und bestätigen kann er nicht.
 Benutzen dürfen ihn alle außer Gästen, einrichten und testen nur
 Administratoren (Recht „Sprachassistent“).
 
@@ -392,7 +406,8 @@ liegen in `security` (Anmeldung), `permission` (Rollen und Rechte), `inbox`
 (gemeinsamer Eingang für Nachrichten von WhatsApp und Telegram), `notifications`
 (Benachrichtigungen über Telegram), `assistant` (KI-Assistent; das Sprachmodell
 steckt hinter der Schnittstelle in `assistant.llm`, der Groq-Adapter in
-`assistant.groq`), `live` (Live-Aktualisierung), `web`
+`assistant.groq`, die Entwürfe in `assistant.drafts`), `live`
+(Live-Aktualisierung), `web`
 (Fehlerbehandlung, CORS, Swagger) und `sampledata` (Beispielfamilie).
 
 ## Dokumentation

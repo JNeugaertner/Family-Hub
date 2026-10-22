@@ -5,6 +5,7 @@ import { useCalendarData } from '../calendar/CalendarDataContext';
 import type { ShoppingCategory, ShoppingInput, ShoppingItem } from '../shopping/api';
 import { SELECTABLE_SHOPPING_CATEGORIES, SHOPPING_CATEGORIES, SHOPPING_CATEGORY_KEYS } from '../shopping/categories';
 import { useShoppingData } from '../shopping/ShoppingDataContext';
+import ViaAssistantBadge from '../assistant/ViaAssistantBadge';
 
 interface Props { onNavigate: (p: any) => void; }
 
@@ -93,6 +94,7 @@ function ItemRow({ item, busy, onToggle, onEdit, onRemove }: {
       {proposal && (
         <span className="text-[10px] bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">⏳ Vorschlag</span>
       )}
+      {item.viaAssistant && <ViaAssistantBadge />}
       {item.urgent && !item.checked && (
         <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">Dringend</span>
       )}

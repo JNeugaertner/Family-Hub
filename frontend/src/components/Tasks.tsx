@@ -7,6 +7,7 @@ import { useCalendarData, type CalendarMember } from '../calendar/CalendarDataCo
 import { formatDayMonth, startOfToday, toDateKey } from '../calendar/dates';
 import PointsToast from '../points/PointsToast';
 import type { ApiTask, TaskCategory, TaskPriority, TaskStatus } from '../tasks/api';
+import ViaAssistantBadge from '../assistant/ViaAssistantBadge';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { useTaskPermissions } from '../tasks/permissions';
 
@@ -100,6 +101,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
           </span>
           <span className="text-xs text-slate-400">{categoryLabel(task.category)}</span>
           {task.bonus && <BonusBadge repeatable={task.repeatable} />}
+          {task.viaAssistant && <ViaAssistantBadge />}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {task.points > 0 && !isAdult(member) && (

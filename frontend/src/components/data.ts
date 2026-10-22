@@ -29,6 +29,8 @@ export interface CalendarEvent {
   source?: 'google';
   // Von 00:00 bis 00:00 eines späteren Tages (z. B. ganztägige Google-Termine)
   allDay?: boolean;
+  // Über einen Entwurf des KI-Assistenten angelegt
+  viaAssistant?: boolean;
   travelTime?: number;
   transportMode?: TransportMode;
   // Überschneidet sich mit anderen Terminen derselben Person (Backend: /api/assistant/conflicts)

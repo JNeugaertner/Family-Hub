@@ -75,6 +75,7 @@ function toEvent(e: api.ApiEvent): CalendarEvent {
     createdBy: e.createdBy ?? undefined,
     source: e.external?.provider === 'google' ? 'google' : undefined,
     allDay: e.start.slice(11, 16) === '00:00' && e.end.slice(11, 16) === '00:00' && e.end > e.start,
+    viaAssistant: e.viaAssistant,
   };
 }
 

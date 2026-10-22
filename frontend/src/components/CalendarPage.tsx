@@ -13,6 +13,7 @@ import { MONTHS, WEEKDAYS_SHORT, addDays, formatLongDate, fromDateKey, mondayOf,
 import { CATEGORY_LABELS } from '../calendar/categories';
 import { SHARED_COLOR, blockBackground, cardBackground, dotBackground, memberColors, participantLabel, proposalStyle } from '../calendar/eventStyle';
 import GoogleBadge from '../google/GoogleBadge';
+import ViaAssistantBadge from '../assistant/ViaAssistantBadge';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
 import { useFlashFocus, useFocus } from '../navigation/focus';
 import { SoonBadge } from './Placeholder';
@@ -131,6 +132,7 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
           {event.source === 'google' && (
             <span className="text-[10px] bg-white border border-slate-200 text-[#4285F4] px-1.5 py-0.5 rounded-full font-medium">Google</span>
           )}
+          {event.viaAssistant && <ViaAssistantBadge />}
           {(event.conflict || event.travelConflict) && (
             <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
               <AlertTriangleIcon size={10} />

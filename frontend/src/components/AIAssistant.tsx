@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { SendIcon, SparklesIcon } from './Icons';
 import { useAuth, useMe } from '../auth/AuthContext';
 import { useAutoRefresh } from '../api/useAutoRefresh';
-import { askAssistant, clearConversation, getAssistantStatus, getConversation, type AssistantStatus, type ChatTurn } from '../assistant/api';
+import { askAssistant, clearConversation, getAssistantStatus, getConversation, type AssistantStatus, type ChatTurn, type Draft } from '../assistant/api';
+import DraftCard from '../assistant/DraftCard';
 
 interface Props { onNavigate: (p: any) => void; }
 
@@ -15,6 +16,7 @@ const SUGGESTIONS = [
   'Was fehlt auf der Einkaufsliste?',
   'Was gibt es diese Woche zu essen?',
   'Wie wird das Wetter morgen?',
+  'Setz Milch auf die Einkaufsliste',
 ];
 
 const timeOf = (iso: string) => new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -36,9 +38,10 @@ function TypingIndicator() {
   );
 }
 
-// Chat mit dem KI-Assistenten (Phase 3, Backend: AssistantChat). Er schlägt in Kalender, Aufgaben, Einkauf, Essensplan,
-// Wetter und Müllabfuhr nach, sieht dabei nur, was die angemeldete Person sieht, und ändert nichts. Der Verlauf ist pro
-// Person gespeichert und erscheint auch auf anderen Geräten (Live-Aktualisierung, Bereich "assistant").
+// Chat mit dem KI-Assistenten (Phasen 3 und 4, Backend: AssistantChat). Er schlägt in Kalender, Aufgaben, Einkauf,
+// Essensplan, Wetter und Müllabfuhr nach und sieht dabei nur, was die angemeldete Person sieht. Ändern soll sich etwas,
+// bereitet er einen Entwurf vor (DraftCard), den die Person selbst übernimmt. Der Verlauf ist pro Person gespeichert und
+// erscheint auch auf anderen Geräten (Live-Aktualisierung, Bereich "assistant").
 export default function AIAssistant(_props: Props) {
   const me = useMe();
   const { can } = useAuth();
@@ -74,7 +77,7 @@ export default function AIAssistant(_props: Props) {
   const send = async (text: string) => {
     const question = text.trim();
     if (!question || waiting) return;
-    const pending: ChatTurn = { role: 'user', text: question, at: new Date().toISOString(), sources: [] };
+    const pending: ChatTurn = { role: 'user', text: question, at: new Date().toISOString(), sources: [], drafts: [] };
     setError(null);
     setInput('');
     setTurns(t => [...t, pending]);
@@ -93,6 +96,10 @@ export default function AIAssistant(_props: Props) {
       setWaiting(false);
     }
   };
+
+  // Nach Übernehmen oder Verwerfen den Entwurf an seiner Antwort ersetzen
+  const replaceDraft = (updated: Draft) =>
+    setTurns(ts => ts.map(t => ({ ...t, drafts: t.drafts.map(d => (d.id === updated.id ? updated : d)) })));
 
   const startOver = async () => {
     setError(null);
@@ -127,8 +134,8 @@ export default function AIAssistant(_props: Props) {
           <div className="min-w-0">
             <div className="font-bold text-slate-800">FamilyHub KI</div>
             <div className="text-xs text-slate-500">
-              Schlägt in Kalender, Aufgaben, Einkauf, Essensplan, Wetter und Müllabfuhr nach. Sieht nur, was du siehst,
-              und ändert nichts.
+              Schlägt in Kalender, Aufgaben, Einkauf, Essensplan, Wetter und Müllabfuhr nach und bereitet Änderungen als
+              Entwurf vor. Sieht nur, was du siehst; übernehmen musst du selbst.
             </div>
           </div>
           <button type="button" onClick={startOver} disabled={turns.length === 0 || waiting}
@@ -174,7 +181,7 @@ export default function AIAssistant(_props: Props) {
                   {me.name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <div className={`flex flex-col gap-1 max-w-[75%] ${turn.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`flex flex-col gap-1 ${turn.drafts.length > 0 ? 'max-w-[92%] sm:max-w-[75%]' : 'max-w-[75%]'} ${turn.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
                   turn.role === 'user'
                     ? 'bg-[#2563EB] text-white rounded-tr-sm'
@@ -182,6 +189,7 @@ export default function AIAssistant(_props: Props) {
                 }`}>
                   {turn.text}
                 </div>
+                {turn.drafts.map(draft => <DraftCard key={draft.id} draft={draft} onChange={replaceDraft} />)}
                 <span className="text-[10px] text-slate-500">
                   {timeOf(turn.at)}
                   {turn.sources.length > 0 && ` · Nachgeschlagen in: ${turn.sources.join(', ')}`}
@@ -202,7 +210,7 @@ export default function AIAssistant(_props: Props) {
           <div className="flex items-end gap-2">
             <textarea
               className="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 resize-none bg-[#F8FAFC] max-h-28 disabled:opacity-50"
-              placeholder="Frag nach Terminen, Aufgaben, Einkauf, Essen, Wetter oder Müll …"
+              placeholder="Frag nach Terminen, Aufgaben, Einkauf, Essen, Wetter oder Müll, oder lass etwas vorbereiten …"
               rows={1}
               maxLength={1000}
               value={input}
@@ -223,7 +231,7 @@ export default function AIAssistant(_props: Props) {
             </button>
           </div>
           <p className="text-[10px] text-slate-500 mt-2 text-center">
-            Die KI kann sich irren. Wichtige Termine bitte im Kalender prüfen.
+            Die KI kann sich irren. Prüfe Entwürfe, bevor du sie übernimmst.
           </p>
         </div>
       </div>
