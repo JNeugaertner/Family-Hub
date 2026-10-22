@@ -13,7 +13,7 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 
 | Bereich | Was FamilyHub kann |
 |---|---|
-| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private Termine, Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
+| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private Termine, Vorschläge von Jugendlichen mit Freigabe durch die Eltern; Terminkonflikte werden markiert |
 | Google Kalender | Termine aus dem eigenen Google Kalender übernehmen (schreibgeschützt); auf Wunsch die eigenen FamilyHub-Termine in einen Google-Kalender „FamilyHub“ eintragen |
 | Aufgaben und Punkte | Eltern vergeben Aufgaben mit Punkten, Kinder haken ab, nach der Bestätigung gibt es Punkte; Bonus-Aufgaben für alle Kinder; Erwachsene erledigen Aufgaben ohne Punkte |
 | Belohnungen | Shop, in dem Kinder und Jugendliche Punkte einlösen; die Eltern genehmigen oder lehnen ab |
@@ -30,7 +30,7 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 
 Noch nicht umgesetzt sind der KI-Assistent, die Glocke mit Benachrichtigungen
 in der App (Benachrichtigungen kommen bisher nur über Telegram), die
-Sprachsteuerung sowie Fahrzeiten und Terminkonflikte. Die Oberfläche
+Sprachsteuerung sowie Fahrzeiten. Die Oberfläche
 kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 (`frontend/src/placeholders.ts`).
 
@@ -301,11 +301,23 @@ wird die Nachricht nicht.
 
 ## KI-Assistent einrichten (optional, in Arbeit)
 
-Der KI-Assistent entsteht in mehreren Schritten. Bisher steht nur die Verbindung
-zum Sprachmodell; Fragen stellen kann man noch nicht, und die KI bekommt noch
-keine Familiendaten. Als Anbieter nutzt FamilyHub **Groq** über dessen
-OpenAI-kompatible Schnittstelle. Der Assistent kennt im Code nur eine eigene
-Schnittstelle (`LanguageModel`); ein anderer Anbieter wäre ein weiterer Adapter.
+Der KI-Assistent entsteht in mehreren Schritten. Bisher stehen die Verbindung
+zum Sprachmodell und die **Hinweise ohne KI**; Fragen stellen kann man noch
+nicht, und die KI bekommt noch keine Familiendaten.
+
+- **Hinweise ohne KI** (funktionieren auch ohne API-Schlüssel): Der Streifen
+  „FamilyHub KI“ in der Übersicht zeigt Terminkonflikte der nächsten 14 Tage,
+  überfällige Aufgaben und dringende Aufgaben, die heute fällig sind; ein Klick
+  springt zum Termin bzw. zur Aufgabe. Der Kalender markiert Termine, die sich
+  überschneiden. Als Konflikt gilt, wenn dieselbe Person zwei Termine zur
+  gleichen Zeit hat, auch mit übernommenen Google-Terminen; offene Vorschläge
+  werden gegen die übrigen Termine geprüft, damit die Eltern es beim Freigeben
+  sehen. Ganztägige Termine zählen nicht. Jede Person sieht ihre eigenen
+  Hinweise, Administratoren die der ganzen Familie, Gäste keine.
+- **Sprachmodell:** Als Anbieter nutzt FamilyHub **Groq** über dessen
+  OpenAI-kompatible Schnittstelle. Der Assistent kennt im Code nur eine eigene
+  Schnittstelle (`LanguageModel`); ein anderer Anbieter wäre ein weiterer
+  Adapter.
 
 Leitlinien für alle weiteren Schritte: Der Assistent liest nur, was die fragende
 Person selbst sehen darf, und ändert nie selbst etwas. Er schlägt Entwürfe vor

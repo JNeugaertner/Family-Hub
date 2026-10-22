@@ -552,7 +552,10 @@ export default function CalendarPage({ onNavigate }: Props) {
   // Rest der Woche (bis Sonntag) nach dem gezeigten Tag, für "Diese Woche" in der Tagesansicht
   const endOfShownWeek = toDateKey(addDays(shownDay, (7 - shownDay.getDay()) % 7));
 
-  const conflicts = visibleEvents.filter(e => e.conflict || e.travelConflict);
+  // Ein Konfliktpaar nur einmal nennen ("A überschneidet sich mit B", nicht auch noch umgekehrt)
+  const conflicts = visibleEvents
+    .filter(e => e.conflict || e.travelConflict)
+    .filter((e, i, all) => !all.slice(0, i).some(k => k.conflictWith?.includes(e.title) && e.conflictWith?.includes(k.title)));
 
   // Upcoming garbage pickups for sidebar
   const upcomingGarbage = garbagePickups
@@ -687,6 +690,7 @@ export default function CalendarPage({ onNavigate }: Props) {
                 </span>
                 <span className="text-sm text-[#DC2626]/80 ml-2">
                   {ev.title}
+                  {ev.conflictWith && ev.conflictWith.length > 0 && ` überschneidet sich mit ${ev.conflictWith.join(', ')}`}
                   {ev.travelTime && ` — Abfahrt ${minsToTime(departureMins(ev)!)} überschneidet nächsten Termin`}
                 </span>
               </div>

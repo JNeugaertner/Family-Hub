@@ -31,7 +31,10 @@ export interface CalendarEvent {
   allDay?: boolean;
   travelTime?: number;
   transportMode?: TransportMode;
+  // Überschneidet sich mit anderen Terminen derselben Person (Backend: /api/assistant/conflicts)
   conflict?: boolean;
+  // Titel der Termine, mit denen er sich überschneidet
+  conflictWith?: string[];
   travelConflict?: boolean; // travel time overlaps with previous/next event
 }
 

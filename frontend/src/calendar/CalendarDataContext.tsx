@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAutoRefresh } from '../api/useAutoRefresh';
+import { getConflicts, type EventConflict } from '../assistant/api';
+import { useAuth } from '../auth/AuthContext';
 import type { CalendarEvent } from '../components/data';
 import { listMembers, type ApiMember } from '../family/api';
 import type { RoleId } from '../roles';
@@ -44,6 +46,16 @@ export function occursOn(event: CalendarEvent, dateKey: string): boolean {
     : event.date === dateKey;
 }
 
+// Konflikte an die betroffenen Termine hängen; die Titel der anderen Termine zeigt der Kalender im Warnhinweis
+function markConflicts(events: CalendarEvent[], conflicts: EventConflict[]): CalendarEvent[] {
+  const overlaps = new Map<string, string[]>();
+  for (const c of conflicts) {
+    overlaps.set(c.first.id, [...(overlaps.get(c.first.id) ?? []), c.second.title]);
+    overlaps.set(c.second.id, [...(overlaps.get(c.second.id) ?? []), c.first.title]);
+  }
+  return events.map(e => overlaps.has(e.id) ? { ...e, conflict: true, conflictWith: overlaps.get(e.id) } : e);
+}
+
 // Backend liefert "2026-09-25T10:00:00"; die Ansichten gruppieren nach Datum und HH:mm.
 function toEvent(e: api.ApiEvent): CalendarEvent {
   return {
@@ -71,6 +83,9 @@ export function CalendarDataProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [members, setMembers] = useState<CalendarMember[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  // Konflikte kommen vom KI-Assistenten (Recht "Sprachassistent"); Gäste haben keine Markierungen
+  const { can } = useAuth();
+  const mayUseAssistant = can('sprachassistent', 'ansehen', 'eigen');
 
   // Nur die zuletzt gestartete Abfrage zählt (Hintergrund-Aktualisierung und Neuladen nach Änderungen)
   const latest = useRef(0);
@@ -78,10 +93,12 @@ export function CalendarDataProvider({ children }: { children: ReactNode }) {
   const reload = useCallback(async () => {
     const call = ++latest.current;
     try {
-      const [m, e] = await Promise.all([listMembers(), api.listEvents()]);
+      // Die Markierungen sind Zusatz: Fehlen sie, zeigt der Kalender die Termine trotzdem
+      const [m, e, c] = await Promise.all([listMembers(), api.listEvents(),
+        mayUseAssistant ? getConflicts().catch(() => []) : Promise.resolve([])]);
       if (call !== latest.current) return;
       setMembers(m.map(toMember));
-      setEvents(e.map(toEvent));
+      setEvents(markConflicts(e.map(toEvent), c));
       setError(null);
       setStatus('ready');
     } catch (err) {
@@ -89,7 +106,7 @@ export function CalendarDataProvider({ children }: { children: ReactNode }) {
       setError(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
-  }, []);
+  }, [mayUseAssistant]);
 
   useEffect(() => { reload(); }, [reload]);
   // Mitglieder stehen hier mit, Google-Termine kommen auch aus dem automatischen Abgleich

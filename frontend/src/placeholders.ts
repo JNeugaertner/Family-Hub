@@ -2,7 +2,8 @@
 // mit „🚧 Demnächst“ oder blendet sie aus. Wird eine Funktion echt, hier ihre Zeile auf false setzen: Die
 // Kennzeichnung verschwindet dann überall.
 export const PLACEHOLDER = {
-  // KI-Assistent: feste Antworten (Seite, Knopf „KI fragen“, KI-Streifen in der Übersicht)
+  // KI-Assistent: feste Antworten (Seite, Knopf „KI fragen“). Die Hinweise im KI-Streifen der Übersicht sind echt
+  // (Terminkonflikte, überfällige Aufgaben; ohne KI ermittelt).
   assistant: true,
   // Sprachassistent: schwebender Mikrofon-Knopf ohne Spracherkennung (ausgeblendet)
   voice: true,

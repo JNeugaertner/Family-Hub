@@ -1,5 +1,7 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
 import type { CalendarEvent } from './data';
+import { useAutoRefresh } from '../api/useAutoRefresh';
+import { getInsights, type Insight } from '../assistant/api';
 import { useAuth } from '../auth/AuthContext';
 import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
 import type { MealType } from '../meals/api';
@@ -14,7 +16,6 @@ import { useTaskData } from '../tasks/TaskDataContext';
 import { usePointHolders } from '../points/usePointHolders';
 import WeatherWidget from '../weather/WeatherWidget';
 import type { Focus } from '../navigation/focus';
-import { SoonBadge } from './Placeholder';
 import { PLACEHOLDER } from '../placeholders';
 import {
   CalendarIcon, CheckSquareIcon, ShoppingCartIcon, UtensilsIcon,
@@ -376,21 +377,71 @@ function PointsWidget({ onNavigate }: { onNavigate: Navigate }) {
 
 // ─── AI banner ────────────────────────────────────────────────────────────────
 
+// Hinweise ohne KI (Backend: InsightService): Terminkonflikte der nächsten 14 Tage, überfällige Aufgaben und
+// dringende Aufgaben von heute. Jede Person sieht ihre eigenen, Eltern alle. Der Chat dahinter ist noch eine
+// Vorschau (PLACEHOLDER.assistant); Gäste sehen nur den Hinweis darauf.
+const SHOWN_INSIGHTS = 3;
+
 function AIBanner({ onNavigate }: { onNavigate: Navigate }) {
+  const { can } = useAuth();
+  const mayUse = can('sprachassistent', 'ansehen', 'eigen');
+  const [insights, setInsights] = useState<Insight[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  const reload = useCallback(async () => {
+    if (!mayUse) return;
+    try {
+      setInsights(await getInsights());
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    }
+  }, [mayUse]);
+
+  useEffect(() => { void reload(); }, [reload]);
+  useAutoRefresh(reload, ['events', 'tasks', 'members', 'google']);
+
+  const open = (insight: Insight) => insight.taskId
+    ? onNavigate('tasks', { kind: 'task', id: insight.taskId })
+    : onNavigate('calendar', { kind: 'event', id: insight.eventIds[0], date: insight.date });
+
   return (
-    <div className="bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#14B8A6] rounded-2xl p-4 text-white flex items-center gap-4">
+    <div className="bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#14B8A6] rounded-2xl p-4 text-white flex items-start gap-4">
       <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
         <SparklesIcon size={20} className="text-white" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-sm flex items-center gap-2">
-          FamilyHub KI {PLACEHOLDER.assistant && <SoonBadge onDark label="Vorschau" />}
-        </div>
-        <div className="text-white/80 text-xs mt-0.5 truncate">
-          Bald: Tipps der KI für euren Tag, z. B. wer wann wohin muss und was noch fehlt
-        </div>
+        <div className="font-semibold text-sm">FamilyHub KI</div>
+        {!mayUse ? (
+          <div className="text-white/80 text-xs mt-0.5">
+            Bald: Tipps der KI für euren Tag, z. B. wer wann wohin muss und was noch fehlt
+          </div>
+        ) : failed ? (
+          <div className="text-white/80 text-xs mt-0.5">Die Hinweise sind gerade nicht verfügbar.</div>
+        ) : !insights ? (
+          <div className="text-white/80 text-xs mt-0.5">Lädt…</div>
+        ) : insights.length === 0 ? (
+          <div className="text-white/90 text-xs mt-0.5">Keine Terminkonflikte, nichts überfällig 🎉</div>
+        ) : (
+          <ul className="mt-1 space-y-1">
+            {insights.slice(0, SHOWN_INSIGHTS).map((insight, i) => (
+              <li key={`${insight.type}-${insight.taskId ?? insight.eventIds.join('-')}-${i}`}>
+                <button type="button" onClick={() => open(insight)}
+                  className="w-full text-left text-xs text-white/90 hover:text-white flex items-start gap-1.5 rounded focus-visible:outline-2 focus-visible:outline-white">
+                  {insight.taskId
+                    ? <CheckSquareIcon size={13} className="flex-shrink-0 mt-px" />
+                    : <AlertTriangleIcon size={13} className="flex-shrink-0 mt-px" />}
+                  <span>{insight.text}</span>
+                </button>
+              </li>
+            ))}
+            {insights.length > SHOWN_INSIGHTS && (
+              <li className="text-xs text-white/70">und {insights.length - SHOWN_INSIGHTS} weitere</li>
+            )}
+          </ul>
+        )}
       </div>
-      <button onClick={() => onNavigate('assistant')} className="flex-shrink-0 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+      <button onClick={() => onNavigate('assistant')} className="flex-shrink-0 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
         {PLACEHOLDER.assistant ? 'Vorschau ansehen' : 'KI fragen'}
       </button>
     </div>
