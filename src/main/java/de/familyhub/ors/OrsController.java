@@ -30,5 +30,11 @@ public class OrsController {
         return service.findPlaces(q);
     }
 
+    @GetMapping("/travelTime")
+    @Operation (summary = "Reisezeit", description = "Die Reisezeit zwischen zwei Orten in Sekunden.")
+    public double travelTime(@RequestParam double startLat, @RequestParam double startLon, @RequestParam double endLat, @RequestParam double endLon) {
+        return service.gettravelTime(startLat, startLon, endLat, endLon);
+    }
+
 
 }

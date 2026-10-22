@@ -6,7 +6,7 @@ import { ApiError } from '../api/client';
 import { CATEGORY_OPTIONS } from '../calendar/categories';
 import GoogleBadge from '../google/GoogleBadge';
 import { eventColor, memberColors } from '../calendar/eventStyle';
-import {findPlaces, OrsLocation} from './OrsApi';
+import {findPlaces, OrsLocation, getTravelTime} from './OrsApi';
 
 // Das Backend meldet "Ende nach Beginn" unter endAfterStart; im Formular gehört es zum Feld "Ende".
 const FIELD_ALIASES: Record<string, string> = { endAfterStart: 'end' };
@@ -151,14 +151,21 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     setResults(places);
   };
 
-  const choose = (place: OrsLocation) => {
+  const choose = async (place: OrsLocation) => {
     setLocation(place.label);
     setLat(place.lat);
     setLon(place.lon);
     //setTravelTime(place.travelTime);
     setResults(null);
     setQuery('');
+    await gettravelTime();
   };  
+
+  const gettravelTime = async () => {
+    console.log('gettravelTime called');
+    const time = await getTravelTime(49.41461, 8.681495, 49.420318, 8.687872); // Beispielkoordinaten
+    setTravelTime(time);
+  }
 
   const heading = readOnly ? 'Termin' : isProposal ? 'Vorschlag bearbeiten' : isEdit ? 'Termin bearbeiten'
     : willBeProposal ? 'Neuer Vorschlag' : 'Neuer Termin';
@@ -272,7 +279,11 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             </button>
           ))}
         </div>
-      )}        
+      )}
+
+        <Field id="event-travel-time" label="Fahrzeit" error={fieldErrors.travelTime}>
+          Fahrzeit: {travelTime} Sekunden
+        </Field>
 
           <Field id="event-description" label="Beschreibung (optional)" error={fieldErrors.description}>
             <textarea rows={3} {...fieldProps('description')} value={description} onChange={e => setDescription(e.target.value)} />
