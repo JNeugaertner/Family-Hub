@@ -10,6 +10,8 @@ export interface ChatMessage {
   text: string;
   // Ortszeit des Backends ohne Zeitzone, z. B. 2026-10-01T14:32:10.123
   sentAt: string;
+  // Über einen Entwurf des KI-Assistenten geschrieben (abgeschickt hat sie der Absender)
+  viaAssistant?: boolean;
 }
 
 export interface Conversation {

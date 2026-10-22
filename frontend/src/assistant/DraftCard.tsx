@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CheckIcon } from '../components/Icons';
+import { useMe } from '../auth/AuthContext';
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import { CATEGORY_LABELS } from '../calendar/categories';
 import { MEAL_STYLES, MEAL_TYPES } from '../meals/mealTypes';
@@ -13,6 +14,7 @@ const KINDS: Record<DraftKind, { label: string; icon: string }> = {
   task: { label: 'Aufgaben', icon: '✅' },
   shopping: { label: 'Einkaufsliste', icon: '🛒' },
   meal: { label: 'Essensplan', icon: '🍽️' },
+  message: { label: 'Nachricht', icon: '💬' },
 };
 
 const ACTIONS: Record<DraftItem['action'], { label: string; className: string }> = {
@@ -31,7 +33,8 @@ const SHOPPING_LABELS: Record<string, string> = Object.fromEntries(
   SELECTABLE_SHOPPING_CATEGORIES.map(c => [c, `${SHOPPING_CATEGORIES[c].icon} ${SHOPPING_CATEGORIES[c].label}`]));
 const MEAL_LABELS: Record<string, string> = Object.fromEntries(MEAL_TYPES.map(t => [t, MEAL_STYLES[t].label]));
 
-type FieldType = 'text' | 'date' | 'datetime' | 'select' | 'member' | 'members' | 'flag';
+// conversation: Empfänger einer Nachricht, nur zum Ansehen; textarea: mehrzeiliger Text
+type FieldType = 'text' | 'textarea' | 'date' | 'datetime' | 'select' | 'member' | 'members' | 'flag' | 'conversation';
 
 interface Field {
   key: string;
@@ -85,6 +88,13 @@ const FIELDS: Record<DraftKind, { fields: Field[]; shown: string[] }> = {
     ],
     shown: ['date', 'type', 'name'],
   },
+  message: {
+    fields: [
+      { key: 'conversation', label: 'An', type: 'conversation' },
+      { key: 'text', label: 'Text', type: 'textarea' },
+    ],
+    shown: ['conversation', 'text'],
+  },
 };
 
 const formatDate = (value: string) =>
@@ -94,15 +104,17 @@ const formatDateTime = (value: string) =>
   `${formatDate(value)}, ${value.slice(11, 16)}`;
 
 // Felder, die auf der Karte die ganze Breite bekommen
-const WIDE = new Set(['title', 'name', 'description', 'memberIds']);
+const WIDE = new Set(['title', 'name', 'description', 'memberIds', 'conversation', 'text']);
 
 const isEmpty = (value: unknown) => value === undefined || value === null || value === '';
 
 // Ein Eintrag, wie er nach dem Übernehmen aussähe (beim Ändern: vorher + Änderungen)
 const merged = (item: DraftItem, changes: Record<string, unknown>) => ({ ...item.before, ...item.data, ...changes });
 
-function headline(kind: DraftKind, values: Record<string, unknown>): string {
+function headline(kind: DraftKind, values: Record<string, unknown>, recipient: (conversation: unknown) => string): string {
   switch (kind) {
+    case 'message':
+      return `Nachricht an ${recipient(values.conversation)}`;
     case 'event':
       return `${values.title ?? 'Termin'}${typeof values.start === 'string' ? ` · ${formatDateTime(values.start)}` : ''}`;
     case 'task':
@@ -116,6 +128,7 @@ function headline(kind: DraftKind, values: Record<string, unknown>): string {
 
 function resultText(kind: DraftKind, item: DraftItem): string {
   if (item.state === 'discarded') return 'Verworfen';
+  if (kind === 'message') return 'Gesendet';
   if (item.outcome === 'proposed') {
     return kind === 'meal' ? 'Als Wunsch gesendet, deine Eltern entscheiden.' : 'Als Vorschlag übernommen, ein Elternteil gibt ihn frei.';
   }
@@ -127,6 +140,7 @@ function resultText(kind: DraftKind, item: DraftItem): string {
 // „Übernehmen“ ändert sich etwas, mit ihren Rechten (wer nur vorschlagen darf, macht einen Vorschlag).
 export default function DraftCard({ draft, onChange }: { draft: Draft; onChange: (draft: Draft) => void }) {
   const { members, memberById } = useCalendarData();
+  const me = useMe();
   const openIndexes = draft.items.flatMap((item, i) => (item.state === 'open' ? [i] : []));
   const [selected, setSelected] = useState<Set<number>>(() => new Set(openIndexes));
   const [changes, setChanges] = useState<Record<number, Record<string, unknown>>>({});
@@ -145,6 +159,13 @@ export default function DraftCard({ draft, onChange }: { draft: Draft; onChange:
   const spec = FIELDS[draft.kind];
   const memberOptions = Object.fromEntries(members.map(m => [m.id, m.name]));
   const nameOf = (id: unknown) => memberById(String(id))?.name ?? 'ehemaliges Mitglied';
+  // "family" oder "direct:<id>:<id>": im Einzelchat die andere Person
+  const recipient = (conversation: unknown) => {
+    const id = String(conversation);
+    if (id === 'family') return 'die Familiengruppe';
+    const partner = id.replace(/^direct:/, '').split(':').find(x => x !== me.id);
+    return partner ? nameOf(partner) : 'unbekannt';
+  };
 
   const display = (field: Field, value: unknown): string => {
     if (isEmpty(value) || (Array.isArray(value) && value.length === 0)) return '—';
@@ -152,6 +173,7 @@ export default function DraftCard({ draft, onChange }: { draft: Draft; onChange:
       case 'date': return formatDate(String(value));
       case 'datetime': return formatDateTime(String(value));
       case 'member': return nameOf(value);
+      case 'conversation': return recipient(value);
       case 'members': return (value as unknown[]).map(nameOf).join(', ');
       case 'flag': return value ? 'ja' : 'nein';
       case 'select': return field.options?.[String(value)] ?? String(value);
@@ -243,6 +265,17 @@ export default function DraftCard({ draft, onChange }: { draft: Draft; onChange:
               onChange={e => setField(index, field.key, e.target.value ? `${e.target.value}:00` : null)} />
           </div>
         );
+      case 'conversation':
+        return <p className="text-sm text-slate-700"><span className="text-[11px] font-medium text-slate-500">{field.label}: </span>{recipient(value)}</p>;
+      case 'textarea':
+        return (
+          <div>
+            {label}
+            <textarea id={id} rows={3} maxLength={2000} className={`${base} resize-y`} disabled={busy}
+              value={isEmpty(value) ? '' : String(value)}
+              onChange={e => setField(index, field.key, e.target.value)} />
+          </div>
+        );
       case 'date':
         return (
           <div>
@@ -290,14 +323,14 @@ export default function DraftCard({ draft, onChange }: { draft: Draft; onChange:
               <div className="flex items-start gap-2.5">
                 {open && showsCheckboxes && (
                   <input type="checkbox" checked={selected.has(index)} disabled={busy} onChange={() => toggle(index)}
-                    aria-label={`${headline(draft.kind, values)} übernehmen`}
+                    aria-label={`${headline(draft.kind, values, recipient)} übernehmen`}
                     className="mt-0.5 w-4 h-4 rounded border-slate-300 text-[#2563EB] focus:ring-[#2563EB] flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${action.className}`}>{action.label}</span>
                     <span className={`text-sm font-medium text-slate-800 ${item.action === 'delete' && item.state === 'applied' ? 'line-through text-slate-400' : ''}`}>
-                      {headline(draft.kind, values)}
+                      {headline(draft.kind, values, recipient)}
                     </span>
                   </div>
 

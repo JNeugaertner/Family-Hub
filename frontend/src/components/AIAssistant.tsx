@@ -17,6 +17,7 @@ const SUGGESTIONS = [
   'Was gibt es diese Woche zu essen?',
   'Wie wird das Wetter morgen?',
   'Setz Milch auf die Einkaufsliste',
+  'Was gibt es Neues im Familienchat?',
 ];
 
 const timeOf = (iso: string) => new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -122,6 +123,8 @@ export default function AIAssistant(_props: Props) {
   }
 
   const notConfigured = status !== null && !status.configured;
+  const switchedOff = status !== null && status.configured && !status.enabled;
+  const unavailable = notConfigured || switchedOff;
 
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-120px)]">
@@ -134,8 +137,8 @@ export default function AIAssistant(_props: Props) {
           <div className="min-w-0">
             <div className="font-bold text-slate-800">FamilyHub KI</div>
             <div className="text-xs text-slate-500">
-              Schlägt in Kalender, Aufgaben, Einkauf, Essensplan, Wetter und Müllabfuhr nach und bereitet Änderungen als
-              Entwurf vor. Sieht nur, was du siehst; übernehmen musst du selbst.
+              Schlägt in Kalender, Aufgaben, Einkauf, Essensplan, Wetter, Müllabfuhr und Nachrichten nach und bereitet
+              Änderungen als Entwurf vor. Sieht nur, was du siehst; übernehmen musst du selbst.
             </div>
           </div>
           <button type="button" onClick={startOver} disabled={turns.length === 0 || waiting}
@@ -155,7 +158,13 @@ export default function AIAssistant(_props: Props) {
             </p>
           )}
 
-          {turns.length === 0 && !waiting && !notConfigured && (
+          {switchedOff && (
+            <p role="alert" className="text-sm bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] rounded-xl px-4 py-3">
+              Der KI-Assistent ist gerade abgeschaltet. Ein Administrator kann ihn unter „Familie“ wieder einschalten.
+            </p>
+          )}
+
+          {turns.length === 0 && !waiting && !unavailable && (
             <div className="text-center py-6 space-y-4">
               <p className="text-sm text-slate-600">Hallo {me.name}! Was möchtest du wissen?</p>
               <div className="flex flex-wrap justify-center gap-2">
@@ -170,7 +179,7 @@ export default function AIAssistant(_props: Props) {
           )}
 
           {turns.map((turn, i) => (
-            <div key={`${turn.at}-${i}`} className={`flex items-start gap-3 ${turn.role === 'user' ? 'flex-row-reverse' : ''}`}>
+            <div key={`${turn.at}-${i}`} className={`flex items-start gap-3 ${turn.role !== 'assistant' ? 'flex-row-reverse' : ''}`}>
               {turn.role === 'assistant' ? (
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563EB] to-[#14B8A6] flex items-center justify-center flex-shrink-0">
                   <SparklesIcon size={14} className="text-white" />
@@ -181,18 +190,23 @@ export default function AIAssistant(_props: Props) {
                   {me.name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <div className={`flex flex-col gap-1 ${turn.drafts.length > 0 ? 'max-w-[92%] sm:max-w-[75%]' : 'max-w-[75%]'} ${turn.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`flex flex-col gap-1 ${turn.drafts.length > 0 ? 'max-w-[92%] sm:max-w-[75%]' : 'max-w-[75%]'} ${turn.role !== 'assistant' ? 'items-end' : 'items-start'}`}>
+                {turn.role === 'inbound' && (
+                  <span className="text-[11px] font-medium text-slate-500">Per {turn.sources.join(', ')} an FamilyHub geschickt</span>
+                )}
                 <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
                   turn.role === 'user'
                     ? 'bg-[#2563EB] text-white rounded-tr-sm'
-                    : 'bg-white border border-slate-100 text-slate-800 rounded-tl-sm shadow-sm'
+                    : turn.role === 'inbound'
+                      ? 'bg-[#F0FDF4] border border-[#BBF7D0] text-slate-800 rounded-tr-sm'
+                      : 'bg-white border border-slate-100 text-slate-800 rounded-tl-sm shadow-sm'
                 }`}>
                   {turn.text}
                 </div>
                 {turn.drafts.map(draft => <DraftCard key={draft.id} draft={draft} onChange={replaceDraft} />)}
                 <span className="text-[10px] text-slate-500">
                   {timeOf(turn.at)}
-                  {turn.sources.length > 0 && ` · Nachgeschlagen in: ${turn.sources.join(', ')}`}
+                  {turn.role === 'assistant' && turn.sources.length > 0 && ` · Nachgeschlagen in: ${turn.sources.join(', ')}`}
                 </span>
               </div>
             </div>
@@ -214,7 +228,7 @@ export default function AIAssistant(_props: Props) {
               rows={1}
               maxLength={1000}
               value={input}
-              disabled={notConfigured}
+              disabled={unavailable}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -224,7 +238,7 @@ export default function AIAssistant(_props: Props) {
               }}
               aria-label="Frage an den KI-Assistenten"
             />
-            <button type="button" onClick={() => void send(input)} disabled={!input.trim() || waiting || notConfigured}
+            <button type="button" onClick={() => void send(input)} disabled={!input.trim() || waiting || unavailable}
               className="w-11 h-11 rounded-2xl bg-[#2563EB] text-white flex items-center justify-center hover:bg-[#1D4ED8] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 shadow-sm"
               aria-label="Frage senden">
               <SendIcon size={18} />

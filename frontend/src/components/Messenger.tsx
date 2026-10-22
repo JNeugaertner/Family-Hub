@@ -16,6 +16,7 @@ import { ApiError } from '../api/client';
 import { ROLE_NAMES } from '../roles';
 import type { Focus } from '../navigation/focus';
 import EventFormModal from './EventFormModal';
+import ViaAssistantBadge from '../assistant/ViaAssistantBadge';
 import { CalendarIcon, CheckSquareIcon, ChevronLeftIcon, SearchIcon, SendIcon, ShoppingCartIcon, WhatsAppIcon, XIcon } from './Icons';
 import { getWhatsAppStatus } from '../whatsapp/api';
 
@@ -257,6 +258,7 @@ function MessageItem({ message, own, sender, showSender, actions, menuOpen, onTo
             className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words min-w-0 ${own
               ? 'bg-[#2563EB] text-white rounded-br-md' : 'bg-slate-100 text-slate-800 rounded-bl-md'}`}>
             {message.text}
+            {message.viaAssistant && <ViaAssistantBadge compact className="ml-1.5 align-middle" />}
           </div>
           {actions.length > 0 && (
             <button type="button" onClick={onToggleMenu} aria-label="Aktionen zur Nachricht" aria-haspopup="menu"

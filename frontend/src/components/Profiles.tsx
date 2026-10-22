@@ -16,6 +16,7 @@ import WeatherLocationCard from '../weather/WeatherLocationCard';
 import WasteCalendarCard from '../waste/WasteCalendarCard';
 import WhatsAppCard from '../whatsapp/WhatsAppCard';
 import TelegramCard from '../telegram/TelegramCard';
+import AssistantSettingsCard from '../assistant/AssistantSettingsCard';
 import { hasPermission, permissionKey, ROLE_NAMES, type Permission, type RoleId } from '../roles';
 import { useFlashFocus } from '../navigation/focus';
 
@@ -519,6 +520,8 @@ export default function Profiles({ onNavigate }: Props) {
   const mayConnectGoogle = me.role !== 'gast' && can('kalender', 'ansehen', 'eigen');
   // Telegram verknüpfen darf, wer Nachrichten hat, wie im Backend (InboxAccess)
   const mayUseMessenger = can('messenger', 'ansehen', 'eigen');
+  // Einstellungen des KI-Assistenten wie im Backend (AssistantAccess.requireManage)
+  const mayManageAssistant = can('sprachassistent', 'verwalten', 'familie');
 
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [roles, setRoles] = useState<RoleInfo[]>([]);
@@ -595,6 +598,7 @@ export default function Profiles({ onNavigate }: Props) {
         {mayManageRights && <GuestSettingsCard />}
         {mayManageRights && <WeatherLocationCard />}
         {mayManageRights && <WasteCalendarCard members={members} />}
+        {mayManageAssistant && <AssistantSettingsCard />}
         <PasswordCard />
         <WhatsAppCard />
         {mayUseMessenger && <TelegramCard />}

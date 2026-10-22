@@ -25,13 +25,13 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | Telegram (in Arbeit) | Bot der Familie: Nachrichten an den Bot landen in FamilyHub; Benachrichtigungen zu dringenden Aufgaben, kurzfristigen Terminen, offenen Bestätigungen und Chat-Nachrichten |
 | Müllabfuhr | Abfuhrkalender der Gemeinde (ICS-Datei) importieren; Termine im Kalender und eine Aufgabe für den Vorabend |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
-| KI-Assistent (in Arbeit) | Chat, der in Kalender, Aufgaben, Einkauf, Essensplan, Wetter und Müllabfuhr nachschlägt und Änderungen als Entwurf vorbereitet, den man selbst übernimmt (Groq); Hinweise zu Terminkonflikten und überfälligen Aufgaben in der Übersicht |
+| KI-Assistent | Chat, der in Kalender, Aufgaben, Einkauf, Essensplan, Wetter, Müllabfuhr und Nachrichten nachschlägt und Änderungen und Nachrichten als Entwurf vorbereitet, den man selbst übernimmt (Groq); wertet auf Wunsch WhatsApp- und Telegram-Nachrichten zu Entwürfen aus; Hinweise zu Terminkonflikten und überfälligen Aufgaben in der Übersicht |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
 | Sonstiges | Änderungen anderer erscheinen ohne Neuladen; als App installierbar; Konto-Sperre nach fünf falschen Passwörtern |
 
-Noch nicht umgesetzt sind Nachrichten im KI-Assistenten, die Glocke mit
-Benachrichtigungen in der App (Benachrichtigungen kommen bisher nur über
-Telegram), die Sprachsteuerung sowie Fahrzeiten. Die Oberfläche
+Noch nicht umgesetzt sind die Glocke mit Benachrichtigungen in der App
+(Benachrichtigungen kommen bisher nur über Telegram), die Sprachsteuerung sowie
+Fahrzeiten. Die Oberfläche
 kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 (`frontend/src/placeholders.ts`).
 
@@ -202,7 +202,8 @@ gibt es keine Beispieldaten.
 
 FamilyHub nimmt Nachrichten an die WhatsApp-Nummer der Familie über die
 offizielle **WhatsApp Cloud API** von Meta entgegen und speichert sie. Ausgewertet
-oder beantwortet werden sie noch nicht; das übernimmt später der KI-Assistent.
+werden sie nur, wenn ein Administrator das beim KI-Assistenten einschaltet
+(siehe „KI-Assistent einrichten“); beantwortet werden sie nicht.
 
 **Wer was sieht:** Jede Person sieht die Nachrichten von ihrer eigenen
 Handynummer, Administratoren sehen alle, Gäste keine. Die Handynummern tragen
@@ -248,9 +249,10 @@ aufruft. Er nimmt nur Aufrufe an, die Meta mit dem App-Secret signiert hat
 Die Familie bekommt einen eigenen Telegram-Bot. Wer sein Telegram-Konto unter
 „Familie“ verbindet, kann dem Bot schreiben; die Nachrichten landen wie die von
 WhatsApp im gemeinsamen Eingang (`GET /api/inbox?channel=telegram`). Umgekehrt
-schickt FamilyHub ihm Benachrichtigungen (siehe unten). Ausgewertet oder
-beantwortet werden eingehende Nachrichten noch nicht, auch keine Antworten auf
-Benachrichtigungen; die landen ebenfalls im Eingang.
+schickt FamilyHub ihm Benachrichtigungen (siehe unten). Ausgewertet werden
+eingehende Nachrichten nur, wenn ein Administrator das beim KI-Assistenten
+einschaltet (siehe „KI-Assistent einrichten“); beantwortet werden sie nicht,
+auch keine Antworten auf Benachrichtigungen. Die landen ebenfalls im Eingang.
 
 FamilyHub holt die Nachrichten selbst bei Telegram ab (Long Polling). Anders als
 bei WhatsApp braucht es deshalb keine öffentliche Adresse und keinen Tunnel, nur
@@ -300,11 +302,11 @@ zählt ab dem Moment, in dem FamilyHub den offenen Punkt bemerkt (alle
 einen Tag später. Ist Telegram nicht erreichbar, steht das im Log; nachgeholt
 wird die Nachricht nicht.
 
-## KI-Assistent einrichten (optional, in Arbeit)
+## KI-Assistent einrichten (optional)
 
-Der KI-Assistent entsteht in mehreren Schritten. Bisher stehen die **Hinweise
-ohne KI**, der **Chat** und **Entwürfe**, die man selbst übernimmt; Nachrichten
-und Einstellungen für Administratoren folgen.
+Der KI-Assistent besteht aus den **Hinweisen ohne KI**, dem **Chat**,
+**Entwürfen**, die man selbst übernimmt, der **automatischen Auswertung** von
+WhatsApp und Telegram und der **Admin-Karte**.
 
 - **Chat** (Seite „KI-Assistent“, braucht den API-Schlüssel): Man fragt z. B.
   „Was steht diese Woche an?“ oder „Welche Aufgaben hat Lucas noch offen?“. Der
@@ -312,15 +314,20 @@ und Einstellungen für Administratoren folgen.
   Terminkonflikten, Einkaufsliste, Essensplan, Wetter und Müllabfuhr nach und
   nennt unter der Antwort, wo. Er sieht dabei nur, was die fragende Person
   sehen darf, und auch nur Bereiche, die die Rolle KI-Agent lesen darf
-  (Punkte und Nachrichten nicht). Der Verlauf ist pro Person gespeichert (auch
+  (Punkte nicht). Nachrichten aus dem Messenger liest er nur auf Nachfrage und
+  genau wie im Messenger: die Familiengruppe und die eigenen Einzelchats, fremde
+  Einzelchats nie, auch nicht für Eltern. Was in Nachrichten steht, behandelt er
+  als Daten, nicht als Auftrag. Der Verlauf ist pro Person gespeichert (auch
   auf anderen Geräten sichtbar) und wird 30 Tage nach der letzten Nachricht
   gelöscht, mit „Neues Gespräch“ sofort. Die Familiendaten, die er nachschlägt,
   gehen an Groq.
 - **Entwürfe:** Bittet man den Assistenten, etwas anzulegen, zu ändern oder zu
   löschen („Setz Milch und Brot auf die Einkaufsliste“, „Verschieb das Training
   auf 18 Uhr“), ändert er nichts selbst, sondern legt unter seiner Antwort eine
-  Karte an: Termine, Aufgaben, Artikel der Einkaufsliste oder Mahlzeiten im
-  Essensplan. Auf der Karte lassen sich die Felder anpassen und bei mehreren
+  Karte an: Termine, Aufgaben, Artikel der Einkaufsliste, Mahlzeiten im
+  Essensplan oder Nachrichten im Messenger („Schreib Mama, dass ich später
+  komme“; abgeschickt wird erst mit „Übernehmen“, nie über WhatsApp oder
+  Telegram). Auf der Karte lassen sich die Felder anpassen und bei mehreren
   Einträgen einzelne abwählen. Erst mit „Übernehmen“ ändert sich etwas, mit den
   Rechten der Person, die übernimmt: Wer auf einer Seite nur vorschlagen darf
   (Kinder bei Einkauf und Essen, Jugendliche bei Terminen für andere), macht
@@ -328,8 +335,25 @@ und Einstellungen für Administratoren folgen.
   Assistent nicht an. Bei neuen Aufgaben wählt die Person auf der Karte, wer sie
   bekommt; Punkte vergibt der Assistent nie, und bestätigen kann er Aufgaben
   nicht. Was über einen Entwurf entstanden ist, trägt im Kalender, bei den
-  Aufgaben, auf der Einkaufsliste und im Essensplan einen kleinen Hinweis „KI“.
-  Entwürfe verfallen nach 30 Tagen, wie der Verlauf.
+  Aufgaben, auf der Einkaufsliste, im Essensplan und im Messenger einen kleinen
+  Hinweis „KI“. Entwürfe verfallen nach 30 Tagen, wie der Verlauf.
+- **Automatische Auswertung** (standardmäßig aus): Schreibt ein
+  Familienmitglied FamilyHub per WhatsApp oder Telegram (z. B. „Lucas hat
+  Freitag um 16 Uhr Training, und wir brauchen Brot“), schickt FamilyHub die
+  Nachricht an Groq. Steht etwas für Kalender, Aufgaben, Einkauf, Essen oder
+  eine Nachricht an die Familie darin, liegen danach die Nachricht und die
+  Entwürfe im KI-Chat dieser Person; sonst passiert nichts, und es gibt keine
+  Benachrichtigung. Ausgewertet werden nur Nachrichten von Nummern bzw.
+  Telegram-Konten, die einem Familienmitglied zugeordnet sind; Nachrichten
+  Unbekannter gehen nie an Groq.
+- **Admin-Karte** (unter „Familie“, nur Administratoren): den Assistenten für
+  alle ein- oder ausschalten, Bereiche einzeln abschalten (Kalender, Aufgaben,
+  Einkauf, Essensplan, Wetter und Müll, Nachrichten), die automatische
+  Auswertung einschalten und ein Tageslimit für Fragen je Rolle festlegen
+  (Kinder, Jugendliche, Administratoren; 0 = unbegrenzt; automatische
+  Auswertungen zählen mit, fehlgeschlagene Fragen nicht). Dazu der Verbrauch
+  der letzten 7 Tage je Person (Fragen, Aufrufe, Tokens), der Verbindungstest
+  und ein Hinweis, was an Groq geht.
 
 - **Hinweise ohne KI** (funktionieren auch ohne API-Schlüssel): Der Streifen
   „FamilyHub KI“ in der Übersicht zeigt Terminkonflikte der nächsten 14 Tage,
@@ -345,10 +369,10 @@ und Einstellungen für Administratoren folgen.
   Schnittstelle (`LanguageModel`); ein anderer Anbieter wäre ein weiterer
   Adapter.
 
-Leitlinien für alle Schritte: Der Assistent liest nur, was die fragende
-Person selbst sehen darf, und ändert nie selbst etwas. Anlegen, Ändern und
-Löschen gehen nur über Entwürfe, die ein Mensch übernimmt. Senden, Punkte
-vergeben sowie Aufgaben zuweisen und bestätigen kann er nicht.
+Leitlinien: Der Assistent liest nur, was die fragende Person selbst sehen
+darf, und ändert nie selbst etwas. Anlegen, Ändern, Löschen und Nachrichten
+gehen nur über Entwürfe, die ein Mensch übernimmt. Punkte vergeben sowie
+Aufgaben zuweisen und bestätigen kann er nicht.
 Benutzen dürfen ihn alle außer Gästen, einrichten und testen nur
 Administratoren (Recht „Sprachassistent“).
 
@@ -365,16 +389,19 @@ Administratoren (Recht „Sprachassistent“).
    # optional, Standard: openai/gpt-oss-120b (Liste: https://console.groq.com/docs/models)
    familyhub.assistant.model=<Modell>
    ```
-4. Backend neu starten, in der Swagger UI als Administrator anmelden und
-   `POST /api/assistant/test` ausführen. Der Test stellt eine kurze Frage mit
-   einem Test-Werkzeug, das nur das heutige Datum liefert. Steht in der Antwort
-   `"toolCalling": true`, kann das Modell Werkzeuge aufrufen und ist bereit.
+4. Backend neu starten und als Administrator unter „Familie“ auf der Karte
+   „KI-Assistent“ auf „Verbindung testen“ klicken (oder in der Swagger UI
+   `POST /api/assistant/test`). Der Test stellt eine kurze Frage mit einem
+   Test-Werkzeug, das nur das heutige Datum liefert. Meldet er, dass Werkzeuge
+   funktionieren (`"toolCalling": true`), ist das Modell bereit.
 
 Der Rechner muss `api.groq.com` erreichen können; in Firmennetzen ist das nicht
 selbstverständlich. Ein kostenloses Groq-Konto erlaubt nur wenige Tokens pro
-Minute; eine Frage mit Nachschlagen braucht einige Tausend. Meldet der
-Assistent „zu viele Anfragen“, eine Minute warten oder bei Groq ein höheres
-Kontingent buchen. Jeder Aufruf des Sprachmodells wird ohne Inhalte
+Minute; eine Frage mit Nachschlagen braucht einige Tausend. Nennt Groq eine
+kurze Wartezeit, wartet FamilyHub bis zu 20 Sekunden und versucht es noch
+einmal. Meldet der Assistent trotzdem „zu viele Anfragen“, eine Minute warten
+oder bei Groq ein höheres Kontingent buchen; das Tageslimit auf der
+Admin-Karte hilft, das Kontingent einzuteilen. Jeder Aufruf des Sprachmodells wird ohne Inhalte
 protokolliert (Zeit, Person, Modell, Tokens, Dauer, Fehler). MongoDB löscht die
 Einträge nach 30 Tagen von selbst, beim Löschen eines Mitglieds sofort.
 
