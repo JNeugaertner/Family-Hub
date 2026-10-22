@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import de.familyhub.achievements.AchievementService;
+import de.familyhub.assistant.AssistantCalls;
 import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
 import de.familyhub.google.GoogleAccountService;
@@ -66,13 +67,14 @@ public class FamilyMemberController {
     private final MessageService messages;
     private final TelegramService telegram;
     private final Notifications notifications;
+    private final AssistantCalls assistantCalls;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
             TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
             PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts,
             RedemptionRepository redemptions, AchievementService achievements, MealEntryRepository meals,
             ShoppingItemRepository shopping, MessageService messages, TelegramService telegram,
-            Notifications notifications) {
+            Notifications notifications, AssistantCalls assistantCalls) {
         this.members = members;
         this.events = events;
         this.tasks = tasks;
@@ -89,6 +91,7 @@ public class FamilyMemberController {
         this.messages = messages;
         this.telegram = telegram;
         this.notifications = notifications;
+        this.assistantCalls = assistantCalls;
     }
 
     @GetMapping
@@ -194,6 +197,7 @@ public class FamilyMemberController {
         messages.forgetMember(id);
         telegram.forgetMember(id);
         notifications.forgetMember(id);
+        assistantCalls.forgetMember(id);
         members.deleteById(id);
     }
 
