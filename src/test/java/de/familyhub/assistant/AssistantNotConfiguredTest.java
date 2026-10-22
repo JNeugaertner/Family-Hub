@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -47,5 +48,10 @@ class AssistantNotConfiguredTest {
         mvc.perform(post("/api/assistant/test").with(as(sarah)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Der KI-Assistent ist nicht eingerichtet."));
+        mvc.perform(post("/api/assistant/conversation/messages").with(as(sarah))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"text\": \"Hallo\"}"))
+                .andExpect(status().isConflict());
+        // Den (leeren) Verlauf gibt es trotzdem, damit die Oberfläche nicht ins Leere läuft
+        mvc.perform(get("/api/assistant/conversation").with(as(sarah))).andExpect(jsonPath("$.turns").isEmpty());
     }
 }

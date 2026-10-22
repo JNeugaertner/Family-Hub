@@ -98,14 +98,17 @@ public final class StandardRoles {
                 of(WETTER, ANSEHEN, Scope.FREIGEGEBEN),
                 of(MUELL, ANSEHEN, Scope.FREIGEGEBEN)));
 
-        // Informiert und schlägt vor, entscheidet und ändert nichts selbst.
+        // Informiert und schlägt vor, entscheidet und ändert nichts selbst. 22.10.2026: liest auch Einkaufsliste und
+        // Essensplan; der KI-Assistent sieht trotzdem nie mehr als die Person, die ihn fragt.
         PERMISSIONS.put(Role.KI_AGENT, Set.of(
                 of(FAMILIE, ANSEHEN, Scope.FAMILIE),
                 of(KALENDER, ANSEHEN, Scope.FAMILIE),
                 of(KALENDER, VORSCHLAGEN, Scope.FAMILIE),
                 of(AUFGABEN, ANSEHEN, Scope.FAMILIE),
                 of(AUFGABEN, VORSCHLAGEN, Scope.FAMILIE),
+                of(EINKAUF, ANSEHEN, Scope.FAMILIE),
                 of(EINKAUF, VORSCHLAGEN, Scope.FAMILIE),
+                of(ESSEN, ANSEHEN, Scope.FAMILIE),
                 of(ESSEN, VORSCHLAGEN, Scope.FAMILIE),
                 of(WETTER, ANSEHEN, Scope.FAMILIE),
                 of(MUELL, ANSEHEN, Scope.FAMILIE),

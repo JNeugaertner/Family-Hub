@@ -52,7 +52,7 @@ public class ConflictFinder {
                 .toList();
     }
 
-    static boolean isAllDay(CalendarEvent event) {
+    public static boolean isAllDay(CalendarEvent event) {
         return event.start().toLocalTime().equals(LocalTime.MIDNIGHT)
                 && event.end().toLocalTime().equals(LocalTime.MIDNIGHT) && event.end().isAfter(event.start());
     }
