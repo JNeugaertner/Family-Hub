@@ -94,7 +94,7 @@ den ersten Administrator an.
 ## Einstellungen
 
 Die Einstellungen stehen in `src/main/resources/application.properties`.
-Zugangsdaten für Google, OpenWeather, WhatsApp und Telegram gehören **nie** dorthin,
+Zugangsdaten für Google, OpenWeather, WhatsApp, Telegram und Groq gehören **nie** dorthin,
 sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 `.gitignore` und wird beim Start automatisch gelesen.
 
@@ -112,6 +112,9 @@ sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 | `familyhub.notifications.due-reminder-cron` | `0 0 7 * * *` | Täglich um 07:00 Uhr an dringende Aufgaben erinnern, die heute fällig sind |
 | `familyhub.notifications.short-notice` | `PT24H` | Termine, die so bald beginnen, gelten als kurzfristig |
 | `familyhub.notifications.pending-after` | `PT24H` | So lange darf eine Bestätigung offen sein, bevor FamilyHub erinnert |
+| `familyhub.assistant.model` | `openai/gpt-oss-120b` | Sprachmodell bei Groq für den KI-Assistenten; muss Werkzeuge aufrufen können |
+| `familyhub.assistant.base-url` | `https://api.groq.com/openai/v1` | Adresse des Anbieters (OpenAI-kompatibel) |
+| `familyhub.assistant.timeout` | `PT2M` | So lange darf eine Antwort des Sprachmodells dauern |
 | `familyhub.cors.allowed-origins` | `http://localhost:5173` | Adresse der Oberfläche |
 
 ## Google Kalender einrichten (optional)
@@ -296,6 +299,44 @@ zählt ab dem Moment, in dem FamilyHub den offenen Punkt bemerkt (alle
 einen Tag später. Ist Telegram nicht erreichbar, steht das im Log; nachgeholt
 wird die Nachricht nicht.
 
+## KI-Assistent einrichten (optional, in Arbeit)
+
+Der KI-Assistent entsteht in mehreren Schritten. Bisher steht nur die Verbindung
+zum Sprachmodell; Fragen stellen kann man noch nicht, und die KI bekommt noch
+keine Familiendaten. Als Anbieter nutzt FamilyHub **Groq** über dessen
+OpenAI-kompatible Schnittstelle. Der Assistent kennt im Code nur eine eigene
+Schnittstelle (`LanguageModel`); ein anderer Anbieter wäre ein weiterer Adapter.
+
+Leitlinien für alle weiteren Schritte: Der Assistent liest nur, was die fragende
+Person selbst sehen darf, und ändert nie selbst etwas. Er schlägt Entwürfe vor
+(Termin, Einkaufsartikel, Essen, Aufgabe ohne Person und Punkte), die ein Mensch
+übernimmt. Senden, Punkte vergeben, Aufgaben zuweisen und Löschen kann er nicht.
+Benutzen dürfen ihn alle außer Gästen, einrichten und testen nur
+Administratoren (Recht „Sprachassistent“).
+
+1. Unter [console.groq.com](https://console.groq.com) ein Konto anlegen und
+   unter „API Keys“ einen Schlüssel erzeugen.
+2. Unter „Data Controls“ **Zero Data Retention** einschalten, dann speichert Groq
+   keine Anfragen. Gespeicherte Daten liegen laut Groq in den USA; eine
+   Verarbeitung nur in der EU gibt es dort bisher nur für Enterprise-Kunden.
+3. Den Schlüssel als Umgebungsvariable `GROQ_API_KEY` setzen oder in
+   `local.properties` eintragen:
+
+   ```properties
+   familyhub.assistant.api-key=<API-Schlüssel>
+   # optional, Standard: openai/gpt-oss-120b (Liste: https://console.groq.com/docs/models)
+   familyhub.assistant.model=<Modell>
+   ```
+4. Backend neu starten, in der Swagger UI als Administrator anmelden und
+   `POST /api/assistant/test` ausführen. Der Test stellt eine kurze Frage mit
+   einem Test-Werkzeug, das nur das heutige Datum liefert. Steht in der Antwort
+   `"toolCalling": true`, kann das Modell Werkzeuge aufrufen und ist bereit.
+
+Der Rechner muss `api.groq.com` erreichen können; in Firmennetzen ist das nicht
+selbstverständlich. Jeder Aufruf des Sprachmodells wird ohne Inhalte
+protokolliert (Zeit, Person, Modell, Tokens, Dauer, Fehler). MongoDB löscht die
+Einträge nach 30 Tagen von selbst, beim Löschen eines Mitglieds sofort.
+
 ## Als App installieren
 
 FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im
@@ -322,7 +363,9 @@ Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
 `weather`, `whatsapp`, `telegram`, `family` und `settings`. Querschnittsthemen
 liegen in `security` (Anmeldung), `permission` (Rollen und Rechte), `inbox`
 (gemeinsamer Eingang für Nachrichten von WhatsApp und Telegram), `notifications`
-(Benachrichtigungen über Telegram), `live` (Live-Aktualisierung), `web`
+(Benachrichtigungen über Telegram), `assistant` (KI-Assistent; das Sprachmodell
+steckt hinter der Schnittstelle in `assistant.llm`, der Groq-Adapter in
+`assistant.groq`), `live` (Live-Aktualisierung), `web`
 (Fehlerbehandlung, CORS, Swagger) und `sampledata` (Beispielfamilie).
 
 ## Dokumentation
