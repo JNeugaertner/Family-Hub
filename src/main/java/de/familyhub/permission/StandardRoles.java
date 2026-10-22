@@ -98,8 +98,9 @@ public final class StandardRoles {
                 of(WETTER, ANSEHEN, Scope.FREIGEGEBEN),
                 of(MUELL, ANSEHEN, Scope.FREIGEGEBEN)));
 
-        // Informiert und schlägt vor, entscheidet und ändert nichts selbst. 22.10.2026: liest auch Einkaufsliste und
-        // Essensplan; der KI-Assistent sieht trotzdem nie mehr als die Person, die ihn fragt.
+        // Informiert und schlägt vor, entscheidet und ändert nichts selbst. 22.10.2026: liest auch Einkaufsliste,
+        // Essensplan und Nachrichten und entwirft Nachrichten; der KI-Assistent sieht trotzdem nie mehr als die Person,
+        // die ihn fragt, und schickt nichts selbst ab.
         PERMISSIONS.put(Role.KI_AGENT, Set.of(
                 of(FAMILIE, ANSEHEN, Scope.FAMILIE),
                 of(KALENDER, ANSEHEN, Scope.FAMILIE),
@@ -113,6 +114,8 @@ public final class StandardRoles {
                 of(WETTER, ANSEHEN, Scope.FAMILIE),
                 of(MUELL, ANSEHEN, Scope.FAMILIE),
                 of(FAHRZEIT, ANSEHEN, Scope.FAMILIE),
+                of(MESSENGER, ANSEHEN, Scope.FAMILIE),
+                of(MESSENGER, VORSCHLAGEN, Scope.FAMILIE),
                 of(SPRACHASSISTENT, ANSEHEN, Scope.FAMILIE)));
     }
 

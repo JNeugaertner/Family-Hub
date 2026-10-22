@@ -62,6 +62,8 @@ public class GroqLanguageModel implements LanguageModel {
     static final Duration MAX_WAIT = Duration.ofSeconds(20);
     static final int RETRIES = 2;
     private static final Pattern TRY_AGAIN = Pattern.compile("try again in (\\d+(?:\\.\\d+)?)s");
+    // Groq nennt das Kontingent, z. B. "Rate limit reached ... on tokens per day (TPD)"
+    private static final Pattern PER_DAY = Pattern.compile("per day|\\((?:TPD|RPD)\\)");
 
     // Warten zwischen zwei Versuchen; in Tests ersetzbar
     interface Pause {
@@ -257,8 +259,15 @@ public class GroqLanguageModel implements LanguageModel {
                     + "“ nicht. Bitte familyhub.assistant.model prüfen.");
         }
         if (status == 429) {
-            return new Retryable("Groq meldet zu viele Anfragen oder ein ausgeschöpftes Kontingent. Bitte später "
-                    + "noch einmal.", retryAfter(response));
+            String body = new String(response.getBody().readAllBytes(), UTF_8);
+            // Groq nennt Limit, Verbrauch und angefragte Tokens; hilft, das passende Kontingent zu wählen
+            String detail = body.replaceAll("\\s+", " ");
+            LOG.info("Groq-Kontingent: {}", detail.substring(0, Math.min(400, detail.length())));
+            return new Retryable(PER_DAY.matcher(body).find()
+                    ? "Das Tageskontingent bei Groq ist aufgebraucht. Morgen geht es weiter, oder bei Groq ein höheres "
+                            + "Kontingent buchen."
+                    : "Groq meldet zu viele Anfragen pro Minute. Bitte gleich noch einmal versuchen.",
+                    retryAfter(response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER), body));
         }
         if (status >= 500) {
             return new LanguageModelException("Groq ist gerade gestört (HTTP " + status + ").");
@@ -279,11 +288,10 @@ public class GroqLanguageModel implements LanguageModel {
     }
 
     // Wartezeit aus dem Header retry-after (Sekunden) oder aus der Meldung ("Please try again in 7.5s")
-    private static Duration retryAfter(ClientHttpResponse response) throws IOException {
-        String header = response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER);
+    private static Duration retryAfter(String header, String body) {
         String seconds = header;
         if (seconds == null) {
-            Matcher matcher = TRY_AGAIN.matcher(new String(response.getBody().readAllBytes(), UTF_8));
+            Matcher matcher = TRY_AGAIN.matcher(body);
             seconds = matcher.find() ? matcher.group(1) : null;
         }
         try {

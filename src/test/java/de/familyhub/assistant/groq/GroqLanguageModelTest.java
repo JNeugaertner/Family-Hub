@@ -156,7 +156,11 @@ class GroqLanguageModelTest {
         setUp();
         assertThat(failureMessage(HttpStatus.NOT_FOUND, "{}")).contains("„groq-model“");
         setUp();
-        assertThat(failureMessage(HttpStatus.TOO_MANY_REQUESTS, "{}")).contains("zu viele Anfragen");
+        assertThat(failureMessage(HttpStatus.TOO_MANY_REQUESTS, "{}")).contains("zu viele Anfragen pro Minute");
+        setUp();
+        assertThat(failureMessage(HttpStatus.TOO_MANY_REQUESTS, "{\"error\": {\"message\": \"Rate limit reached for "
+                + "model `openai/gpt-oss-120b` on tokens per day (TPD): Limit 200000, Used 199500\"}}"))
+                .contains("Tageskontingent");
         setUp();
         assertThat(failureMessage(HttpStatus.SERVICE_UNAVAILABLE, "{}")).contains("gestört (HTTP 503)");
         setUp();

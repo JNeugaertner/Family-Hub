@@ -7,7 +7,8 @@ public enum DraftKind {
     @JsonProperty("event") EVENT("events"),
     @JsonProperty("task") TASK("tasks"),
     @JsonProperty("shopping") SHOPPING("shopping"),
-    @JsonProperty("meal") MEAL("meals");
+    @JsonProperty("meal") MEAL("meals"),
+    @JsonProperty("message") MESSAGE("messages");
 
     private final String area;
 

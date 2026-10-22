@@ -7,13 +7,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import de.familyhub.assistant.llm.LanguageModel;
 import de.familyhub.assistant.llm.LanguageModelException;
+import de.familyhub.assistant.settings.AssistantQuota;
+import de.familyhub.assistant.settings.AssistantSettingsService;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.security.CurrentMember;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-// KI-Assistent, Phase 1 (Grundgerüst): Status und Verbindungstest. Fragen stellen kommt in Phase 3.
+// KI-Assistent: Status und Verbindungstest (Phase 1); Fragen stellen in ChatController, Einstellungen in
+// AssistantSettingsController.
 @RestController
 @RequestMapping("/api/assistant")
 @Tag(name = "KI-Assistent")
@@ -23,27 +26,35 @@ public class AssistantController {
     private final LanguageModel model;
     private final ConnectionTest connectionTest;
     private final AssistantAccess access;
+    private final AssistantSettingsService settings;
+    private final AssistantQuota quota;
     private final CurrentMember currentMember;
 
     public AssistantController(AssistantProperties properties, LanguageModel model, ConnectionTest connectionTest,
-            AssistantAccess access, CurrentMember currentMember) {
+            AssistantAccess access, AssistantSettingsService settings, AssistantQuota quota,
+            CurrentMember currentMember) {
         this.properties = properties;
         this.model = model;
         this.connectionTest = connectionTest;
         this.access = access;
+        this.settings = settings;
+        this.quota = quota;
         this.currentMember = currentMember;
     }
 
-    // configured: API-Schlüssel und Modell sind gesetzt; provider: Anbieter, z. B. Groq
-    public record Status(boolean configured, String provider, String model) {
+    // configured: API-Schlüssel und Modell sind gesetzt; enabled: von den Administratoren eingeschaltet;
+    // provider: Anbieter, z. B. Groq; dailyLimit: Fragen pro Tag für die angemeldete Person, 0 = unbegrenzt
+    public record Status(boolean configured, boolean enabled, String provider, String model, int dailyLimit) {
     }
 
     @GetMapping("/status")
     @Operation(summary = "Status des KI-Assistenten", description = "Ohne API-Schlüssel oder Modell ist er nicht "
             + "eingerichtet (siehe README). Fragt den Anbieter nicht an.")
     public Status status() {
-        access.requireUse(currentMember.get());
-        return new Status(properties.isConfigured(), model.provider(), properties.model());
+        FamilyMember viewer = currentMember.get();
+        access.requireUse(viewer);
+        return new Status(properties.isConfigured(), settings.current().enabled(), model.provider(),
+                properties.model(), quota.limitFor(viewer));
     }
 
     @PostMapping("/test")

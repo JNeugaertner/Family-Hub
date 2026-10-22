@@ -18,6 +18,7 @@ import de.familyhub.assistant.AssistantAccess;
 import de.familyhub.assistant.AssistantProperties;
 import de.familyhub.assistant.drafts.Draft;
 import de.familyhub.assistant.drafts.Drafts;
+import de.familyhub.assistant.settings.AssistantSettingsService;
 import de.familyhub.assistant.llm.LanguageModelException;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.security.CurrentMember;
@@ -38,14 +39,16 @@ public class ChatController {
 
     private final AssistantChat chat;
     private final Drafts drafts;
+    private final AssistantSettingsService settings;
     private final AssistantProperties properties;
     private final AssistantAccess access;
     private final CurrentMember currentMember;
 
-    public ChatController(AssistantChat chat, Drafts drafts, AssistantProperties properties, AssistantAccess access,
-            CurrentMember currentMember) {
+    public ChatController(AssistantChat chat, Drafts drafts, AssistantSettingsService settings,
+            AssistantProperties properties, AssistantAccess access, CurrentMember currentMember) {
         this.chat = chat;
         this.drafts = drafts;
+        this.settings = settings;
         this.properties = properties;
         this.access = access;
         this.currentMember = currentMember;
@@ -53,10 +56,12 @@ public class ChatController {
 
     // Eine Nachricht, wie die Oberfläche sie bekommt: Antworten mit ihren Entwürfen (abgelaufene fehlen)
     public record Turn(
-            @Schema(description = "user (Frage) oder assistant (Antwort)") String role,
+            @Schema(description = "user (Frage), assistant (Antwort) oder inbound (per WhatsApp/Telegram geschickt)")
+            String role,
             String text,
             Instant at,
-            @Schema(description = "Bei Antworten: Bereiche, in denen der Assistent nachgeschlagen hat, z. B. Kalender")
+            @Schema(description = "Bei Antworten: Bereiche, in denen der Assistent nachgeschlagen hat, z. B. Kalender; "
+                    + "bei inbound: der Kanal")
             List<String> sources,
             @Schema(description = "Bei Antworten: Entwürfe, die die Person übernehmen oder verwerfen kann")
             List<Draft> drafts) {
@@ -83,12 +88,17 @@ public class ChatController {
     @Operation(summary = "Frage stellen", description = "Der Assistent schlägt in Kalender, Aufgaben, Einkauf, "
             + "Essensplan, Wetter und Müllabfuhr nach, immer nur, was die fragende Person sehen darf, und antwortet. "
             + "Er ändert nichts selbst, sondern bereitet Entwürfe vor (drafts), die die Person über "
-            + "/api/assistant/drafts übernimmt. sources nennt die Bereiche, in denen er nachgeschlagen hat.")
+            + "/api/assistant/drafts übernimmt. sources nennt die Bereiche, in denen er nachgeschlagen hat. 429, wenn "
+            + "das Tageslimit der Person erreicht ist.")
     public Turn ask(@Valid @RequestBody Question question) {
         FamilyMember viewer = currentMember.get();
         access.requireUse(viewer);
         if (!properties.isConfigured()) {
             throw ApiException.conflict("Der KI-Assistent ist nicht eingerichtet.");
+        }
+        if (!settings.current().enabled()) {
+            throw ApiException.conflict("Der KI-Assistent ist abgeschaltet. Ein Administrator kann ihn unter "
+                    + "„Familie“ wieder einschalten.");
         }
         try {
             return withDrafts(viewer, List.of(chat.ask(viewer, question.text().strip()))).getFirst();

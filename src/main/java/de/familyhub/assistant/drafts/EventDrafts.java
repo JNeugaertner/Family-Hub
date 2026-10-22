@@ -14,6 +14,7 @@ import java.util.function.Predicate;
 
 import org.springframework.stereotype.Component;
 
+import de.familyhub.assistant.AssistantArea;
 import de.familyhub.assistant.insights.ConflictFinder;
 import de.familyhub.assistant.llm.ToolSpec;
 import de.familyhub.assistant.tools.AgentRights;
@@ -91,6 +92,11 @@ public class EventDrafts extends DraftTool {
                         "items", Map.of("type", "object", "properties", entry, "required", List.of("aktion"),
                                 "additionalProperties", false))),
                         "required", List.of("eintraege"), "additionalProperties", false));
+    }
+
+    @Override
+    public AssistantArea area() {
+        return AssistantArea.KALENDER;
     }
 
     @Override

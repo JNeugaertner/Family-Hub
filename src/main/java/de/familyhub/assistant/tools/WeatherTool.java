@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
+import de.familyhub.assistant.AssistantArea;
 import de.familyhub.assistant.llm.ToolSpec;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.permission.Module;
@@ -34,6 +35,11 @@ public class WeatherTool implements AssistantTool {
         return new ToolSpec(NAME, "Liest das Wetter am Wohnort der Familie: jetzt, heute und die nächsten vier Tage, "
                 + "dazu eine Kleidungsempfehlung. Temperaturen in °C, Wind in km/h.",
                 Map.of("type", "object", "properties", Map.of(), "additionalProperties", false));
+    }
+
+    @Override
+    public AssistantArea area() {
+        return AssistantArea.WETTER_MUELL;
     }
 
     @Override

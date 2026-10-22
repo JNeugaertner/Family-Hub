@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
+import de.familyhub.assistant.AssistantArea;
 import de.familyhub.assistant.llm.ToolSpec;
 import de.familyhub.assistant.tools.AgentRights;
 import de.familyhub.assistant.tools.ToolArguments;
@@ -81,6 +82,11 @@ public class ShoppingDrafts extends DraftTool {
                         "items", Map.of("type", "object", "properties", entry, "required", List.of("aktion"),
                                 "additionalProperties", false))),
                         "required", List.of("eintraege"), "additionalProperties", false));
+    }
+
+    @Override
+    public AssistantArea area() {
+        return AssistantArea.EINKAUF;
     }
 
     @Override

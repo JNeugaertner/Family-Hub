@@ -11,6 +11,7 @@ import java.util.function.Predicate;
 
 import org.springframework.stereotype.Component;
 
+import de.familyhub.assistant.AssistantArea;
 import de.familyhub.assistant.insights.ConflictFinder;
 import de.familyhub.assistant.llm.ToolSpec;
 import de.familyhub.calendar.CalendarAccess;
@@ -52,6 +53,11 @@ public class CalendarTool implements AssistantTool {
                 + "die nächsten 6 Tage. Höchstens " + MAX_DAYS + " Tage auf einmal. Vorschläge (vorschlag: true) "
                 + "sind noch nicht freigegeben.",
                 Map.of("type", "object", "properties", properties, "additionalProperties", false));
+    }
+
+    @Override
+    public AssistantArea area() {
+        return AssistantArea.KALENDER;
     }
 
     @Override

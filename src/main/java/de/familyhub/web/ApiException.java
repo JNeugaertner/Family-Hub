@@ -37,6 +37,11 @@ public class ApiException extends ErrorResponseException {
         return new ApiException(HttpStatus.CONFLICT, "Konflikt", detail, null);
     }
 
+    // Ein Limit ist erreicht, z. B. das Tageslimit für Fragen an den KI-Assistenten
+    public static ApiException tooManyRequests(String detail) {
+        return new ApiException(HttpStatus.TOO_MANY_REQUESTS, "Limit erreicht", detail, null);
+    }
+
     // Ein angebundener Dienst (z. B. OpenWeather) ist nicht eingerichtet oder nicht erreichbar
     public static ApiException unavailable(String detail) {
         return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Nicht verfügbar", detail, null);

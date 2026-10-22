@@ -10,6 +10,7 @@ import java.util.function.Predicate;
 
 import org.springframework.stereotype.Component;
 
+import de.familyhub.assistant.AssistantArea;
 import de.familyhub.assistant.llm.ToolSpec;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.meals.MealAccess;
@@ -42,6 +43,11 @@ public class MealTool implements AssistantTool {
         return new ToolSpec(NAME, "Liest den Essensplan in einem Zeitraum. Ohne Angaben: heute und die nächsten 6 "
                 + "Tage. Wünsche (vorschlag: true) haben die Eltern noch nicht übernommen.",
                 Map.of("type", "object", "properties", DateRange.schemaProperties(), "additionalProperties", false));
+    }
+
+    @Override
+    public AssistantArea area() {
+        return AssistantArea.ESSEN;
     }
 
     @Override

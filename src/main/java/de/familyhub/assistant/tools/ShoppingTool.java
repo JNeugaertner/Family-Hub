@@ -7,6 +7,7 @@ import java.util.function.Predicate;
 
 import org.springframework.stereotype.Component;
 
+import de.familyhub.assistant.AssistantArea;
 import de.familyhub.assistant.llm.ToolSpec;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.permission.Module;
@@ -38,6 +39,11 @@ public class ShoppingTool implements AssistantTool {
                 Map.of("type", "object", "properties", Map.of("auch_gekauft", Map.of("type", "boolean",
                         "description", "true: auch schon gekaufte (abgehakte) Artikel")),
                         "additionalProperties", false));
+    }
+
+    @Override
+    public AssistantArea area() {
+        return AssistantArea.EINKAUF;
     }
 
     @Override

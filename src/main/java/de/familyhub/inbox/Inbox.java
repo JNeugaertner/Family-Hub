@@ -3,6 +3,7 @@ package de.familyhub.inbox;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -10,6 +11,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import de.familyhub.family.FamilyMember;
+import de.familyhub.family.FamilyMemberRepository;
 
 // Gemeinsamer Eingang für Nachrichten von außen: Die Kanäle legen hier ab, die Oberfläche und später der
 // KI-Service lesen hier, jeweils nur, was die Person sehen darf (InboxAccess).
@@ -22,13 +24,17 @@ public class Inbox {
     private final MongoTemplate mongo;
     private final InboxAccess access;
     private final List<SenderIdentity> identities;
+    private final FamilyMemberRepository members;
+    private final ApplicationEventPublisher events;
 
     public Inbox(InboundMessageRepository repository, MongoTemplate mongo, InboxAccess access,
-            List<SenderIdentity> identities) {
+            List<SenderIdentity> identities, FamilyMemberRepository members, ApplicationEventPublisher events) {
         this.repository = repository;
         this.mongo = mongo;
         this.access = access;
         this.identities = identities;
+        this.members = members;
+        this.events = events;
     }
 
     // Kanäle stellen dieselbe Nachricht manchmal mehrfach zu; false, wenn sie schon gespeichert war.
@@ -37,7 +43,17 @@ public class Inbox {
             return false;
         }
         repository.save(message);
+        events.publishEvent(new InboundMessageReceived(message));
         return true;
+    }
+
+    // Das Familienmitglied, das die Nachricht geschrieben hat; leer bei Absendern, die keinem zugeordnet sind
+    public Optional<FamilyMember> senderOf(InboundMessage message) {
+        return members.findAll().stream()
+                .filter(member -> identities.stream()
+                        .anyMatch(identity -> identity.senderKeyOf(member).filter(message.senderKey()::equals)
+                                .isPresent()))
+                .findFirst();
     }
 
     // Die neuesten Nachrichten, die die Person sehen darf; channel null: alle Kanäle.

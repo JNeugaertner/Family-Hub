@@ -1,5 +1,6 @@
 package de.familyhub.assistant.tools;
 
+import de.familyhub.assistant.AssistantArea;
 import de.familyhub.assistant.llm.ToolSpec;
 import de.familyhub.family.FamilyMember;
 
@@ -9,6 +10,9 @@ import de.familyhub.family.FamilyMember;
 public interface AssistantTool {
 
     ToolSpec spec();
+
+    // Bereich, zu dem das Werkzeug gehört; Administratoren können Bereiche abschalten (AssistantSettings)
+    AssistantArea area();
 
     // Name des Bereichs für die Oberfläche ("Nachgeschlagen in: Kalender")
     String label();

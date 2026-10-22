@@ -64,8 +64,8 @@ class ChatTest {
 
     // Was ein Kind bekommt: alle Lese-Werkzeuge, Entwürfe aber nicht für Termine (Kinder legen keine an)
     private static final List<String> CHILD_TOOLS = List.of("kalender_lesen", "aufgaben_lesen", "konflikte_pruefen",
-            "einkaufsliste_lesen", "essensplan_lesen", "wetter_lesen", "muellabfuhr_lesen", "aufgaben_entwerfen",
-            "einkauf_entwerfen", "essen_entwerfen");
+            "einkaufsliste_lesen", "essensplan_lesen", "wetter_lesen", "muellabfuhr_lesen", "nachrichten_lesen",
+            "aufgaben_entwerfen", "einkauf_entwerfen", "essen_entwerfen", "nachricht_entwerfen");
 
     @Autowired
     private MockMvc mvc;

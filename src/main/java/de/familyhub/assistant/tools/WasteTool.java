@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
+import de.familyhub.assistant.AssistantArea;
 import de.familyhub.assistant.llm.ToolSpec;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.permission.Module;
@@ -40,6 +41,11 @@ public class WasteTool implements AssistantTool {
         return new ToolSpec(NAME, "Liest die nächsten Abholtermine der Müllabfuhr (ab heute) und wer die Tonne "
                 + "rausbringt. Die Aufgabe dafür ist am Vortag fällig.",
                 Map.of("type", "object", "properties", Map.of(), "additionalProperties", false));
+    }
+
+    @Override
+    public AssistantArea area() {
+        return AssistantArea.WETTER_MUELL;
     }
 
     @Override

@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
+import de.familyhub.assistant.AssistantArea;
 import de.familyhub.assistant.insights.EventConflict;
 import de.familyhub.assistant.insights.InsightService;
 import de.familyhub.assistant.llm.ToolSpec;
@@ -40,6 +41,11 @@ public class ConflictTool implements AssistantTool {
                 + "mit offenen Vorschlägen. Ganztägige Termine zählen nicht. Ohne Angaben: heute und die nächsten "
                 + "13 Tage.",
                 Map.of("type", "object", "properties", DateRange.schemaProperties(), "additionalProperties", false));
+    }
+
+    @Override
+    public AssistantArea area() {
+        return AssistantArea.KALENDER;
     }
 
     @Override

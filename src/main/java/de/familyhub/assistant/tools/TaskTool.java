@@ -11,6 +11,7 @@ import java.util.function.Predicate;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import de.familyhub.assistant.AssistantArea;
 import de.familyhub.assistant.llm.ToolSpec;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.permission.Module;
@@ -52,6 +53,11 @@ public class TaskTool implements AssistantTool {
                                 "description", "offen (Standard): noch nicht erledigt; erledigt: erledigt oder "
                                         + "bestätigt; alle")),
                         "additionalProperties", false));
+    }
+
+    @Override
+    public AssistantArea area() {
+        return AssistantArea.AUFGABEN;
     }
 
     @Override

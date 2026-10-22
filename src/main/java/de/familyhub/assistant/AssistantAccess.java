@@ -23,6 +23,10 @@ public class AssistantAccess {
         this.permissions = permissions;
     }
 
+    public boolean mayUse(FamilyMember member) {
+        return permissions.can(member, SPRACHASSISTENT, ANSEHEN, Scope.EIGEN);
+    }
+
     public void requireUse(FamilyMember viewer) {
         permissions.require(viewer, SPRACHASSISTENT, ANSEHEN, Scope.EIGEN, "Keine Berechtigung für den KI-Assistenten.");
     }

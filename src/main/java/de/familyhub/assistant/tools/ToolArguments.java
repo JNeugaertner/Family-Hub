@@ -63,6 +63,17 @@ public final class ToolArguments {
         });
     }
 
+    public Optional<Integer> integer(String name) {
+        JsonNode value = node.path(name);
+        if (value.isMissingNode() || value.isNull()) {
+            return Optional.empty();
+        }
+        if (!value.isIntegralNumber() || !value.canConvertToInt()) {
+            throw new ToolException(name + " muss eine ganze Zahl sein.");
+        }
+        return Optional.of(value.intValue());
+    }
+
     // Datum mit Uhrzeit im Format JJJJ-MM-TTTHH:MM
     public Optional<LocalDateTime> dateTime(String name) {
         return text(name).map(value -> {
