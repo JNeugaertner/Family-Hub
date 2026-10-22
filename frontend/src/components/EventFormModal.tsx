@@ -6,7 +6,7 @@ import { ApiError } from '../api/client';
 import { CATEGORY_OPTIONS } from '../calendar/categories';
 import GoogleBadge from '../google/GoogleBadge';
 import { eventColor, memberColors } from '../calendar/eventStyle';
-import {findPlaces, OrsLocation, getTravelTime} from './OrsApi';
+import {findPlaces, OrsLocation, getTravelTime, getSettings, Settings} from './OrsApi';
 
 // Das Backend meldet "Ende nach Beginn" unter endAfterStart; im Formular gehört es zum Feld "Ende".
 const FIELD_ALIASES: Record<string, string> = { endAfterStart: 'end' };
@@ -60,6 +60,11 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   const [lat, setLat] = useState<number | null>(event?.lat ?? null);
   const [lon, setLon] = useState<number | null>(event?.lon ?? null);
   const [travelTime, setTravelTime] = useState<number | null>(event?.travelTime ?? null);
+  const [Home,setHome] = useState<number | null>(null);
+  const [startLat, setStartLat] = useState<number | null>(null);
+  const [startLon, setStartLon] = useState<number | null>(null);
+  const [endLat, setEndLat] = useState<number | null>(null);
+  const [endLon, setEndLon] = useState<number | null>(null);
   const [description, setDescription] = useState(event?.description ?? '');
   const [privateEvent, setPrivateEvent] = useState(event?.private ?? false);
 
@@ -155,17 +160,18 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     setLocation(place.label);
     setLat(place.lat);
     setLon(place.lon);
-    //setTravelTime(place.travelTime);
     setResults(null);
     setQuery('');
-    await gettravelTime();
-  };  
-
-  const gettravelTime = async () => {
-    console.log('gettravelTime called');
-    const time = await getTravelTime(49.41461, 8.681495, 49.420318, 8.687872); // Beispielkoordinaten
+    const settings = await getSettings();
+    if (!settings.weatherLocation) {return;}
+    setEndLat(place.lat);
+    setEndLon(place.lon);
+    console.log(place.lat, place.lon);
+    console.log(startLat, startLon, endLat, endLon);
+    const time = await getTravelTime(settings.weatherLocation.lat, settings.weatherLocation.lon, place.lat, place.lon);
     setTravelTime(time);
-  }
+    
+  };  
 
   const heading = readOnly ? 'Termin' : isProposal ? 'Vorschlag bearbeiten' : isEdit ? 'Termin bearbeiten'
     : willBeProposal ? 'Neuer Vorschlag' : 'Neuer Termin';
