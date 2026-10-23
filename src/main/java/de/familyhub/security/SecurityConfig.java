@@ -6,7 +6,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -68,8 +67,9 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // Wie Spring Securitys Standard ({bcrypt}), aber auch für Passwörter über 72 Bytes (FamilyPasswordEncoder)
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+        return new FamilyPasswordEncoder();
     }
 }

@@ -54,7 +54,7 @@ class MemberRequestTest {
     void passwordMayBeOmittedButNotTooShort() {
         assertThat(errors(request("Lily", "#EC4899", "lily", null))).isEmpty();
         assertThat(errors(request("Lily", "#EC4899", "lily", "kurz")))
-                .containsExactly("Passwort muss mindestens 8 Zeichen lang sein");
+                .containsExactly("Passwort muss 8 bis 100 Zeichen lang sein");
     }
 
     @ParameterizedTest

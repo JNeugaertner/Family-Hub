@@ -109,11 +109,11 @@ function SetupForm() {
         <input id="setup-username" className={INPUT} value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field id="setup-password" label="Passwort (mind. 8 Zeichen)" error={errors.password}>
-          <input id="setup-password" type="password" className={INPUT} value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" />
+        <Field id="setup-password" label="Passwort (8 bis 100 Zeichen)" error={errors.password}>
+          <input id="setup-password" type="password" maxLength={100} className={INPUT} value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" />
         </Field>
         <Field id="setup-repeat" label="Passwort wiederholen" error={errors.repeat}>
-          <input id="setup-repeat" type="password" className={INPUT} value={repeat} onChange={e => setRepeat(e.target.value)} autoComplete="new-password" />
+          <input id="setup-repeat" type="password" maxLength={100} className={INPUT} value={repeat} onChange={e => setRepeat(e.target.value)} autoComplete="new-password" />
         </Field>
       </div>
       <div>

@@ -285,8 +285,8 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
             </Field>
           </div>
 
-          <Field id="member-password" label={isEdit ? 'Neues Passwort (leer lassen = unverändert)' : 'Passwort (mind. 8 Zeichen)'} error={errors.password}>
-            <input id="member-password" type="password" className={inputClass(!!errors.password)} value={password}
+          <Field id="member-password" label={isEdit ? 'Neues Passwort (leer lassen = unverändert)' : 'Passwort (8 bis 100 Zeichen)'} error={errors.password}>
+            <input id="member-password" type="password" maxLength={100} className={inputClass(!!errors.password)} value={password}
               disabled={loginLocked} onChange={e => setPassword(e.target.value)} autoComplete="new-password" />
           </Field>
 
@@ -485,12 +485,12 @@ function PasswordCard() {
           onChange={e => setCurrent(e.target.value)} autoComplete="current-password" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field id="password-new" label="Neues Passwort" error={errors.newPassword}>
-          <input id="password-new" type="password" className={inputClass(!!errors.newPassword)} value={next}
+        <Field id="password-new" label="Neues Passwort (8 bis 100 Zeichen)" error={errors.newPassword}>
+          <input id="password-new" type="password" maxLength={100} className={inputClass(!!errors.newPassword)} value={next}
             onChange={e => setNext(e.target.value)} autoComplete="new-password" />
         </Field>
         <Field id="password-repeat" label="Wiederholen" error={errors.repeat}>
-          <input id="password-repeat" type="password" className={inputClass(!!errors.repeat)} value={repeat}
+          <input id="password-repeat" type="password" maxLength={100} className={inputClass(!!errors.repeat)} value={repeat}
             onChange={e => setRepeat(e.target.value)} autoComplete="new-password" />
         </Field>
       </div>
