@@ -170,8 +170,15 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     console.log(startLat, startLon, endLat, endLon);
     const time = await getTravelTime(settings.weatherLocation.lat, settings.weatherLocation.lon, place.lat, place.lon);
     setTravelTime(time);
-    
-  };  
+  }; 
+  
+  const getTimeLayout = (time: number) => {
+    const days = Math.floor(time / 86400);
+    const hours = Math.floor(time / 3600);
+    const minutes = Math.floor((time % 3600) / 60);
+    const seconds = time % 60;
+    return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+  }
 
   const heading = readOnly ? 'Termin' : isProposal ? 'Vorschlag bearbeiten' : isEdit ? 'Termin bearbeiten'
     : willBeProposal ? 'Neuer Vorschlag' : 'Neuer Termin';
@@ -288,7 +295,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
       )}
 
         <Field id="event-travel-time" label="Fahrzeit" error={fieldErrors.travelTime}>
-          Fahrzeit: {travelTime} Sekunden
+          Fahrzeit: {getTimeLayout( travelTime ?? 0)}
         </Field>
 
           <Field id="event-description" label="Beschreibung (optional)" error={fieldErrors.description}>

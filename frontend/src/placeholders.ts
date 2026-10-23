@@ -8,4 +8,6 @@ export const PLACEHOLDER = {
   voice: true,
   // Glocke: Beispielmeldungen
   notifications: true,
+  // travelTime: Reisezeit zwischen zwei Orten (ausgeblendet, da noch nicht zuverlässig)
+  travelTimes: true,
 } as const;
