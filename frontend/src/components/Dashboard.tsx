@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useState } from 'react';
 import type { CalendarEvent } from './data';
 import { useAuth } from '../auth/AuthContext';
 import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
@@ -10,6 +10,7 @@ import { MONTHS, WEEKDAYS_SHORT, formatDayMonth, formatLongDate, startOfToday, t
 import { cardBackground, dotBackground, memberColors } from '../calendar/eventStyle';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
 import AvatarButton from '../profiles/AvatarButton';
+import { readable } from '../family/colors';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { usePointHolders } from '../points/usePointHolders';
 import WeatherWidget from '../weather/WeatherWidget';
@@ -26,11 +27,6 @@ type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals
 // focus: Sprungziel auf der nächsten Seite (Termin am Tag im Kalender, Aufgabe auf der Aufgabenseite)
 type Navigate = (p: Page, focus?: Focus) => void;
 interface Props { onNavigate: Navigate; }
-
-// Klickbare Zeilen auch per Tastatur öffnen
-const onEnter = (open: () => void) => (e: KeyboardEvent) => {
-  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
-};
 
 const TRANSPORT_ICONS: Record<string, string> = {
   car: '🚗', transit: '🚌', bike: '🚲', walk: '🚶',
@@ -63,13 +59,13 @@ function MiniCalendar({ onNavigate }: { onNavigate: Navigate }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-bold text-slate-800 text-base">{MONTHS[month]} {year}</h2>
         <div className="flex gap-1">
-          <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" aria-label="Vorheriger Monat"><ChevronLeftIcon size={16} /></button>
-          <button onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" aria-label="Nächster Monat"><ChevronRightIcon size={16} /></button>
+          <button onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors" aria-label="Vorheriger Monat"><ChevronLeftIcon size={16} /></button>
+          <button onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors" aria-label="Nächster Monat"><ChevronRightIcon size={16} /></button>
         </div>
       </div>
 
       <div className="grid grid-cols-7 mb-2">
-        {WEEKDAYS_SHORT.map(d =><div key={d} className="text-center text-[10px] font-semibold text-slate-400 py-1 uppercase tracking-wide">{d}</div>)}
+        {WEEKDAYS_SHORT.map(d =><div key={d} className="text-center text-[10px] font-semibold text-slate-500 py-1 uppercase tracking-wide">{d}</div>)}
       </div>
 
       <div className="grid grid-cols-7 gap-y-0.5">
@@ -85,14 +81,14 @@ function MiniCalendar({ onNavigate }: { onNavigate: Navigate }) {
               onClick={() => onNavigate('calendar', { kind: 'day', date: toDateKey(cellDate) })}
               aria-label={`${formatLongDate(cellDate)} im Kalender öffnen`}
               className={`flex flex-col items-center py-1 rounded-lg transition-colors relative
-                ${cell.type !== 'curr' ? 'opacity-25' : 'hover:bg-slate-50'}
+                ${cell.type !== 'curr' ? '' : 'hover:bg-slate-50'}
                 ${isToday ? 'bg-[#2563EB] hover:bg-[#2563EB]' : ''}`}
             >
-              <span className={`text-xs font-medium leading-5 ${isToday ? 'text-white' : 'text-slate-700'} ${cell.type !== 'curr' ? 'text-slate-300' : ''}`}>
+              <span className={`text-xs leading-5 ${isToday ? 'text-white font-medium' : cell.type !== 'curr' ? 'text-slate-500' : 'text-slate-700 font-medium'}`}>
                 {cell.day}
               </span>
               {events.length > 0 && !isToday && (
-                <div className="flex gap-0.5 mt-0.5">
+                <div className={`flex gap-0.5 mt-0.5 ${cell.type !== 'curr' ? 'opacity-40' : ''}`}>
                   {events.slice(0, 3).map((ev, ei) => (
                     <div key={ei} className="w-1 h-1 rounded-full" style={{ background: dotBackground(memberColors(ev.memberIds, memberById)) }} />
                   ))}
@@ -139,7 +135,7 @@ function TodayAgenda({ onNavigate }: { onNavigate: Navigate }) {
       </div>
 
       {todayEvents.length === 0 ? (
-        <p className="text-sm text-slate-400 py-4 text-center">Heute keine Termine 🎉</p>
+        <p className="text-sm text-slate-500 py-4 text-center">Heute keine Termine 🎉</p>
       ) : (
         <div className="space-y-2.5">
           {todayEvents.map(ev => {
@@ -148,36 +144,33 @@ function TodayAgenda({ onNavigate }: { onNavigate: Navigate }) {
             return (
               <div
                 key={ev.id}
-                role="button"
-                tabIndex={0}
-                aria-label={`${ev.title} im Kalender zeigen`}
                 onClick={open}
-                onKeyDown={onEnter(open)}
-                className={`flex items-start gap-3 p-3 rounded-xl transition-colors cursor-pointer hover:shadow-sm focus-visible:outline-2 focus-visible:outline-[#2563EB] ${ev.travelConflict ? 'bg-[#FEF2F2]' : 'hover:bg-slate-50'}`}
+                className={`flex items-start gap-3 p-3 rounded-xl transition-colors cursor-pointer hover:shadow-sm has-[[data-open]:focus-visible]:outline-2 has-[[data-open]:focus-visible]:outline-[#2563EB] ${ev.travelConflict ? 'bg-[#FEF2F2]' : 'hover:bg-slate-50'}`}
                 style={ev.travelConflict ? { borderLeft: '3px solid #EF4444' } : { background: cardBackground(memberColors(ev.memberIds, memberById)) }}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <button type="button" data-open className="flex-1 min-w-0 text-left focus-visible:outline-none">
+                  <span className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-slate-800">
                       {ev.source === 'google' && <GoogleBadge className="mr-1" />}{ev.title}
                     </span>
                     {(ev.conflict || ev.travelConflict) && (
-                      <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
+                      <span className="text-[10px] bg-[#FEF2F2] text-[#B91C1C] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
                         <AlertTriangleIcon size={10} /> Konflikt
                       </span>
                     )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400 flex-wrap">
+                  </span>
+                  <span className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
                     <span className="flex items-center gap-1"><ClockIcon size={10} />{ev.allDay ? 'Ganztägig' : `${ev.time}${ev.endTime ? ` – ${ev.endTime}` : ''}`}</span>
                     {ev.location && <span className="flex items-center gap-1"><MapPinIcon size={10} />{ev.location}</span>}
-                  </div>
+                  </span>
                   {dep && (
-                    <div className={`mt-1 text-[11px] font-semibold flex items-center gap-1 ${ev.travelConflict ? 'text-[#EF4444]' : 'text-[#F97316]'}`}>
+                    <span className={`mt-1 text-[11px] font-semibold flex items-center gap-1 ${ev.travelConflict ? 'text-[#DC2626]' : 'text-[#C2410C]'}`}>
                       {TRANSPORT_ICONS[ev.transportMode || 'car']} Abfahrt {dep}
                       {ev.travelConflict && <span className="ml-1">⚠ Zeitkonflikt!</span>}
-                    </div>
+                    </span>
                   )}
-                </div>
+                  <span className="sr-only">, im Kalender zeigen</span>
+                </button>
                 <div className="mt-0.5"><ParticipantAvatars memberIds={ev.memberIds} /></div>
               </div>
             );
@@ -204,26 +197,26 @@ function QuickTasks({ onNavigate }: { onNavigate: Navigate }) {
         <button onClick={() => onNavigate('tasks')} className="text-xs text-[#2563EB] font-medium hover:underline">Alle Aufgaben →</button>
       </div>
       <div className="space-y-2">
-        {urgent.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">Keine dringenden Aufgaben 🎉</p>}
+        {urgent.length === 0 && <p className="text-sm text-slate-500 py-4 text-center">Keine dringenden Aufgaben 🎉</p>}
         {urgent.map(t => {
           const member = memberById(t.assigneeId ?? '');
           const c = t.status === 'inprogress' ? '#2563EB' : '#F97316';
           const open = () => onNavigate('tasks', { kind: 'task', id: t.id });
           return (
-            <div key={t.id} role="button" tabIndex={0} aria-label={`${t.title} bei den Aufgaben zeigen`}
-              onClick={open} onKeyDown={onEnter(open)}
-              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#2563EB]">
+            <div key={t.id} onClick={open}
+              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer has-[[data-open]:focus-visible]:outline-2 has-[[data-open]:focus-visible]:outline-[#2563EB]">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c }} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-slate-800 truncate">{t.title}</div>
-                <div className="text-xs text-slate-400">{t.dueDate ? `Fällig ${formatDayMonth(t.dueDate)}` : 'Ohne Frist'}</div>
-              </div>
+              <button type="button" data-open className="flex-1 min-w-0 text-left focus-visible:outline-none">
+                <span className="block text-sm font-medium text-slate-800 truncate">{t.title}</span>
+                <span className="block text-xs text-slate-500">{t.dueDate ? `Fällig ${formatDayMonth(t.dueDate)}` : 'Ohne Frist'}</span>
+                <span className="sr-only">, bei den Aufgaben zeigen</span>
+              </button>
               <AvatarButton member={member} size={24} />
             </div>
           );
         })}
       </div>
-      <button onClick={() => onNavigate('tasks')} className="mt-3 w-full py-2 text-[#F97316] text-xs font-semibold hover:bg-[#FFF7ED] rounded-xl transition-colors">
+      <button onClick={() => onNavigate('tasks')} className="mt-3 w-full py-2 text-[#C2410C] text-xs font-semibold hover:bg-[#FFF7ED] rounded-xl transition-colors">
         Alle Aufgaben →
       </button>
     </div>
@@ -248,10 +241,10 @@ function MealWidget({ onNavigate }: { onNavigate: Navigate }) {
       </div>
       <div className="grid grid-cols-2 gap-2">
         {[
-          { label: '🌅 Frühstück',   meal: meal('fruehstueck'), bg: 'bg-[#FFF7ED]', text: 'text-[#F97316]' },
-          { label: '☀️ Mittagessen', meal: meal('mittagessen'), bg: 'bg-[#F0FDFA]', text: 'text-[#14B8A6]' },
+          { label: '🌅 Frühstück',   meal: meal('fruehstueck'), bg: 'bg-[#FFF7ED]', text: 'text-[#C2410C]' },
+          { label: '☀️ Mittagessen', meal: meal('mittagessen'), bg: 'bg-[#F0FDFA]', text: 'text-[#0F766E]' },
           { label: '🌙 Abendessen',  meal: meal('abendessen'),  bg: 'bg-[#EFF6FF]', text: 'text-[#2563EB]' },
-          { label: '🍎 Snacks',       meal: meal('snacks'),      bg: 'bg-[#FDF4FF]', text: 'text-[#8B5CF6]' },
+          { label: '🍎 Snacks',       meal: meal('snacks'),      bg: 'bg-[#FDF4FF]', text: 'text-[#7C3AED]' },
         ].map(({ label, meal, bg, text }) => (
           <div key={label} className={`p-3 rounded-xl ${bg}`}>
             <div className={`text-[10px] font-semibold uppercase tracking-wide ${text} mb-1`}>{label}</div>
@@ -299,16 +292,16 @@ function ShoppingWidget({ onNavigate }: { onNavigate: Navigate }) {
           <ShoppingCartIcon size={16} className="text-[#22C55E]" />
           Einkaufsliste
         </h2>
-        <span className="text-xs text-slate-400">{remaining.length} übrig</span>
+        <span className="text-xs text-slate-500">{remaining.length} übrig</span>
       </div>
       {urgent.length > 0 && (
-        <div className="mb-2 flex items-center gap-1.5 bg-[#FEF2F2] text-[#EF4444] text-xs font-medium px-3 py-1.5 rounded-lg">
+        <div className="mb-2 flex items-center gap-1.5 bg-[#FEF2F2] text-[#B91C1C] text-xs font-medium px-3 py-1.5 rounded-lg">
           <AlertTriangleIcon size={12} />{urgent.length} dringend benötigt
         </div>
       )}
       <div className="space-y-1.5">
         {error && <p role="alert" className="text-xs text-[#DC2626]">{error}</p>}
-        {shown.length === 0 && <div className="text-sm text-slate-400 py-2">Alles erledigt 🎉</div>}
+        {shown.length === 0 && <div className="text-sm text-slate-500 py-2">Alles erledigt 🎉</div>}
         {shown.slice(0, 5).map(item => {
           const member = memberById(item.createdBy);
           return (
@@ -322,15 +315,15 @@ function ShoppingWidget({ onNavigate }: { onNavigate: Navigate }) {
               ) : (
                 <div className="w-4 h-4 rounded border-2 border-slate-200 flex-shrink-0" />
               )}
-              <span className={`flex-1 ${item.checked ? 'line-through text-slate-400' : 'text-slate-700'} ${item.urgent && !item.checked ? 'font-semibold' : ''}`}>{item.name}</span>
-              {item.urgent && !item.checked && <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium">Dringend</span>}
+              <span className={`flex-1 ${item.checked ? 'line-through text-slate-500' : 'text-slate-700'} ${item.urgent && !item.checked ? 'font-semibold' : ''}`}>{item.name}</span>
+              {item.urgent && !item.checked && <span className="text-[10px] bg-[#FEF2F2] text-[#B91C1C] px-1.5 py-0.5 rounded-full font-medium">Dringend</span>}
               <div className="w-4 h-4 rounded-full" style={{ backgroundColor: member?.color }} title={member?.name} />
             </div>
           );
         })}
-        {shown.length > 5 && <div className="text-xs text-slate-400 pl-6">+{shown.length - 5} weitere</div>}
+        {shown.length > 5 && <div className="text-xs text-slate-500 pl-6">+{shown.length - 5} weitere</div>}
       </div>
-      <button onClick={() => onNavigate('shopping')} className="mt-3 w-full py-2 text-[#22C55E] text-xs font-semibold hover:bg-[#F0FDF4] rounded-xl transition-colors">
+      <button onClick={() => onNavigate('shopping')} className="mt-3 w-full py-2 text-[#15803D] text-xs font-semibold hover:bg-[#F0FDF4] rounded-xl transition-colors">
         Einkaufsliste öffnen →
       </button>
     </div>
@@ -357,10 +350,10 @@ function PointsWidget({ onNavigate }: { onNavigate: Navigate }) {
           <div key={c.id}>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: c.color }}>{c.initials[0]}</div>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: readable(c.color) }}>{c.initials[0]}</div>
                 <span className="text-sm font-medium text-slate-800">{c.name}</span>
               </div>
-              <span className="text-sm font-bold" style={{ color: c.color }}>{c.points} Pkt.</span>
+              <span className="text-sm font-bold" style={{ color: readable(c.color) }}>{c.points} Pkt.</span>
             </div>
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
               <div className="h-full rounded-full relative overflow-hidden transition-all duration-700" style={{ width: `${(c.points / maxPoints) * 100}%`, backgroundColor: c.color }}>

@@ -56,12 +56,12 @@ function transferText(t: ShoppingTransfer): string {
 }
 
 function IngredientChips({ ingredients }: { ingredients: Ingredient[] }) {
-  if (ingredients.length === 0) return <p className="text-xs text-slate-400">Keine Zutaten hinterlegt.</p>;
+  if (ingredients.length === 0) return <p className="text-xs text-slate-500">Keine Zutaten hinterlegt.</p>;
   return (
     <div className="flex flex-wrap gap-1.5">
       {ingredients.map((ing, i) => (
         <span key={i} className="text-[11px] bg-slate-50 border border-slate-100 text-slate-600 px-2 py-0.5 rounded-lg">
-          {SHOPPING_CATEGORIES[ing.category].icon} {ing.name}{ing.quantity && <span className="text-slate-400"> · {ing.quantity}</span>}
+          {SHOPPING_CATEGORIES[ing.category].icon} {ing.name}{ing.quantity && <span className="text-slate-500"> · {ing.quantity}</span>}
         </span>
       ))}
     </div>
@@ -99,7 +99,7 @@ function RecipeView({ dish, onClose }: { dish: Dish; onClose: () => void }) {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-start gap-3 mb-1">
           <h2 id="recipe-title" className="font-bold text-slate-800 text-lg flex-1">📖 {dish.name}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1" aria-label="Rezept schließen">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-600 p-1" aria-label="Rezept schließen">
             <XIcon size={16} />
           </button>
         </div>
@@ -108,14 +108,14 @@ function RecipeView({ dish, onClose }: { dish: Dish; onClose: () => void }) {
           <section aria-labelledby="recipe-ingredients">
             <h3 id="recipe-ingredients" className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Zutaten</h3>
             {dish.ingredients.length === 0 ? (
-              <p className="text-sm text-slate-400">Keine Zutaten hinterlegt.</p>
+              <p className="text-sm text-slate-500">Keine Zutaten hinterlegt.</p>
             ) : (
               <ul className="space-y-1">
                 {dish.ingredients.map((ing, i) => (
                   <li key={i} className="text-sm text-slate-700 flex gap-2">
                     <span>{SHOPPING_CATEGORIES[ing.category].icon}</span>
                     <span className="flex-1">{ing.name}</span>
-                    {ing.quantity && <span className="text-slate-400">{ing.quantity}</span>}
+                    {ing.quantity && <span className="text-slate-500">{ing.quantity}</span>}
                   </li>
                 ))}
               </ul>
@@ -124,7 +124,7 @@ function RecipeView({ dish, onClose }: { dish: Dish; onClose: () => void }) {
           <section aria-labelledby="recipe-steps">
             <h3 id="recipe-steps" className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Zubereitung</h3>
             {steps.length === 0 ? (
-              <p className="text-sm text-slate-400">Noch keine Kochanleitung hinterlegt.</p>
+              <p className="text-sm text-slate-500">Noch keine Kochanleitung hinterlegt.</p>
             ) : (
               <ol className="space-y-2.5">
                 {steps.map((step, i) => (
@@ -192,7 +192,7 @@ function MealEditor({ date, type, entry, onClose, onDone }: {
         <h2 id="meal-editor-title" className="font-bold text-slate-800">
           {style.icon} {style.label} · {dayLabel(date)}
         </h2>
-        <p className="text-xs text-slate-400 mb-4">
+        <p className="text-xs text-slate-500 mb-4">
           {onlyWishes ? 'Was wünschst du dir? Deine Eltern entscheiden.' : 'Gericht aus der Sammlung wählen oder frei eintragen.'}
         </p>
 
@@ -206,11 +206,11 @@ function MealEditor({ date, type, entry, onClose, onDone }: {
             <button key={d.id} type="button" onClick={() => setDishId(d.id)}
               className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-sm text-slate-700 flex items-center gap-2">
               <span className="flex-1">{d.name}</span>
-              <span className="text-[10px] text-slate-400">{d.ingredients.length} Zutaten</span>
+              <span className="text-[10px] text-slate-500">{d.ingredients.length} Zutaten</span>
             </button>
           ))}
           {!selected && query && matches.length === 0 && (
-            <p className="text-xs text-slate-400 px-3 py-2">Kein Gericht gefunden, wird als Freitext eingetragen.</p>
+            <p className="text-xs text-slate-500 px-3 py-2">Kein Gericht gefunden, wird als Freitext eingetragen.</p>
           )}
           {selected && (
             <div className="rounded-xl border border-slate-100 p-3">
@@ -223,12 +223,12 @@ function MealEditor({ date, type, entry, onClose, onDone }: {
           )}
         </div>
 
-        {error && <div role="alert" className="mt-3 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{error}</div>}
+        {error && <div role="alert" className="mt-3 bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{error}</div>}
 
         <div className="flex gap-3 mt-4">
           {perms.mayEdit && entry && (
             <button type="button" disabled={busy} onClick={() => run(() => removeMeal(entry.id), `„${entry.name}“ entfernt.`)}
-              className="py-2.5 px-3 rounded-xl text-[#EF4444] text-sm font-semibold hover:bg-[#FEF2F2] disabled:opacity-50">
+              className="py-2.5 px-3 rounded-xl text-[#B91C1C] text-sm font-semibold hover:bg-[#FEF2F2] disabled:opacity-50">
               Entfernen
             </button>
           )}
@@ -237,7 +237,7 @@ function MealEditor({ date, type, entry, onClose, onDone }: {
             Abbrechen
           </button>
           <button type="button" disabled={busy || (!selected && !text.trim())} onClick={save}
-            className="flex-1 py-2.5 rounded-xl bg-[#14B8A6] text-white text-sm font-semibold hover:bg-[#0D9488] disabled:opacity-50">
+            className="flex-1 py-2.5 rounded-xl bg-[#0F766E] text-white text-sm font-semibold hover:bg-[#115E59] disabled:opacity-50">
             {onlyWishes ? 'Wunsch senden' : 'Speichern'}
           </button>
         </div>
@@ -334,14 +334,14 @@ function DishForm({ dish, onClose, onDone }: { dish: Dish | null; onClose: () =>
         </div>
 
         <label htmlFor="dish-instructions" className="text-xs font-semibold text-slate-600 mt-4 mb-1.5 block">
-          Kochanleitung <span className="font-normal text-slate-400">(ein Schritt pro Zeile)</span>
+          Kochanleitung <span className="font-normal text-slate-500">(ein Schritt pro Zeile)</span>
         </label>
         <textarea id="dish-instructions" rows={6} maxLength={4000} className={`${INPUT} w-full resize-y`}
           placeholder={'Nudeln in Salzwasser kochen\nHackfleisch anbraten\nTomaten dazugeben und 20 Minuten köcheln lassen'}
           value={instructions} onChange={e => setInstructions(e.target.value)} />
         </div>
 
-        {error && <div role="alert" className="mt-3 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{error}</div>}
+        {error && <div role="alert" className="mt-3 bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{error}</div>}
 
         <div className="flex gap-3 mt-4">
           <button type="button" onClick={onClose}
@@ -349,7 +349,7 @@ function DishForm({ dish, onClose, onDone }: { dish: Dish | null; onClose: () =>
             Abbrechen
           </button>
           <button type="button" disabled={busy || !name.trim()} onClick={save}
-            className="flex-1 py-2.5 rounded-xl bg-[#14B8A6] text-white text-sm font-semibold hover:bg-[#0D9488] disabled:opacity-50">
+            className="flex-1 py-2.5 rounded-xl bg-[#0F766E] text-white text-sm font-semibold hover:bg-[#115E59] disabled:opacity-50">
             Speichern
           </button>
         </div>
@@ -381,12 +381,12 @@ function DishCollection({ onMessage }: { onMessage: (text: string, ok: boolean) 
     <div>
       {perms.mayEdit && (
         <button onClick={() => setEditing('new')}
-          className="mb-4 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-[#14B8A6] text-white hover:bg-[#0D9488]">
+          className="mb-4 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-[#0F766E] text-white hover:bg-[#115E59]">
           <PlusIcon size={15} /> Neues Gericht
         </button>
       )}
       {dishes.length === 0 && (
-        <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400 text-sm">Noch keine Gerichte in der Sammlung.</div>
+        <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-500 text-sm">Noch keine Gerichte in der Sammlung.</div>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
         {dishes.map(dish => (
@@ -400,7 +400,7 @@ function DishCollection({ onMessage }: { onMessage: (text: string, ok: boolean) 
                   </button>
                   {confirmDelete === dish.id ? (
                     <span className="flex items-center gap-2">
-                      <button onClick={() => remove(dish)} className="text-xs font-semibold px-2 py-1 rounded-lg bg-[#EF4444] text-white hover:bg-[#DC2626]">
+                      <button onClick={() => remove(dish)} className="text-xs font-semibold px-2 py-1 rounded-lg bg-[#DC2626] text-white hover:bg-[#B91C1C]">
                         Wirklich löschen?
                       </button>
                       <button onClick={() => setConfirmDelete(null)} className="text-xs text-slate-500 hover:underline">Nein</button>
@@ -482,7 +482,7 @@ export default function MealPlanning({ onNavigate }: Props) {
   if (!perms.mayView) {
     return (
       <div className="p-4 lg:p-6 max-w-[900px] mx-auto">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-slate-400">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-slate-500">
           <div className="text-4xl mb-3">🍽️</div>
           Der Essensplan ist für dich nicht freigegeben.
         </div>
@@ -497,7 +497,7 @@ export default function MealPlanning({ onNavigate }: Props) {
         <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm" role="tablist">
           {([['plan', '📅 Wochenplan'], ['dishes', '📖 Gerichte']] as const).map(([id, label]) => (
             <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === id ? 'bg-[#14B8A6] text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === id ? 'bg-[#0F766E] text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
               {label}
             </button>
           ))}
@@ -511,7 +511,7 @@ export default function MealPlanning({ onNavigate }: Props) {
             </button>
             <div className="min-w-[150px] text-center">
               <div className="font-bold text-slate-800 text-base leading-tight">{weekLabel}</div>
-              <div className="text-[11px] text-slate-400">{rangeLabel}</div>
+              <div className="text-[11px] text-slate-500">{rangeLabel}</div>
             </div>
             <button onClick={() => setWeekStart(addDays(weekStart, 7))} aria-label="Nächste Woche"
               className="p-2 rounded-xl hover:bg-white border border-slate-200 text-slate-500 shadow-sm transition-colors">
@@ -525,7 +525,7 @@ export default function MealPlanning({ onNavigate }: Props) {
 
         {tab === 'plan' && perms.mayShop && (
           <button disabled={busy} onClick={() => run(weekToShopping, transferText, true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-[#22C55E] text-white hover:bg-[#16A34A] transition-colors ml-auto disabled:opacity-50">
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-[#15803D] text-white hover:bg-[#166534] transition-colors ml-auto disabled:opacity-50">
             <ShoppingCartIcon size={15} />
             Zutaten der Woche auf die Einkaufsliste
           </button>
@@ -540,7 +540,7 @@ export default function MealPlanning({ onNavigate }: Props) {
       )}
       {message && (
         <div role={message.ok ? 'status' : 'alert'}
-          className={`mb-5 text-sm rounded-xl p-3 border flex flex-wrap items-center gap-3 ${message.ok ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D]' : 'bg-[#FEF2F2] border-[#FECACA] text-[#DC2626]'}`}>
+          className={`mb-5 text-sm rounded-xl p-3 border flex flex-wrap items-center gap-3 ${message.ok ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D]' : 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'}`}>
           <span className="flex-1">{message.text}</span>
           {message.shopping && (
             <button onClick={() => onNavigate('shopping')} className="text-xs font-semibold hover:underline">Zur Einkaufsliste →</button>
@@ -560,7 +560,7 @@ export default function MealPlanning({ onNavigate }: Props) {
                   <span className="text-lg">{MEAL_STYLES[w.type].icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-slate-800">{w.name}</div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-slate-500">
                       {MEAL_STYLES[w.type].label} · {dayLabel(w.date)} · von {memberById(w.createdBy)?.name ?? 'unbekannt'}
                       {current && <> · ersetzt „{current.name}“</>}
                     </div>
@@ -570,7 +570,7 @@ export default function MealPlanning({ onNavigate }: Props) {
                     Ablehnen
                   </button>
                   <button disabled={busy} onClick={() => run(() => approve(w.id), `„${w.name}“ steht jetzt im Plan.`)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#22C55E] text-white hover:bg-[#16A34A] disabled:opacity-50">
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#15803D] text-white hover:bg-[#166534] disabled:opacity-50">
                     Übernehmen
                   </button>
                 </div>
@@ -585,15 +585,15 @@ export default function MealPlanning({ onNavigate }: Props) {
 
       {tab === 'plan' && (
         <>
-          {status === 'loading' && <div className="text-sm text-slate-400 mb-4">Essensplan wird geladen…</div>}
+          {status === 'loading' && <div className="text-sm text-slate-500 mb-4">Essensplan wird geladen…</div>}
           {onlyWishes && (
-            <p className="text-xs text-slate-400 mb-3">Tippe auf eine Mahlzeit, um dir etwas zu wünschen. Deine Eltern entscheiden.</p>
+            <p className="text-xs text-slate-500 mb-3">Tippe auf eine Mahlzeit, um dir etwas zu wünschen. Deine Eltern entscheiden.</p>
           )}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
             <div className="min-w-[900px]">
               {/* Tage */}
               <div className="grid grid-cols-8 border-b border-slate-100">
-                <div className="px-3 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide border-r border-slate-100">Mahlzeit</div>
+                <div className="px-3 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide border-r border-slate-100">Mahlzeit</div>
                 {days.map((day, i) => {
                   const isToday = day === todayKey;
                   const date = fromDateKey(day);
@@ -627,19 +627,27 @@ export default function MealPlanning({ onNavigate }: Props) {
                           className={`p-2 border-r border-slate-50 last:border-r-0 space-y-1.5 ${day === todayKey ? 'bg-[#EFF6FF]/30' : ''}`}>
                           {entry ? (
                             <div
-                              className={`group relative min-h-[56px] rounded-xl p-2.5 transition-all ${canOpen ? 'cursor-pointer hover:shadow-md' : ''}`}
+                              className={`group relative min-h-[56px] rounded-xl p-2.5 transition-all ${canOpen ? 'cursor-pointer hover:shadow-md has-[[data-open]:focus-visible]:outline-2 has-[[data-open]:focus-visible]:outline-[#2563EB]' : ''}`}
                               style={{ backgroundColor: style.bg, border: `1px solid ${style.border}` }}
-                              onClick={() => openCell(day, type)}
-                              role={canOpen ? 'button' : undefined}
-                              aria-label={canOpen ? `${style.label} am ${dayLabel(day)}: ${entry.name}${onlyWishes ? ', etwas anderes wünschen' : ', ändern'}` : undefined}
+                              onClick={canOpen ? () => openCell(day, type) : undefined}
                             >
-                              <p className="text-xs font-medium leading-snug break-words" style={{ color: style.text }}>{entry.name}</p>
+                              {canOpen ? (
+                                <button type="button" data-open
+                                  className="block w-full text-left text-xs font-medium leading-snug break-words focus-visible:outline-none"
+                                  style={{ color: style.text }}>
+                                  <span className="sr-only">{`${style.label} am ${dayLabel(day)}: `}</span>
+                                  {entry.name}
+                                  <span className="sr-only">{onlyWishes ? ', etwas anderes wünschen' : ', ändern'}</span>
+                                </button>
+                              ) : (
+                                <p className="text-xs font-medium leading-snug break-words" style={{ color: style.text }}>{entry.name}</p>
+                              )}
                               {(hasRecipe || hasCart) && (
                                 <div className="flex justify-end gap-1 mt-1.5">
                                   {hasRecipe && dish && (
                                     <button
                                       onClick={e => { e.stopPropagation(); setRecipe(dish); }}
-                                      className="w-6 h-6 rounded-md bg-white/80 text-slate-400 hover:text-[#0F766E] flex items-center justify-center"
+                                      className="w-6 h-6 rounded-md bg-white/80 text-slate-500 hover:text-[#0F766E] flex items-center justify-center"
                                       aria-label={`Rezept für ${entry.name}`}
                                       title="Rezept ansehen"
                                     >
@@ -650,7 +658,7 @@ export default function MealPlanning({ onNavigate }: Props) {
                                     <button
                                       onClick={e => { e.stopPropagation(); run(() => mealToShopping(entry.id), transferText, true); }}
                                       disabled={busy}
-                                      className="w-6 h-6 rounded-md bg-white/80 text-slate-400 hover:text-[#16A34A] flex items-center justify-center disabled:opacity-50"
+                                      className="w-6 h-6 rounded-md bg-white/80 text-slate-500 hover:text-[#16A34A] flex items-center justify-center disabled:opacity-50"
                                       aria-label={`Zutaten für ${entry.name} auf die Einkaufsliste`}
                                       title="Zutaten auf die Einkaufsliste"
                                     >

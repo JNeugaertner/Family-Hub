@@ -18,6 +18,7 @@ import type { Focus } from '../navigation/focus';
 import EventFormModal from './EventFormModal';
 import { CalendarIcon, CheckSquareIcon, ChevronLeftIcon, SearchIcon, SendIcon, ShoppingCartIcon, WhatsAppIcon, XIcon } from './Icons';
 import { getWhatsAppStatus } from '../whatsapp/api';
+import { readable } from '../family/colors';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
 type Navigate = (p: Page, focus?: Focus) => void;
@@ -65,7 +66,7 @@ function useIsDesktop() {
 function Avatar({ member, size = 40 }: { member?: CalendarMember; size?: number }) {
   return (
     <div className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" aria-hidden="true"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.38), backgroundColor: member?.color ?? '#94A3B8' }}>
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.38), backgroundColor: readable(member?.color ?? '#94A3B8') }}>
       {member?.initials ?? '?'}
     </div>
   );
@@ -106,6 +107,8 @@ function ConversationRow({ conversation, title, selected, onSelect }: {
   const senderPrefix = !last ? '' : last.senderId === me.id ? 'Du: '
     : conversation.kind === 'family' ? `${memberById(last.senderId)?.name ?? FORMER_MEMBER}: ` : '';
   const unread = conversation.unread > 0;
+  // Auf dem hellblauen Hintergrund der gewählten Unterhaltung reicht slate-500 nicht für 4,5:1
+  const secondary = selected ? 'text-slate-600' : 'text-slate-500';
 
   return (
     <button type="button" onClick={onSelect} aria-current={selected ? 'true' : undefined}
@@ -116,10 +119,10 @@ function ConversationRow({ conversation, title, selected, onSelect }: {
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className={`text-sm truncate ${unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-800'}`}>{title}</span>
-          {last && <span className="text-[10px] text-slate-400 flex-shrink-0">{shortTime(last.sentAt)}</span>}
+          {last && <span className={`text-[10px] flex-shrink-0 ${secondary}`}>{shortTime(last.sentAt)}</span>}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <p className={`text-xs truncate flex-1 ${unread ? 'text-slate-700 font-medium' : 'text-slate-500'}`}>
+          <p className={`text-xs truncate flex-1 ${unread ? 'text-slate-700 font-medium' : secondary}`}>
             {last ? senderPrefix + last.text : 'Noch keine Nachrichten'}
           </p>
           {unread && (
@@ -182,7 +185,7 @@ function ShoppingFromMessage({ message, onClose, onDone }: {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 id="shopping-from-message-title" className="font-bold text-slate-800">🛒 Auf die Einkaufsliste</h2>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1" aria-label="Schließen">
+          <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-600 p-1" aria-label="Schließen">
             <XIcon size={18} />
           </button>
         </div>
@@ -220,7 +223,7 @@ function ShoppingFromMessage({ message, onClose, onDone }: {
             Abbrechen
           </button>
           <button type="submit" disabled={busy || !name.trim()}
-            className="flex-1 py-2.5 rounded-xl bg-[#22C55E] text-white text-sm font-semibold hover:bg-[#16A34A] disabled:opacity-50">
+            className="flex-1 py-2.5 rounded-xl bg-[#15803D] text-white text-sm font-semibold hover:bg-[#166534] disabled:opacity-50">
             {busy ? 'Speichere…' : 'Hinzufügen'}
           </button>
         </div>
@@ -248,7 +251,7 @@ function MessageItem({ message, own, sender, showSender, actions, menuOpen, onTo
       {showSender && !own && <Avatar member={sender} size={28} />}
       <div className={`max-w-[80%] sm:max-w-[70%] flex flex-col ${own ? 'items-end' : 'items-start'}`}>
         {showSender && !own && (
-          <span className="text-[11px] font-semibold mb-0.5 ml-1" style={{ color: sender?.color ?? '#64748B' }}>
+          <span className="text-[11px] font-semibold mb-0.5 ml-1" style={{ color: readable(sender?.color ?? '#64748B') }}>
             {sender?.name ?? FORMER_MEMBER}
           </span>
         )}
@@ -261,7 +264,7 @@ function MessageItem({ message, own, sender, showSender, actions, menuOpen, onTo
           {actions.length > 0 && (
             <button type="button" onClick={onToggleMenu} aria-label="Aktionen zur Nachricht" aria-haspopup="menu"
               aria-expanded={menuOpen}
-              className={`w-7 h-7 flex-shrink-0 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus:opacity-100 transition-opacity ${menuOpen
+              className={`w-7 h-7 flex-shrink-0 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus:opacity-100 transition-opacity ${menuOpen
                 ? 'opacity-100 bg-slate-100' : 'lg:opacity-0 lg:group-hover:opacity-100'}`}>
               ⋯
             </button>
@@ -278,7 +281,7 @@ function MessageItem({ message, own, sender, showSender, actions, menuOpen, onTo
             </div>
           )}
         </div>
-        <span className="text-[10px] text-slate-400 mt-0.5 mx-1">{clockTime(new Date(message.sentAt))}</span>
+        <span className="text-[10px] text-slate-500 mt-0.5 mx-1">{clockTime(new Date(message.sentAt))}</span>
       </div>
     </div>
   );
@@ -455,7 +458,7 @@ function ChatView({ conversation, title, onBack, onNavigate }: {
         {family ? <FamilyAvatar size={36} /> : <Avatar member={partner} size={36} />}
         <div className="min-w-0">
           <h2 className="font-semibold text-slate-800 text-sm truncate">{title}</h2>
-          <p className="text-xs text-slate-400 truncate">{subtitle}</p>
+          <p className="text-xs text-slate-500 truncate">{subtitle}</p>
         </div>
       </div>
 
@@ -467,10 +470,10 @@ function ChatView({ conversation, title, onBack, onNavigate }: {
             <button type="button" onClick={() => setNotice(null)} aria-label="Hinweis schließen" className="p-0.5"><XIcon size={14} /></button>
           </div>
         )}
-        {loadState === 'loading' && <p className="text-center text-sm text-slate-400 py-10">Lade Nachrichten…</p>}
+        {loadState === 'loading' && <p className="text-center text-sm text-slate-500 py-10">Lade Nachrichten…</p>}
         {loadState === 'error' && <p role="alert" className="text-center text-sm text-[#DC2626] py-10">{loadError}</p>}
         {loadState === 'ready' && messages.length === 0 && (
-          <div className="text-center text-slate-400 py-16">
+          <div className="text-center text-slate-500 py-16">
             <div className="text-4xl mb-3">💬</div>
             <p className="text-sm">Noch keine Nachrichten.{mayWrite && ' Schreib die erste!'}</p>
           </div>
@@ -478,7 +481,7 @@ function ChatView({ conversation, title, onBack, onNavigate }: {
         {days.map(day => (
           <div key={day.key} className="space-y-2.5">
             <div className="flex justify-center">
-              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 rounded-full px-3 py-0.5">{dayLabel(day.key)}</span>
+              <span className="text-[11px] font-medium text-slate-600 bg-slate-100 rounded-full px-3 py-0.5">{dayLabel(day.key)}</span>
             </div>
             {day.items.map(m => (
               <MessageItem key={m.id} message={m} own={m.senderId === me.id} sender={memberById(m.senderId)}
@@ -508,12 +511,12 @@ function ChatView({ conversation, title, onBack, onNavigate }: {
             </button>
           </form>
         ) : (
-          <p className="text-xs text-slate-400 text-center py-2">Hier kannst du nur mitlesen.</p>
+          <p className="text-xs text-slate-500 text-center py-2">Hier kannst du nur mitlesen.</p>
         )}
         {mayWrite && draft.length > MAX_LENGTH - 200 && (
-          <p className="text-[10px] text-slate-400 text-right mt-1">{draft.length} / {MAX_LENGTH}</p>
+          <p className="text-[10px] text-slate-500 text-right mt-1">{draft.length} / {MAX_LENGTH}</p>
         )}
-        {mayWrite && <p className="hidden lg:block text-[10px] text-slate-400 mt-1">Enter sendet, Umschalt + Enter für eine neue Zeile.</p>}
+        {mayWrite && <p className="hidden lg:block text-[10px] text-slate-500 mt-1">Enter sendet, Umschalt + Enter für eine neue Zeile.</p>}
       </div>
 
       {shoppingFrom && (
@@ -556,7 +559,7 @@ export default function Messenger({ onNavigate }: Props) {
   if (!can('messenger', 'ansehen', 'eigen')) {
     return (
       <div className="p-4 lg:p-6 max-w-[900px] mx-auto">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-slate-400">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-slate-500">
           <div className="text-4xl mb-3">💬</div>
           Nachrichten sind für dich nicht freigegeben.
         </div>
@@ -574,20 +577,20 @@ export default function Messenger({ onNavigate }: Props) {
 
   return (
     <div className="p-4 lg:p-6 max-w-[1400px] mx-auto">
-      {error && <p role="alert" className="mb-4 text-sm text-[#DC2626] bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-3 py-2">{error}</p>}
+      {error && <p role="alert" className="mb-4 text-sm text-[#B91C1C] bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-3 py-2">{error}</p>}
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5">
         <section aria-label="Unterhaltungen" className={`${panel} ${showChat && !desktop ? 'hidden' : 'flex'}`}>
           <div className="p-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 min-w-0">
-                <SearchIcon size={14} className="text-slate-400 flex-shrink-0" />
+                <SearchIcon size={14} className="text-slate-500 flex-shrink-0" />
                 <label htmlFor="conversation-search" className="sr-only">Unterhaltungen durchsuchen</label>
                 <input id="conversation-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Suchen…"
                   className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none" />
               </div>
               {whatsappConfigured === false && (
                 <button type="button" onClick={() => onNavigate('profiles', { kind: 'whatsapp' })}
-                  className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#128C7E] bg-[#25D366]/10 border border-[#25D366]/40 px-3 py-2 rounded-xl hover:bg-[#25D366]/20 transition-colors"
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#075E54] bg-[#25D366]/10 border border-[#25D366]/40 px-3 py-2 rounded-xl hover:bg-[#25D366]/20 transition-colors"
                   title="WhatsApp ist noch nicht verbunden – in den Einstellungen einrichten">
                   <WhatsAppIcon size={16} className="text-[#25D366]" />
                   <span className="hidden sm:inline">WhatsApp verbinden</span>
@@ -596,9 +599,9 @@ export default function Messenger({ onNavigate }: Props) {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
-            {status === 'loading' && <p className="p-6 text-center text-sm text-slate-400">Lade Unterhaltungen…</p>}
+            {status === 'loading' && <p className="p-6 text-center text-sm text-slate-500">Lade Unterhaltungen…</p>}
             {status !== 'loading' && visible.length === 0 && (
-              <p className="p-6 text-center text-sm text-slate-400">{query ? 'Nichts gefunden.' : 'Noch keine Unterhaltungen.'}</p>
+              <p className="p-6 text-center text-sm text-slate-500">{query ? 'Nichts gefunden.' : 'Noch keine Unterhaltungen.'}</p>
             )}
             {visible.map(c => (
               <ConversationRow key={c.id} conversation={c} title={title(c)} selected={desktop && c.id === selected?.id}
@@ -613,7 +616,7 @@ export default function Messenger({ onNavigate }: Props) {
               ? <ChatView key={selected.id} conversation={selected} title={title(selected)}
                   onBack={() => setChatOpenOnMobile(false)} onNavigate={onNavigate} />
               : (
-                <div className="flex-1 flex items-center justify-center text-slate-300 text-sm">
+                <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
                   {status === 'loading' ? 'Lade…' : 'Wähle eine Unterhaltung.'}
                 </div>
               )}

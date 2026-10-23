@@ -43,7 +43,7 @@ export default function WhatsAppCard() {
       {error && <p role="alert" className="text-sm text-[#DC2626]">{error}</p>}
 
       {!status && !error ? (
-        <p className="text-sm text-slate-400">Lädt…</p>
+        <p className="text-sm text-slate-500">Lädt…</p>
       ) : status && !status.configured ? (
         <div className="space-y-3">
           <p className="text-sm text-slate-500 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl px-3 py-2">
@@ -66,10 +66,10 @@ export default function WhatsAppCard() {
             </li>
           </ol>
           <button type="button" onClick={copyConfig}
-            className="py-2 px-4 rounded-xl border border-[#25D366]/40 text-[#128C7E] text-sm font-semibold hover:bg-[#25D366]/10 transition-colors">
+            className="py-2 px-4 rounded-xl border border-[#25D366]/40 text-[#075E54] text-sm font-semibold hover:bg-[#25D366]/10 transition-colors">
             {copied ? '✓ Konfig-Vorlage kopiert' : 'Konfig-Vorlage kopieren'}
           </button>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Nach dem Eintragen und Neustart des Servers wird WhatsApp automatisch verbunden.
           </p>
         </div>
@@ -81,7 +81,7 @@ export default function WhatsAppCard() {
           <p className="text-sm text-slate-600">
             {status.messageCount} empfangene Nachricht{status.messageCount === 1 ? '' : 'en'} für dich gespeichert.
           </p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Jede Person sieht die Nachrichten von ihrer eigenen Handynummer, Administratoren alle. Die Nummern
             tragen Administratoren beim Familienmitglied ein. Eingehende Nachrichten werden nur gespeichert – noch
             keine KI-Antworten oder Analyse.

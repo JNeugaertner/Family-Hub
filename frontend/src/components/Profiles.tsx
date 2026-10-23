@@ -10,7 +10,7 @@ import {
   createMember, deleteMember, getSettings, listMembers, listRoles, updateMember, updateSettings,
   type ApiMember, type MemberInput, type RoleInfo,
 } from '../family/api';
-import { FAMILY_COLORS } from '../family/colors';
+import { FAMILY_COLORS, readable } from '../family/colors';
 import GoogleCalendarCard from '../google/GoogleCalendarCard';
 import WeatherLocationCard from '../weather/WeatherLocationCard';
 import WasteCalendarCard from '../waste/WasteCalendarCard';
@@ -129,7 +129,7 @@ function MemberCard({ member, roles, teenAge, onEdit }: {
       <div className="px-5 pb-5">
         <div className="relative flex items-end justify-between -mt-7 mb-4">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-bold border-4 border-white shadow-md"
-            style={{ backgroundColor: member.color }}>
+            style={{ backgroundColor: readable(member.color) }}>
             {member.name.charAt(0).toUpperCase()}
           </div>
           {onEdit && (
@@ -141,14 +141,14 @@ function MemberCard({ member, roles, teenAge, onEdit }: {
         </div>
 
         <div className="mb-4">
-          <h3 className="font-bold text-slate-800 text-lg">{member.name}{isSelf && <span className="text-sm font-normal text-slate-400"> (du)</span>}</h3>
+          <h3 className="font-bold text-slate-800 text-lg">{member.name}{isSelf && <span className="text-sm font-normal text-slate-500"> (du)</span>}</h3>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: member.color }}>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: readable(member.color) }}>
               {ROLE_NAMES[member.effectiveRole]}
             </span>
-            {autoRole && <span className="text-[11px] text-slate-400">automatisch ab {teenAge}</span>}
-            {age !== null && <span className="text-xs text-slate-400">{age} Jahre</span>}
-            {member.username && <span className="text-xs text-slate-400">@{member.username}</span>}
+            {autoRole && <span className="text-[11px] text-slate-500">automatisch ab {teenAge}</span>}
+            {age !== null && <span className="text-xs text-slate-500">{age} Jahre</span>}
+            {member.username && <span className="text-xs text-slate-500">@{member.username}</span>}
           </div>
         </div>
 
@@ -162,7 +162,7 @@ function MemberCard({ member, roles, teenAge, onEdit }: {
               const has = hasPermission(permissions, p.module, p.action, p.scope);
               return (
                 <div key={permissionKey(p)}
-                  className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg ${has ? 'bg-[#F0FDF4] text-[#16A34A]' : 'bg-slate-50 text-slate-300'}`}>
+                  className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg ${has ? 'bg-[#F0FDF4] text-[#15803D]' : 'bg-slate-50 text-slate-500'}`}>
                   <span className={has ? '' : 'grayscale opacity-50'}>{p.icon}</span>
                   <span className={`font-medium truncate ${has ? '' : 'line-through'}`}>{p.label}</span>
                 </div>
@@ -273,7 +273,7 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
         </div>
 
         <div className="p-6 space-y-4">
-          {formError && <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{formError}</div>}
+          {formError && <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{formError}</div>}
 
           <div className="grid grid-cols-2 gap-3">
             <Field id="member-name" label="Name" error={errors.name}>
@@ -308,7 +308,7 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
             <input id="member-phone" type="tel" className={inputClass(!!errors.phone)} value={phone}
               disabled={!mayManageRights} placeholder="+49 170 1234567" autoComplete="off"
               onChange={e => setPhone(e.target.value)} />
-            <span className="block text-xs text-slate-400 mt-1">Darüber sieht die Person ihre WhatsApp-Nachrichten.</span>
+            <span className="block text-xs text-slate-500 mt-1">Darüber sieht die Person ihre WhatsApp-Nachrichten.</span>
           </Field>
 
           {role === 'kind' && (
@@ -317,7 +317,7 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
                 onChange={e => setRoleFixed(e.target.checked)} />
               <span>
                 Rolle nicht automatisch anpassen
-                <span className="block text-xs text-slate-400">Sonst wird ein Kind mit Geburtsdatum ab {teenAge} Jahren automatisch Jugendlicher.</span>
+                <span className="block text-xs text-slate-500">Sonst wird ein Kind mit Geburtsdatum ab {teenAge} Jahren automatisch Jugendlicher.</span>
               </span>
             </label>
           )}
@@ -339,7 +339,7 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
             <fieldset>
               <legend className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-2">
                 <ShieldLock size={12} /> Rechte
-                <span className="text-[10px] font-normal text-slate-400">„Rolle“ = Standard der Rolle, „einzeln“ = von dir angepasst, „enthalten“ = durch ein weiter reichendes Recht abgedeckt</span>
+                <span className="text-[10px] font-normal text-slate-500">„Rolle“ = Standard der Rolle, „einzeln“ = von dir angepasst, „enthalten“ = durch ein weiter reichendes Recht abgedeckt</span>
               </legend>
               {effectiveRole !== role && (
                 <p className="text-xs text-slate-500 mb-2">
@@ -358,7 +358,7 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
                       <input type="checkbox" className="w-4 h-4 accent-[#22C55E]" checked={has} disabled={covered} onChange={() => toggle(p)} />
                       <span className="text-sm">{p.icon}</span>
                       <span className={`text-sm flex-1 ${has ? 'font-medium text-slate-800' : 'text-slate-500'}`}>{p.label}</span>
-                      <span className={`text-[10px] ${changed && !covered ? 'text-[#2563EB] font-semibold' : 'text-slate-400'}`}>
+                      <span className={`text-[10px] ${changed && !covered ? 'text-[#2563EB] font-semibold' : 'text-slate-500'}`}>
                         {covered ? 'enthalten' : changed ? 'einzeln' : fromRole ? 'Rolle' : ''}
                       </span>
                     </label>
@@ -374,7 +374,7 @@ function MemberModal({ member, roles, teenAge, mayManageRights, isSelf, onClose,
           <div className="flex flex-wrap gap-3 pt-2">
             {isEdit && (
               <button type="button" onClick={remove} disabled={busy}
-                className={`py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${confirmDelete ? 'bg-[#EF4444] text-white hover:bg-[#DC2626]' : 'border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]'}`}>
+                className={`py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${confirmDelete ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]' : 'border border-[#FECACA] text-[#B91C1C] hover:bg-[#FEF2F2]'}`}>
                 {confirmDelete ? 'Wirklich löschen?' : 'Löschen'}
               </button>
             )}
@@ -435,7 +435,7 @@ function GuestSettingsCard() {
           );
         })}
       </div>
-      {message && <p className="text-xs text-[#16A34A] mt-2">{message}</p>}
+      {message && <p className="text-xs text-[#15803D] mt-2">{message}</p>}
     </section>
   );
 }
@@ -499,7 +499,7 @@ function PasswordCard() {
           className="py-2 px-4 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
           Passwort ändern
         </button>
-        {done && <span className="text-xs text-[#16A34A]">Passwort geändert.</span>}
+        {done && <span className="text-xs text-[#15803D]">Passwort geändert.</span>}
       </div>
     </form>
   );
@@ -555,7 +555,7 @@ export default function Profiles({ onNavigate }: Props) {
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">{title}</h3>
-        {limit && <span className="text-xs text-slate-400">{list.length}/{limit} Plätze belegt</span>}
+        {limit && <span className="text-xs text-slate-500">{list.length}/{limit} Plätze belegt</span>}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {list.map(m => (
@@ -585,9 +585,9 @@ export default function Profiles({ onNavigate }: Props) {
         </div>
       </div>
 
-      {error && <div role="alert" className="mb-5 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{error}</div>}
+      {error && <div role="alert" className="mb-5 bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{error}</div>}
 
-      {section(<><ShieldLock size={16} className="text-[#2563EB]" /> Eltern <span className="text-sm text-slate-400 font-normal">(Administratoren)</span></>, groups.admins, 2)}
+      {section(<><ShieldLock size={16} className="text-[#2563EB]" /> Eltern <span className="text-sm text-slate-500 font-normal">(Administratoren)</span></>, groups.admins, 2)}
       {section(<><span className="text-lg">👦</span> Kinder und Jugendliche</>, groups.children, 5)}
       {section(<><span className="text-lg">🧓</span> Gäste</>, groups.guests)}
 

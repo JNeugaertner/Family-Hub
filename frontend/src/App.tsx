@@ -29,6 +29,7 @@ import { useMessageData } from './messages/MessageDataContext';
 import { ROLE_NAMES } from './roles';
 import { FocusContext, type Focus } from './navigation/focus';
 import AvatarButton from './profiles/AvatarButton';
+import { readable } from './family/colors';
 
 type Page = 'dashboard' | 'calendar' | 'tasks' | 'rewards' | 'shopping' | 'meals' | 'assistant' | 'messenger' | 'profiles';
 
@@ -142,10 +143,10 @@ export default function App() {
           </div>
           <div>
             <div className="font-bold text-[#0F172A] text-base leading-tight">FamilyHub</div>
-            <div className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">AI Organizer</div>
+            <div className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">AI Organizer</div>
           </div>
           <button
-            className="ml-auto lg:hidden text-slate-400 hover:text-slate-600 p-1"
+            className="ml-auto lg:hidden text-slate-500 hover:text-slate-600 p-1"
             onClick={() => setSidebarOpen(false)}
             aria-label="Menü schließen"
           >
@@ -155,7 +156,7 @@ export default function App() {
 
         {/* Family members */}
         <div className="px-4 pt-4 pb-3">
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">Familie</div>
+          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">Familie</div>
           <div className="flex gap-1.5 flex-wrap">
             {members.map(m => {
               const self = m.id === me.id;
@@ -165,7 +166,7 @@ export default function App() {
               );
             })}
           </div>
-          <p className="text-[10px] text-slate-400 mt-2 px-1">
+          <p className="text-[10px] text-slate-500 mt-2 px-1">
             Angemeldet als <span className="font-semibold text-slate-500">{me.name}</span> · Rolle: {roleName}
           </p>
         </div>
@@ -188,7 +189,7 @@ export default function App() {
                 `}
                 aria-current={active ? 'page' : undefined}
               >
-                <span className={`flex-shrink-0 ${active ? 'text-[#2563EB]' : 'text-slate-400'}`}>
+                <span className={`flex-shrink-0 ${active ? 'text-[#2563EB]' : 'text-slate-500'}`}>
                   <Icon size={18} />
                 </span>
                 <span className="text-sm whitespace-nowrap">{label}</span>
@@ -196,19 +197,19 @@ export default function App() {
                   <SoonBadge label="Bald" className="ml-auto" />
                 )}
                 {id === 'tasks' && taskBadge > 0 && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center"
+                  <span className="ml-auto w-5 h-5 rounded-full bg-[#C2410C] text-white text-[10px] font-bold flex items-center justify-center"
                     title={mayConfirmTasks ? 'Aufgaben warten auf Bestätigung' : 'Offene Aufgaben'}>
                     {taskBadge}<span className="sr-only">{mayConfirmTasks ? ' warten auf Bestätigung' : ' offen'}</span>
                   </span>
                 )}
                 {id === 'shopping' && shoppingBadge > 0 && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-[#22C55E] text-white text-[10px] font-bold flex items-center justify-center"
+                  <span className="ml-auto w-5 h-5 rounded-full bg-[#15803D] text-white text-[10px] font-bold flex items-center justify-center"
                     title="Vorschläge für die Einkaufsliste">
                     {shoppingBadge}<span className="sr-only"> Vorschläge für die Einkaufsliste</span>
                   </span>
                 )}
                 {id === 'meals' && mealBadge > 0 && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-[#14B8A6] text-white text-[10px] font-bold flex items-center justify-center"
+                  <span className="ml-auto w-5 h-5 rounded-full bg-[#0F766E] text-white text-[10px] font-bold flex items-center justify-center"
                     title="Essenswünsche der Kinder">
                     {mealBadge}<span className="sr-only"> Essenswünsche der Kinder</span>
                   </span>
@@ -220,7 +221,7 @@ export default function App() {
                   </span>
                 )}
                 {id === 'rewards' && rewardBadge > 0 && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-[#8B5CF6] text-white text-[10px] font-bold flex items-center justify-center"
+                  <span className="ml-auto w-5 h-5 rounded-full bg-[#7C3AED] text-white text-[10px] font-bold flex items-center justify-center"
                     title="Einlösungen warten auf Genehmigung">
                     {rewardBadge}<span className="sr-only"> Einlösungen warten auf Genehmigung</span>
                   </span>
@@ -236,19 +237,19 @@ export default function App() {
             className="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-medium transition-all"
             onClick={() => navigate('profiles')}
           >
-            <SettingsIcon size={18} className="flex-shrink-0 text-slate-400" />
+            <SettingsIcon size={18} className="flex-shrink-0 text-slate-500" />
             <span className="text-sm">Einstellungen</span>
           </button>
           <div className="flex items-center gap-2 px-3 py-2 mt-1 rounded-xl bg-slate-50">
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-              style={{ backgroundColor: me.color }}
+              style={{ backgroundColor: readable(me.color) }}
             >
               {initial}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-slate-800 truncate">{me.name}</div>
-              <div className="text-[10px] text-slate-400">{roleName}</div>
+              <div className="text-[10px] text-slate-500">{roleName}</div>
             </div>
             <button
               onClick={logout}
@@ -275,7 +276,7 @@ export default function App() {
 
           <div>
             <h1 className="text-lg font-bold text-[#0F172A] leading-tight">{PAGE_TITLES[page]}</h1>
-            <p className="text-xs text-slate-400 hidden sm:block">
+            <p className="text-xs text-slate-500 hidden sm:block">
               {formatLongDate(startOfToday())}
             </p>
           </div>
@@ -326,7 +327,7 @@ export default function App() {
                           <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.read && !PLACEHOLDER.notifications ? 'bg-[#2563EB]' : 'bg-slate-200'}`} />
                           <div>
                             <p className="text-xs text-slate-700 leading-relaxed">{n.message}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{n.time}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">{n.time}</p>
                           </div>
                         </div>
                       </div>
@@ -339,7 +340,7 @@ export default function App() {
             {/* Avatar */}
             <button
               className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold ring-2 ring-[#EFF6FF] hover:ring-[#2563EB] transition-all"
-              style={{ backgroundColor: me.color }}
+              style={{ backgroundColor: readable(me.color) }}
               aria-label="Mein Profil"
               onClick={() => navigate('profiles')}
             >
@@ -368,10 +369,10 @@ export default function App() {
                   className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[48px]"
                   aria-current={active ? 'page' : undefined}
                 >
-                  <span className={active ? 'text-[#2563EB]' : 'text-slate-400'}>
+                  <span className={active ? 'text-[#2563EB]' : 'text-slate-500'}>
                     <Icon size={20} />
                   </span>
-                  <span className={`text-[9px] font-medium ${active ? 'text-[#2563EB]' : 'text-slate-400'}`}>{label}</span>
+                  <span className={`text-[9px] font-medium ${active ? 'text-[#2563EB]' : 'text-slate-500'}`}>{label}</span>
                 </button>
               );
             })}
@@ -379,8 +380,8 @@ export default function App() {
               onClick={() => setSidebarOpen(true)}
               className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[48px]"
             >
-              <span className="text-slate-400"><MenuIcon size={20} /></span>
-              <span className="text-[9px] font-medium text-slate-400">Mehr</span>
+              <span className="text-slate-500"><MenuIcon size={20} /></span>
+              <span className="text-[9px] font-medium text-slate-500">Mehr</span>
             </button>
           </div>
         </nav>

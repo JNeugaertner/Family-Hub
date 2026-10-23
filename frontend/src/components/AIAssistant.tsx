@@ -4,6 +4,7 @@ import { useAuth, useMe } from '../auth/AuthContext';
 import { Suggestion, createSuggestion, decide } from '../roles';
 import { PreviewBanner } from './Placeholder';
 import { PLACEHOLDER } from '../placeholders';
+import { readable } from '../family/colors';
 
 interface Props { onNavigate: (p: any) => void; }
 
@@ -252,7 +253,7 @@ export default function AIAssistant({ onNavigate }: Props) {
               ) : (
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                  style={{ backgroundColor: me.color }}
+                  style={{ backgroundColor: readable(me.color) }}
                 >
                   {me.name.charAt(0).toUpperCase()}
                 </div>
@@ -276,7 +277,7 @@ export default function AIAssistant({ onNavigate }: Props) {
                         <div className="flex gap-2 pt-1">
                           <button
                             onClick={() => decideApproval(msg.id, true)}
-                            className="flex items-center gap-1 text-xs bg-[#22C55E] text-white px-3 py-1.5 rounded-full font-semibold hover:bg-[#16A34A] transition-colors"
+                            className="flex items-center gap-1 text-xs bg-[#15803D] text-white px-3 py-1.5 rounded-full font-semibold hover:bg-[#166534] transition-colors"
                           >
                             <CheckIcon size={11} strokeWidth={3} /> Freigeben
                           </button>
@@ -289,13 +290,13 @@ export default function AIAssistant({ onNavigate }: Props) {
                         </div>
                       )}
                       {msg.approval.status === 'vorschlag' && !can('punkte', 'freigeben', 'familie') && (
-                        <p className="text-xs text-[#F59E0B] font-semibold pt-1">Wartet auf Freigabe durch einen Elternteil</p>
+                        <p className="text-xs text-[#B45309] font-semibold pt-1">Wartet auf Freigabe durch einen Elternteil</p>
                       )}
                       {msg.approval.status === 'freigegeben' && (
-                        <p className="text-xs text-[#16A34A] font-semibold pt-1">Freigegeben von {msg.approval.decidedBy}</p>
+                        <p className="text-xs text-[#15803D] font-semibold pt-1">Freigegeben von {msg.approval.decidedBy}</p>
                       )}
                       {msg.approval.status === 'abgelehnt' && (
-                        <p className="text-xs text-slate-400 font-semibold pt-1">Abgelehnt von {msg.approval.decidedBy}</p>
+                        <p className="text-xs text-slate-500 font-semibold pt-1">Abgelehnt von {msg.approval.decidedBy}</p>
                       )}
                     </div>
                   ) : (
@@ -305,7 +306,7 @@ export default function AIAssistant({ onNavigate }: Props) {
                   )}
                 </div>
 
-                <span className="text-[10px] text-slate-400">{msg.time}</span>
+                <span className="text-[10px] text-slate-500">{msg.time}</span>
 
                 {/* Suggestion chips */}
                 {msg.suggestions && msg.role === 'assistant' && (
@@ -343,7 +344,7 @@ export default function AIAssistant({ onNavigate }: Props) {
               <VoiceWave active={listening} />
               <span className="text-sm text-[#2563EB] font-medium flex-1">Listening...</span>
               <button onClick={() => setListening(false)}>
-                <XIcon size={16} className="text-slate-400" />
+                <XIcon size={16} className="text-slate-500" />
               </button>
             </div>
           )}
@@ -371,8 +372,8 @@ export default function AIAssistant({ onNavigate }: Props) {
               onClick={toggleListening}
               className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 ${
                 listening
-                  ? 'bg-[#EF4444] text-white shadow-lg shadow-red-200'
-                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  ? 'bg-[#DC2626] text-white shadow-lg shadow-red-200'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
               aria-label={listening ? 'Stop listening' : 'Start voice input'}
             >
@@ -390,7 +391,7 @@ export default function AIAssistant({ onNavigate }: Props) {
             </button>
           </div>
 
-          <p className="text-[10px] text-slate-400 mt-2 text-center">
+          <p className="text-[10px] text-slate-500 mt-2 text-center">
             AI can make mistakes. Always verify important family schedules.
           </p>
         </div>

@@ -44,7 +44,7 @@ function LoginForm() {
     <form onSubmit={submit} className="space-y-4" aria-label="Anmelden">
       <h2 className="text-lg font-bold text-slate-800">Anmelden</h2>
       {(error || notice) && (
-        <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{error ?? notice}</div>
+        <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{error ?? notice}</div>
       )}
       <Field id="login-username" label="Benutzername">
         <input id="login-username" className={INPUT} value={username} onChange={e => setUsername(e.target.value)}
@@ -59,7 +59,7 @@ function LoginForm() {
         {busy ? 'Anmelden…' : 'Anmelden'}
       </button>
       {import.meta.env.DEV && (
-        <p className="text-[11px] text-slate-400 text-center">
+        <p className="text-[11px] text-slate-500 text-center">
           Beispielkonten: sarah, mike (Admin) · emma (Jugendliche) · lucas, lily (Kind) · oma (Gast) – Passwort <code>familyhub</code>
         </p>
       )}
@@ -101,7 +101,7 @@ function SetupForm() {
         <h2 className="text-lg font-bold text-slate-800">Familie einrichten</h2>
         <p className="text-sm text-slate-500 mt-1">Lege dich als ersten Administrator an. Weitere Familienmitglieder fügst du danach unter „Familie“ hinzu.</p>
       </div>
-      {formError && <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{formError}</div>}
+      {formError && <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{formError}</div>}
       <Field id="setup-name" label="Dein Name" error={errors.name}>
         <input id="setup-name" className={INPUT} value={name} onChange={e => setName(e.target.value)} autoFocus />
       </Field>
@@ -148,7 +148,7 @@ export default function LoginPage() {
           </div>
           <div>
             <div className="font-bold text-[#0F172A] text-xl leading-tight">FamilyHub</div>
-            <div className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">AI Organizer</div>
+            <div className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">AI Organizer</div>
           </div>
         </div>
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
