@@ -59,6 +59,7 @@ function toEvent(e: api.ApiEvent): CalendarEvent {
     location: e.location ?? undefined,
     lat: e.lat ?? undefined,
     lon: e.lon ?? undefined,
+    transportMode: e.transportMode,
     travelTime: e.travelTime ?? undefined,
     description: e.description ?? undefined,
     private: e.private,

@@ -10,8 +10,8 @@ export interface OrsLocation {
 export const findPlaces = (query: string) =>
   request<OrsLocation[]>(`/api/ors?q=${encodeURIComponent(query)}`);
 
-export const getTravelTime = (startLat: number, startLon: number, endLat: number, endLon: number) =>
-  request<number>(`/api/ors/travelTime?startLat=${startLat}&startLon=${startLon}&endLat=${endLat}&endLon=${endLon}`);
+export const getTravelTime = (transportMode: string, startLat: number, startLon: number, endLat: number, endLon: number) =>
+  request<number>(`/api/ors/travelTime?transportMode=${transportMode}&startLat=${startLat}&startLon=${startLon}&endLat=${endLat}&endLon=${endLon}`);
 
 export interface Settings {
   weatherLocation: WeatherLocation | null;

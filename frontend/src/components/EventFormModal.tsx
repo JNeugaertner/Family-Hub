@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import type { CalendarEvent, EventCategory } from './data';
+import type { CalendarEvent, EventCategory, TransportMode } from './data';
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import { useCalendarPermissions } from '../calendar/permissions';
 import { ApiError } from '../api/client';
@@ -59,12 +59,8 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   const [location, setLocation] = useState(event?.location ?? '');
   const [lat, setLat] = useState<number | null>(event?.lat ?? null);
   const [lon, setLon] = useState<number | null>(event?.lon ?? null);
+  const [transportMode, setTransportMode] = useState<TransportMode>(event?.transportMode ?? 'driving-car');
   const [travelTime, setTravelTime] = useState<number | null>(event?.travelTime ?? null);
-  const [Home,setHome] = useState<number | null>(null);
-  const [startLat, setStartLat] = useState<number | null>(null);
-  const [startLon, setStartLon] = useState<number | null>(null);
-  const [endLat, setEndLat] = useState<number | null>(null);
-  const [endLon, setEndLon] = useState<number | null>(null);
   const [description, setDescription] = useState(event?.description ?? '');
   const [privateEvent, setPrivateEvent] = useState(event?.private ?? false);
 
@@ -138,6 +134,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
       location: location.trim() || null,
       lat: lat,
       lon: lon,
+      transportMode,
       travelTime: travelTime,
       description: description.trim() || null,
       private: privateEvent,
@@ -148,6 +145,10 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     if (!event) return;
     if (!confirmDelete) { setConfirmDelete(true); return; }
     run(() => removeEvent(event.id));
+  };
+
+  const chooseTransportMode = (mode: 'driving-car' | 'cycling-regular' | 'foot-walking') => {
+    setTransportMode(mode);
   };
 
   const search = async () => {
@@ -164,11 +165,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     setQuery('');
     const settings = await getSettings();
     if (!settings.weatherLocation) {return;}
-    setEndLat(place.lat);
-    setEndLon(place.lon);
-    console.log(place.lat, place.lon);
-    console.log(startLat, startLon, endLat, endLon);
-    const time = await getTravelTime(settings.weatherLocation.lat, settings.weatherLocation.lon, place.lat, place.lon);
+    const time = await getTravelTime(transportMode, settings.weatherLocation.lat, settings.weatherLocation.lon, place.lat, place.lon);
     setTravelTime(time);
   }; 
   

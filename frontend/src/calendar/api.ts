@@ -1,5 +1,5 @@
 import { json, request } from '../api/client';
-import type { EventCategory, EventStatus } from '../components/data';
+import type { EventCategory, EventStatus, TransportMode } from '../components/data';
 
 export interface ApiEvent {
   id: string;
@@ -12,6 +12,7 @@ export interface ApiEvent {
   location: string | null;
   lat: number | null;
   lon: number | null;
+  transportMode: TransportMode;
   travelTime: number | null;
   description: string | null;
   private: boolean;
@@ -30,6 +31,7 @@ export interface EventInput {
   location: string | null;
   lat: number | null;
   lon: number | null;
+  transportMode: TransportMode;
   travelTime: number | null;
   description: string | null;
   private: boolean;

@@ -51,6 +51,8 @@ public record CalendarEvent(
         @DecimalMin(value = "-180", message = "Ungültiger Längengrad")
         @DecimalMax(value = "180", message = "Ungültiger Längengrad")
         Double lon,
+
+        String transportMode,
         
         Double travelTime,
 
@@ -82,15 +84,15 @@ public record CalendarEvent(
     }
 
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
-            EventCategory category, String location, Double lat, Double lon, Double travelTime, String description, Boolean privateEvent, EventStatus status,
+            EventCategory category, String location, Double lat, Double lon, String transportMode, Double travelTime, String description, Boolean privateEvent, EventStatus status,
             String createdBy) {
-        this(id, title, start, end, List.of(memberId), category, location, lat, lon, travelTime, description, privateEvent, status, createdBy,
+        this(id, title, start, end, List.of(memberId), category, location, lat, lon, transportMode, travelTime, description, privateEvent, status, createdBy,
                 null);
     }
 
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
-            EventCategory category, String location, Double lat, Double lon, Double travelTime, String description) {
-        this(id, title, start, end, memberId, category, location, lat, lon, travelTime, description, false, EventStatus.APPROVED, null);
+            EventCategory category, String location, Double lat, Double lon, String transportMode, Double travelTime, String description) {
+        this(id, title, start, end, memberId, category, location, lat, lon, transportMode, travelTime, description, false, EventStatus.APPROVED, null);
     }
 
     @JsonIgnore
@@ -106,7 +108,7 @@ public record CalendarEvent(
 
     public CalendarEvent withoutMember(String memberId) {
         return new CalendarEvent(id, title, start, end, memberIds.stream().filter(m -> !m.equals(memberId)).toList(),
-                category, location, lat, lon, travelTime, description, privateEvent, status, createdBy, external);
+                category, location, lat, lon, transportMode, travelTime, description, privateEvent, status, createdBy, external);
     }
 
     @JsonIgnore

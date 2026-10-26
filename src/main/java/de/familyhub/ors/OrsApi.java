@@ -24,9 +24,9 @@ public class OrsApi {
                 .body(SearchResponse.class);
     }
 
-    public RouteResponse gettravelTime(double startLat, double startLon, double endLat, double endLon) {
+    public RouteResponse gettravelTime(String transportMode, double startLat, double startLon, double endLat, double endLon) {
         return rest.get()
-                .uri(properties.baseUrl() + "/v2/directions/driving-car?start="+startLon+","+startLat+"&end="+endLon+","+endLat)
+                .uri(properties.baseUrl() + "/v2/directions/" + transportMode + "?start="+startLon+","+startLat+"&end="+endLon+","+endLat)
                 .header("Authorization", properties.apiKey())
                 .retrieve()
                 .body(RouteResponse.class);

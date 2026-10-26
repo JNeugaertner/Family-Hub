@@ -2,7 +2,7 @@
 
 export type EventCategory = 'school' | 'sports' | 'appointment' | 'family' | 'work' | 'reminder';
 
-export type TransportMode = 'car' | 'transit' | 'bike' | 'walk';
+export type TransportMode = 'driving-car' | 'cycling-regular' | 'foot-walking';
 
 // approved: gültiger Termin; proposed: Vorschlag, wartet auf Freigabe durch einen Administrator
 export type EventStatus = 'approved' | 'proposed';
@@ -23,6 +23,7 @@ export interface CalendarEvent {
   location?: string;
   lat?: number;
   lon?: number;
+  transportMode?: TransportMode;
   travelTime?: number;
   description?: string;
   private: boolean;
@@ -32,7 +33,6 @@ export interface CalendarEvent {
   source?: 'google';
   // Von 00:00 bis 00:00 eines späteren Tages (z. B. ganztägige Google-Termine)
   allDay?: boolean;
-  transportMode?: TransportMode;
   conflict?: boolean;
   travelConflict?: boolean; // travel time overlaps with previous/next event
 }

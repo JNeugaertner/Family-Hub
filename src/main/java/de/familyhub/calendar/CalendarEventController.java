@@ -177,7 +177,7 @@ public class CalendarEventController {
     // Eine mitgeschickte Herkunft (external) wird nie übernommen; nur der Google-Abgleich setzt sie.
     private static CalendarEvent copy(String id, CalendarEvent e, EventStatus status, String createdBy,
             ExternalRef external) {
-        return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberIds(), e.category(), e.location(), e.lat(), e.lon(), e.travelTime(),
+        return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberIds(), e.category(), e.location(), e.lat(), e.lon(), e.transportMode(), e.travelTime(),
                 e.description(), e.privateEvent(), status, createdBy, external);
     }
 }

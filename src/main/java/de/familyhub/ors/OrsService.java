@@ -31,8 +31,8 @@ public class OrsService {
                     .toList();
         }
 
-        public double gettravelTime(double startLat, double startLon, double endLat, double endLon) {
-            OrsApi.RouteResponse response = api.gettravelTime(startLat, startLon, endLat, endLon);
+        public double gettravelTime(String transportMode, double startLat, double startLon, double endLat, double endLon) {
+            OrsApi.RouteResponse response = api.gettravelTime(transportMode, startLat, startLon, endLat, endLon);
             return response.features().get(0).properties().summary().duration();
         }
 
@@ -40,6 +40,6 @@ public class OrsService {
 @PostConstruct
 public void test() {
     System.out.println("test");
-    System.out.println(gettravelTime(49.41461, 8.681495, 49.420318, 8.687872));
+    System.out.println(gettravelTime("driving-car", 49.41461, 8.681495, 49.420318, 8.687872));
 }
 }

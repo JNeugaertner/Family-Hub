@@ -136,7 +136,7 @@ public class GoogleCalendarSync {
     }
 
     private static CalendarEvent withId(CalendarEvent e, String id) {
-        return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberIds(), e.category(), e.location(), e.lat(), e.lon(), e.travelTime(),
+        return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberIds(), e.category(), e.location(), e.lat(), e.lon(), e.transportMode(), e.travelTime(),
                 e.description(), e.privateEvent(), e.status(), e.createdBy(), e.external());
     }
 }

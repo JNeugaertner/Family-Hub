@@ -32,8 +32,8 @@ public class OrsController {
 
     @GetMapping("/travelTime")
     @Operation (summary = "Reisezeit", description = "Die Reisezeit zwischen zwei Orten in Sekunden.")
-    public double travelTime(@RequestParam double startLat, @RequestParam double startLon, @RequestParam double endLat, @RequestParam double endLon) {
-        return service.gettravelTime(startLat, startLon, endLat, endLon);
+    public double travelTime(@RequestParam String transportMode, @RequestParam double startLat, @RequestParam double startLon, @RequestParam double endLat, @RequestParam double endLon) {
+        return service.gettravelTime(transportMode, startLat, startLon, endLat, endLon);
     }
 
 
