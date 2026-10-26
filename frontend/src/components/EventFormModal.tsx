@@ -147,33 +147,33 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     run(() => removeEvent(event.id));
   };
 
-  const chooseTransportMode = (mode: 'driving-car' | 'cycling-regular' | 'foot-walking') => {
-    setTransportMode(mode);
-  };
-
   const search = async () => {
     if (!query.trim()) return;
     const places = await findPlaces(query.trim());
     setResults(places);
   };
 
-  const choose = async (place: OrsLocation) => {
-    setLocation(place.label);
-    setLat(place.lat);
-    setLon(place.lon);
+  const gettravelTime =async (mode: 'driving-car' | 'cycling-regular' | 'foot-walking', place: OrsLocation) => {
     setResults(null);
     setQuery('');
     const settings = await getSettings();
     if (!settings.weatherLocation) {return;}
-    const time = await getTravelTime(transportMode, settings.weatherLocation.lat, settings.weatherLocation.lon, place.lat, place.lon);
+    const time = await getTravelTime(mode, settings.weatherLocation.lat, settings.weatherLocation.lon, place.lat, place.lon);
     setTravelTime(time);
+  };
+
+  const choose = async (place: OrsLocation) => {
+    setLocation(place.label);
+    setLat(place.lat);
+    setLon(place.lon);
+    await gettravelTime(transportMode, place);
   }; 
   
   const getTimeLayout = (time: number) => {
     const days = Math.floor(time / 86400);
     const hours = Math.floor(time / 3600);
     const minutes = Math.floor((time % 3600) / 60);
-    const seconds = time % 60;
+    const seconds = Math.round(time % 60);
     return `${days}d ${hours}h ${minutes}m ${seconds}s`;
   }
 
@@ -274,12 +274,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             <input {...fieldProps('location')} value={location} onChange={e => {setQuery(e.target.value);setLocation(e.target.value)}}/>
           </Field>
 
-          <button onClick={search} type="button" disabled={!query.trim()}
-          className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
-          Suchen
-        </button>
-
-        {results && (
+          {results && (
         <div className="mt-2 space-y-1" aria-label="Suchergebnisse">
           {results.length === 0 && <p className="text-xs text-slate-400 px-1">Kein Ort gefunden.</p>}
           {results.map(p => (
@@ -290,6 +285,20 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
           ))}
         </div>
       )}
+                    
+          <Field id="transportMode" label="Verkehrsmittel" error={fieldErrors.transportMode}>
+            <select {...fieldProps('transportMode')} value={transportMode} onChange={e => {setTransportMode(e.target.value as TransportMode);
+          gettravelTime(e.target.value as TransportMode, { label: location, lat: lat ?? 0, lon: lon ?? 0 })}}>
+              <option value="driving-car">Auto</option>
+              <option value="cycling-regular">Fahrrad</option>
+              <option value="foot-walking">Zu Fuß</option>
+            </select>
+          </Field>
+
+          <button onClick={search} type="button" disabled={!query.trim()}
+          className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
+          Suchen
+        </button>
 
         <Field id="event-travel-time" label="Fahrzeit" error={fieldErrors.travelTime}>
           Fahrzeit: {getTimeLayout( travelTime ?? 0)}

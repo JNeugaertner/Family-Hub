@@ -322,7 +322,7 @@ public class SampleDataLoader implements ApplicationRunner {
                 : date.atTime(LocalTime.parse(e.endTime()));
         boolean proposal = e.proposedBy() != null;
         List<String> memberIds = Arrays.stream(e.members().split(",\\s*")).map(idByName::get).toList();
-        return new CalendarEvent(null, e.title(), start, end, memberIds, e.category(), e.location(), null, null, null, null,
+        return new CalendarEvent(null, e.title(), start, end, memberIds, e.category(), e.location(), null, null, null,null, null,
                 e.privateEvent(), proposal ? EventStatus.PROPOSED : EventStatus.APPROVED,
                 idByName.get(proposal ? e.proposedBy() : "Sarah"), null);
     }
