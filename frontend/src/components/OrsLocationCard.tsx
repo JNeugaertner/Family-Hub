@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {findPlaces, OrsLocation} from './OrsApi';
+import {findPlaces, getSettings, OrsLocation, setHomeLocation} from './OrsApi';
 import { error } from 'console';
 
 const INPUT = 'flex-1 min-w-0 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20';
@@ -15,6 +15,10 @@ export default function OrslocationCard(){
     const [lat, setLat] = useState<number | null>(null);
     const [lon, setLon] = useState<number | null>(null);
 
+      useEffect(() => {
+        getSettings().then(s => setLocation(s.homeLocation?.label));
+      }, []);
+
     const search = async () => {
     if (!query.trim()) return;
     const places = await findPlaces(query.trim());
@@ -22,6 +26,7 @@ export default function OrslocationCard(){
     }
 
     const choose = async (place: OrsLocation) => {
+    await setHomeLocation(place);
     setLocation(place.label);
     setLat(place.lat);
     setLon(place.lon);

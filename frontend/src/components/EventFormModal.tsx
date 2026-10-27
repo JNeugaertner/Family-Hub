@@ -157,8 +157,8 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     setResults(null);
     setQuery('');
     const settings = await getSettings();
-    if (!settings.weatherLocation) {return;}
-    const time = await getTravelTime(mode, settings.weatherLocation.lat, settings.weatherLocation.lon, place.lat, place.lon);
+    if (!settings.homeLocation) {return;}
+    const time = await getTravelTime(mode, settings.homeLocation.lat, settings.homeLocation.lon, place.lat, place.lon);
     setTravelTime(time);
   };
 

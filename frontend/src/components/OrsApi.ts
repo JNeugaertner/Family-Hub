@@ -15,6 +15,10 @@ export const getTravelTime = (transportMode: string, startLat: number, startLon:
 
 export interface Settings {
   weatherLocation: WeatherLocation | null;
+  homeLocation: OrsLocation | null;
 }
 
 export const getSettings = () => request<Settings>('/api/settings');
+
+export const setHomeLocation = (location: OrsLocation) =>
+  request<OrsLocation>('/api/ors/location', { method: 'PUT', body: json(location) });
