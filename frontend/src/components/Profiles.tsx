@@ -15,6 +15,7 @@ import GoogleCalendarCard from '../google/GoogleCalendarCard';
 import WeatherLocationCard from '../weather/WeatherLocationCard';
 import WasteCalendarCard from '../waste/WasteCalendarCard';
 import { hasPermission, permissionKey, ROLE_NAMES, type Permission, type RoleId } from '../roles';
+import OrsLocationCard from './OrsLocationCard';
 
 function ShieldLock({ size = 16, className = '' }: { size?: number; className?: string }) {
   return (
@@ -577,6 +578,7 @@ export default function Profiles({ onNavigate }: Props) {
         {mayManageRights && <GuestSettingsCard />}
         {mayManageRights && <WeatherLocationCard />}
         {mayManageRights && <WasteCalendarCard members={members} />}
+        <OrsLocationCard/>
         <PasswordCard />
         {mayConnectGoogle && <GoogleCalendarCard />}
       </div>
