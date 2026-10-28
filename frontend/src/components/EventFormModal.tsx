@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, useMemo, type FormEvent, type ReactNode } from 'react';
 import type { CalendarEvent, EventCategory, TransportMode } from './data';
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import { useCalendarPermissions } from '../calendar/permissions';
@@ -52,6 +52,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     ?? (permissions.canAssignTo(me.id) ? [me.id] : assignable[0] ? [assignable[0].id] : []);
 
   const [title, setTitle] = useState(event?.title ?? defaultTitle ?? '');
+  const [departure, setDeparture] = useState(event?.departure.slice(0,16) ?? null);
   const [start, setStart] = useState(event?.start.slice(0, 16) ?? `${defaultDate}T09:00`);
   const [end, setEnd] = useState(event?.end.slice(0, 16) ?? `${defaultDate}T10:00`);
   const [memberIds, setMemberIds] = useState<string[]>(initialMembers);
@@ -127,6 +128,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     if (readOnly) return;
     run(() => saveEvent({
       title,
+      departure: departure || null,
       start: start || null,
       end: end || null,
       memberIds,
@@ -176,6 +178,14 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     const seconds = Math.round(time % 60);
     return `${days}d ${hours}h ${minutes}m ${seconds}s`;
   }
+
+  const getDeparture = useMemo(() => {
+    if (!start || !travelTime) return null;
+    const date = new Date (start);
+    date.setMinutes(date.getMinutes()-travelTime/60-15);
+    const departureString = date.toLocaleTimeString("de-DE",{hour: "2-digit", minute: "2-digit"});
+    setDeparture(departureString);
+    return departureString;},[start, travelTime]);
 
   const heading = readOnly ? 'Termin' : isProposal ? 'Vorschlag bearbeiten' : isEdit ? 'Termin bearbeiten'
     : willBeProposal ? 'Neuer Vorschlag' : 'Neuer Termin';
@@ -227,6 +237,10 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
           <Field id="event-title" label="Titel" error={fieldErrors.title}>
             <input {...fieldProps('title')} value={title} onChange={e => setTitle(e.target.value)} autoFocus={!readOnly} />
           </Field>
+
+        <Field id="event-departure" label="Abfahrt" error={fieldErrors.departure}>
+          Abfahrt: {getDeparture}
+        </Field>
 
           <div className="grid grid-cols-2 gap-3">
             <Field id="event-start" label="Beginn" error={fieldErrors.start}>

@@ -4,6 +4,7 @@ import type { EventCategory, EventStatus, TransportMode } from '../components/da
 export interface ApiEvent {
   id: string;
   title: string;
+  departure: string;
   start: string;
   end: string;
   // Beteiligte, mindestens eine Person
@@ -24,6 +25,7 @@ export interface ApiEvent {
 
 export interface EventInput {
   title: string;
+  departure: string | null;
   start: string | null;
   end: string | null;
   memberIds: string[];

@@ -12,6 +12,7 @@ export type EventStatus = 'approved' | 'proposed';
 export interface CalendarEvent {
   id: string;
   title: string;
+  departure: string;
   start: string;
   end: string;
   date: string;
