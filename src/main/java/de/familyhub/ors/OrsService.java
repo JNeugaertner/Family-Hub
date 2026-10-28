@@ -23,6 +23,7 @@ public class OrsService {
 
         }
         public List<OrsLocation> findPlaces(String query) {
+            requireConfigured();
             OrsApi.SearchResponse response = api.findPlaces(query);
             return response.features().stream()
                     .map(feature -> new OrsLocation(feature.properties().label(),
@@ -32,14 +33,15 @@ public class OrsService {
         }
 
         public double gettravelTime(String transportMode, double startLat, double startLon, double endLat, double endLon) {
+            requireConfigured();
             OrsApi.RouteResponse response = api.gettravelTime(transportMode, startLat, startLon, endLat, endLon);
             return response.features().get(0).properties().summary().duration();
         }
 
- //Test ob API Aufruf funktioniert
-@PostConstruct
-public void test() {
-    System.out.println("test");
-    System.out.println(gettravelTime("driving-car", 49.41461, 8.681495, 49.420318, 8.687872));
-}
+        private void requireConfigured() {
+        if (!properties.isConfigured()) {
+            throw ApiException.unavailable("Das Wetter ist nicht eingerichtet: Es fehlt der OpenWeather-API-Schlüssel "
+                    + "(familyhub.weather.api-key in local.properties, siehe README).");
+        }
+    }
 }
