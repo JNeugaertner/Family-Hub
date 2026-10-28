@@ -289,8 +289,8 @@ class FamilyMemberControllerTest {
     void deleteIsRefusedWhileMemberHasEvents() throws Exception {
         FamilyMember lucas = members.save(TestUsers.member("Lucas", Role.KIND));
         LocalDateTime start = LocalDateTime.of(2026, 9, 25, 10, 0);
-        events.save(new CalendarEvent(null, "Basketball", start, start.plusHours(2), lucas.id(),
-                EventCategory.SPORTS, null, null));
+        events.save(new CalendarEvent(null, "Basketball", null, start, start.plusHours(2), lucas.id(),
+                EventCategory.SPORTS, null, null, null, null, null, null));
 
         mvc.perform(delete("/api/members/" + lucas.id()).with(as(sarah)))
                 .andExpect(status().isConflict())

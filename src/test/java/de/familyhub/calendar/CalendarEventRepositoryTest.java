@@ -24,13 +24,13 @@ class CalendarEventRepositoryTest {
     }
 
     private CalendarEvent save(String title, LocalDateTime start, LocalDateTime end, String memberId) {
-        return repository.save(new CalendarEvent(null, title, start, end, memberId, EventCategory.FAMILY, null, null));
+        return repository.save(new CalendarEvent(null, title, null, start, end, memberId, EventCategory.FAMILY, null, null, null, null, null, null));
     }
 
     @Test
     void savedEventGetsIdAndKeepsAllFields() {
-        CalendarEvent original = new CalendarEvent(null, "Zahnarzt", DAY_START.withHour(11), DAY_START.withHour(12),
-                "m1", EventCategory.APPOINTMENT, "Bright Smile Dental", "Kontrolle");
+        CalendarEvent original = new CalendarEvent(null, "Zahnarzt", null, DAY_START.withHour(11), DAY_START.withHour(12),
+                "m1", EventCategory.APPOINTMENT, "Bright Smile Dental", null, null, null,null, "Kontrolle");
 
         CalendarEvent saved = repository.save(original);
 

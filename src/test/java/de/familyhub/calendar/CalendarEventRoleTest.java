@@ -74,8 +74,8 @@ class CalendarEventRoleTest {
     }
 
     private CalendarEvent save(String title, FamilyMember member, int hour) {
-        return events.save(new CalendarEvent(null, title, DAY.withHour(hour), DAY.withHour(hour + 1), member.id(),
-                EventCategory.FAMILY, null, null));
+        return events.save(new CalendarEvent(null, title, null, DAY.withHour(hour), DAY.withHour(hour + 1), member.id(),
+                EventCategory.FAMILY, null, null, null, null, null,null));
     }
 
     private static String json(String title, FamilyMember member, int hour) {
@@ -262,8 +262,8 @@ class CalendarEventRoleTest {
 
     private CalendarEvent saveEvent(String title, FamilyMember member, EventCategory category, boolean privateEvent,
             EventStatus status, FamilyMember creator) {
-        return events.save(new CalendarEvent(null, title, DAY.withHour(12), DAY.withHour(13), member.id(), category,
-                null, null, privateEvent, status, creator.id()));
+        return events.save(new CalendarEvent(null, title, null, DAY.withHour(12), DAY.withHour(13), member.id(), category,
+                null, null, null, null, null, null, privateEvent, status, creator.id()));
     }
 
     private static FamilyMember withPermissions(FamilyMember m, Set<Permission> extra, Set<Permission> revoked) {
