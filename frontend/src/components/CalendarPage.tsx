@@ -38,10 +38,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const TRANSPORT_ICONS: Record<string, string> = {
-  car:     '🚗',
+  "driving-car":     '🚗',
   transit: '🚌',
-  bike:    '🚲',
-  walk:    '🚶',
+  "cycling-regular":    '🚲',
+  "foot-walking":    '🚶',
 };
 
 const WASTE_STYLES: Record<string, { dot: string; label: string; bg: string }> = {
@@ -393,7 +393,6 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
                   {/* Departure-only markers (when departure is in a different hour than the event) */}
                   {departureEvents.map(ev => {
                     const color = memberColors(ev.memberIds, memberById)[0];
-                    const depMin = departureMins(ev)!;
                     return (
                       <div
                         key={`dep-${ev.id}`}

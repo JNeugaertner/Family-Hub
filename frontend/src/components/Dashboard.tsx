@@ -33,7 +33,7 @@ const onEnter = (open: () => void) => (e: KeyboardEvent) => {
 };
 
 const TRANSPORT_ICONS: Record<string, string> = {
-  car: '🚗', transit: '🚌', bike: '🚲', walk: '🚶',
+  "driving-car": '🚗', transit: '🚌', "cycling-regular": '🚲', "foot-walking": '🚶',
 };
 
 // ─── mini calendar ───────────────────────────────────────────────────────────
