@@ -61,7 +61,6 @@ const wasteStyle = (type: string) => WASTE_STYLES[type] ?? {
 
 function departureMins(ev: CalendarEvent): number | null {
   if (!ev.travelTime) return null;
-  console.log(ev);
   return Math.round(ev.travelTime/60);
 }
 
@@ -352,8 +351,7 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
               // events whose departure falls in this hour
               const departureEvents = allDayEvents.filter(ev => {
                 if (!ev.travelTime) return false;
-                const depMins  = departureMins(ev)!;
-                const depHour  = Math.floor(depMins / 60);
+                const depHour  = parseInt(ev.departure.split(':')[0]);
                 const startH   = parseInt(ev.time.split(':')[0]);
                 return depHour === h && startH !== h; // show departure row only if event itself is in different row
               });
