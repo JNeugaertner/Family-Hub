@@ -115,13 +115,6 @@ function MiniCalendar({ onNavigate }: { onNavigate: Navigate }) {
 
 // ─── today's agenda ───────────────────────────────────────────────────────────
 
-function departureStr(ev: CalendarEvent): string | null {
-  if (!ev.travelTime) return null;
-  const [h, m] = ev.time.split(':').map(Number);
-  const total  = h * 60 + m - ev.travelTime;
-  return `${String(Math.floor(total / 60)).padStart(2,'0')}:${String(total % 60).padStart(2,'0')}`;
-}
-
 function TodayAgenda({ onNavigate }: { onNavigate: Navigate }) {
   const { events, memberById } = useCalendarData();
   const todayEvents = events
@@ -143,7 +136,7 @@ function TodayAgenda({ onNavigate }: { onNavigate: Navigate }) {
       ) : (
         <div className="space-y-2.5">
           {todayEvents.map(ev => {
-            const dep    = departureStr(ev);
+            const dep    = ev.departure;
             const open = () => onNavigate('calendar', { kind: 'event', id: ev.id, date: ev.date });
             return (
               <div

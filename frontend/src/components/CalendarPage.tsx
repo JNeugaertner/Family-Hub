@@ -61,19 +61,8 @@ const wasteStyle = (type: string) => WASTE_STYLES[type] ?? {
 
 function departureMins(ev: CalendarEvent): number | null {
   if (!ev.travelTime) return null;
-  const [h, m] = ev.time.split(':').map(Number);
-  return h * 60 + m - ev.travelTime;
-}
-
-function minsToTime(mins: number): string {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-function timeToMins(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
+  console.log(ev);
+  return Math.round(ev.travelTime/60);
 }
 
 // ─── compact event pill (month grid) ─────────────────────────────────────────
@@ -158,9 +147,9 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
         {event.travelTime && (
           <div className={`mt-1.5 flex items-center gap-1.5 text-xs font-semibold ${event.travelConflict ? 'text-[#EF4444]' : 'text-[#F97316]'}`}>
             <span>{TRANSPORT_ICONS[event.transportMode || 'car']}</span>
-            <span>{event.travelTime} min Fahrt</span>
+            <span>{departureMins(event)} min Fahrt</span>
             <span>·</span>
-            <span>Abfahrt {minsToTime(departureMins(event)!)}</span>
+            <span>Abfahrt {event.departure}</span>
             {event.travelConflict && <span className="ml-1 text-[#EF4444]">⚠ Zeitkonflikt!</span>}
           </div>
         )}
@@ -395,7 +384,7 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
                         <div className="opacity-80 text-[9px]">{ev.time}{ev.endTime ? `–${ev.endTime}` : ''}</div>
                         {hasTravel && (
                           <div className={`text-[9px] font-bold mt-0.5 ${hasTravelConflict ? 'text-[#EF4444]' : 'text-white/90'}`}>
-                            {TRANSPORT_ICONS[ev.transportMode || 'car']} Abf. {minsToTime(departureMins(ev)!)}
+                            {TRANSPORT_ICONS[ev.transportMode || 'car']} Abf. {ev.departure}
                             {hasTravelConflict && ' ⚠'}
                           </div>
                         )}
@@ -419,7 +408,7 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
                         title={`Abfahrt für: ${ev.title}`}
                       >
                         <span>{TRANSPORT_ICONS[ev.transportMode || 'car']}</span>
-                        <span>Abf. {minsToTime(depMin)}</span>
+                        <span>Abf. {ev.departure}</span>
                         <span className="truncate opacity-70">→ {ev.title}</span>
                         {ev.travelConflict && <span>⚠</span>}
                       </div>
@@ -687,7 +676,7 @@ export default function CalendarPage({ onNavigate }: Props) {
                 </span>
                 <span className="text-sm text-[#DC2626]/80 ml-2">
                   {ev.title}
-                  {ev.travelTime && ` — Abfahrt ${minsToTime(departureMins(ev)!)} überschneidet nächsten Termin`}
+                  {ev.travelTime && ` — Abfahrt ${ev.departure} überschneidet nächsten Termin`}
                 </span>
               </div>
             ))}

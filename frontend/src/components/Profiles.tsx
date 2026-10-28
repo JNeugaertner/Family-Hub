@@ -578,7 +578,7 @@ export default function Profiles({ onNavigate }: Props) {
         {mayManageRights && <GuestSettingsCard />}
         {mayManageRights && <WeatherLocationCard />}
         {mayManageRights && <WasteCalendarCard members={members} />}
-        <OrsLocationCard/>
+        {mayManageRights && <OrsLocationCard/>}
         <PasswordCard/>
         {mayConnectGoogle && <GoogleCalendarCard />}
       </div>

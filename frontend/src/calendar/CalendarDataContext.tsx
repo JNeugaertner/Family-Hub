@@ -49,6 +49,7 @@ function toEvent(e: api.ApiEvent): CalendarEvent {
   return {
     id: e.id,
     title: e.title,
+    departure: e.departure,
     start: e.start,
     end: e.end,
     date: e.start.slice(0, 10),
