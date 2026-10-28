@@ -28,7 +28,7 @@ public record CalendarEvent(
         @Size(max = 100, message = "Titel darf höchstens 100 Zeichen lang sein")
         String title,
 
-        LocalDateTime departure,
+        String departure,
 
         @NotNull(message = "Beginn ist Pflicht")
         LocalDateTime start,
@@ -85,14 +85,14 @@ public record CalendarEvent(
         status = status == null ? EventStatus.APPROVED : status;
     }
 
-    public CalendarEvent(String id, String title, LocalDateTime departure, LocalDateTime start, LocalDateTime end, String memberId,
+    public CalendarEvent(String id, String title, String departure, LocalDateTime start, LocalDateTime end, String memberId,
             EventCategory category, String location, Double lat, Double lon, String transportMode, Double travelTime, String description, Boolean privateEvent, EventStatus status,
             String createdBy) {
         this(id, title, departure, start, end, List.of(memberId), category, location, lat, lon, transportMode, travelTime, description, privateEvent, status, createdBy,
                 null);
     }
 
-    public CalendarEvent(String id, String title, LocalDateTime departure, LocalDateTime start, LocalDateTime end, String memberId,
+    public CalendarEvent(String id, String title, String departure, LocalDateTime start, LocalDateTime end, String memberId,
             EventCategory category, String location, Double lat, Double lon, String transportMode, Double travelTime, String description) {
         this(id, title, departure, start, end, memberId, category, location, lat, lon, transportMode, travelTime, description, false, EventStatus.APPROVED, null);
     }

@@ -52,7 +52,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     ?? (permissions.canAssignTo(me.id) ? [me.id] : assignable[0] ? [assignable[0].id] : []);
 
   const [title, setTitle] = useState(event?.title ?? defaultTitle ?? '');
-  const [departure, setDeparture] = useState(event?.departure.slice(0,16) ?? null);
+  const [departure, setDeparture] = useState(event?.departure ?? null);
   const [start, setStart] = useState(event?.start.slice(0, 16) ?? `${defaultDate}T09:00`);
   const [end, setEnd] = useState(event?.end.slice(0, 16) ?? `${defaultDate}T10:00`);
   const [memberIds, setMemberIds] = useState<string[]>(initialMembers);
