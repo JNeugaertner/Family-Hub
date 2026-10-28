@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import de.familyhub.weather.WeatherLocation;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -19,7 +18,6 @@ import de.familyhub.permission.Module;
 import de.familyhub.permission.Permissions;
 import de.familyhub.permission.Scope;
 import de.familyhub.security.CurrentMember;
-import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.web.bind.annotation.RequestParam;
 

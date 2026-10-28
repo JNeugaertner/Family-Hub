@@ -1,15 +1,10 @@
 package de.familyhub.ors;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import de.familyhub.ors.OrsApi;
-import de.familyhub.ors.OrsProperties;
 import de.familyhub.web.ApiException;
-import jakarta.annotation.PostConstruct;
 
 // Terminort
 @Service

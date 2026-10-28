@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
 import {findPlaces, getSettings, OrsLocation, setHomeLocation} from './OrsApi';
-import { error } from 'console';
 
 const INPUT = 'flex-1 min-w-0 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20';
 

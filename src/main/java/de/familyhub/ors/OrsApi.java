@@ -5,8 +5,6 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import com.mongodb.client.model.geojson.Geometry;
-
 @Component
 public class OrsApi {
     private final OrsProperties properties;
