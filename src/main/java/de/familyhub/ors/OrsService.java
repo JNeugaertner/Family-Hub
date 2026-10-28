@@ -35,8 +35,8 @@ public class OrsService {
 
         private void requireConfigured() {
         if (!properties.isConfigured()) {
-            throw ApiException.unavailable("Das Wetter ist nicht eingerichtet: Es fehlt der OpenWeather-API-Schlüssel "
-                    + "(familyhub.weather.api-key in local.properties, siehe README).");
+            throw ApiException.unavailable("Die Fahrzeitberechnung ist nicht eingerichtet: Es fehlt der OpenRouteService-API-Schlüssel "
+                    + "(familyhub.ors.api-key in local.properties, siehe README).");
         }
     }
 }
