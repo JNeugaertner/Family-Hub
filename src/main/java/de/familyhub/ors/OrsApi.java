@@ -2,9 +2,13 @@ package de.familyhub.ors;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.io.IOException;
 
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.ResourceAccessException;
 import java.net.URLEncoder;
 
 @Component
@@ -50,5 +54,10 @@ public class OrsApi {
     record RouteProperties(RouteSummary summary) {
     }
     record RouteSummary(double distance, double duration) {
+    }
+
+    //Fehlerbehandlung
+    private static OrsException apiError(ClientHttpResponse response) throws IOException{
+
     }
 }
