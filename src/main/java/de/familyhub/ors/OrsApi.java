@@ -1,9 +1,11 @@
 package de.familyhub.ors;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import java.net.URLEncoder;
 
 @Component
 public class OrsApi {
@@ -16,7 +18,8 @@ public class OrsApi {
     }
     public SearchResponse findPlaces(String query) {
         return rest.get()
-                .uri(properties.baseUrl() + "/geocode/search?text="+query)
+                .uri(properties.baseUrl() + "/geocode/search?text="
+                + URLEncoder.encode(query, StandardCharsets.UTF_8))
                 .header("Authorization", properties.apiKey())
                 .retrieve()
                 .body(SearchResponse.class);
