@@ -156,12 +156,14 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   };
 
   const gettravelTime =async (mode: 'driving-car' | 'cycling-regular' | 'foot-walking', place: OrsLocation) => {
+    try{
     setResults(null);
     setQuery('');
     const settings = await getSettings();
     if (!settings.homeLocation) {return;}
     const time = await getTravelTime(mode, settings.homeLocation.lat, settings.homeLocation.lon, place.lat, place.lon);
     setTravelTime(time);
+  }catch(err){showError(err)}
   };
 
   const choose = async (place: OrsLocation) => {

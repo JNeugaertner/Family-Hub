@@ -29,8 +29,11 @@ public class OrsService {
 
         public double gettravelTime(String transportMode, double startLat, double startLon, double endLat, double endLon) {
             requireConfigured();
+            try{
             OrsApi.RouteResponse response = api.gettravelTime(transportMode, startLat, startLon, endLat, endLon);
             return response.features().get(0).properties().summary().duration();
+            }catch(OrsException e){
+                throw ApiException.invalidField("travelTime",e.getMessage());}
         }
 
         private void requireConfigured() {
