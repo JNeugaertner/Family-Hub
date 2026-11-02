@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {findPlaces, getSettings, OrsLocation, setHomeLocation} from './OrsApi';
+import {findPlaces, getSettings, OrsLocation, setHomeLocation, removeHomeLocation} from './OrsApi';
 
 const INPUT = 'flex-1 min-w-0 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20';
 
@@ -31,11 +31,15 @@ export default function OrslocationCard(){
     setLon(place.lon);
     }; 
 
+    const remove = async () => {
+        await removeHomeLocation();
+        setLocation(null);
+    };
 
   return (
     <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5" aria-labelledby="weather-location-title">
       <h3 id="weather-location-title" className="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
-        <span aria-hidden="true"></span> Adresse
+          Adresse
       </h3>
       <p className="text-xs text-slate-500 mb-3">Eingabe der genauen Wohnadresse zur Fahrzeitberechnung.</p>
 
@@ -43,6 +47,9 @@ export default function OrslocationCard(){
       {location && (
         <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-3 py-2">
           <span className="text-sm text-slate-800 flex-1">📍 {location}</span>
+          <button type="button" disabled={busy} onClick={remove} className="text-xs text-slate-500 hover:text-[#EF4444] disabled:opacity-50">
+            Entfernen
+          </button>
         </div>
       )}
 

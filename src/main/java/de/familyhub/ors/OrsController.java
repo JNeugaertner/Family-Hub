@@ -2,11 +2,13 @@ package de.familyhub.ors;
 
 import java.util.List;
 
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,7 +55,7 @@ public class OrsController {
         return service.gettravelTime(transportMode, startLat, startLon, endLat, endLon);
     }
 
-        @PutMapping("/location")
+    @PutMapping("/location")
     @Operation(summary = "Wohnort einstellen", description = "Nur für Administratoren. Wert aus der Ortssuche.")
     public OrsLocation setLocation(@Valid @RequestBody OrsLocation location) {
         requireAdmin();
@@ -61,6 +63,13 @@ public class OrsController {
         return location;
     }
 
+    @DeleteMapping("/location")
+    @Operation(summary = "Wohnort entfernen", description = "Nur für Administratoren.")
+    @ResponseStatus(code = org.springframework.http.HttpStatus.NO_CONTENT) 
+    public void removeHomeLocation() {
+        requireAdmin();
+        settings.save(settings.current().withHomeLocation(null));
+    }
 
         private void requireAdmin() {
         FamilyMember viewer = currentMember.get();

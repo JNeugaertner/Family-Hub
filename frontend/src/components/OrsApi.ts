@@ -22,3 +22,6 @@ export const getSettings = () => request<Settings>('/api/settings');
 
 export const setHomeLocation = (location: OrsLocation) =>
   request<OrsLocation>('/api/ors/location', { method: 'PUT', body: json(location) });
+
+export const removeHomeLocation = () =>
+  request<void>('/api/ors/location', { method: 'DELETE' });
