@@ -29,6 +29,8 @@ export default function OrslocationCard(){
     setLocation(place.label);
     setLat(place.lat);
     setLon(place.lon);
+    setResults(null);
+    setQuery('');
     }; 
 
     const remove = async () => {
@@ -54,7 +56,8 @@ export default function OrslocationCard(){
       )}
 
       <div className="flex gap-2">
-        <input className={INPUT} value={query} onChange={e => setQuery(e.target.value)} maxLength={100}
+        <input className={INPUT} value={query} onChange={e => setQuery(e.target.value)} 
+        onKeyDown={e => {if(e.key === 'Enter'){e.preventDefault(); search();}}} maxLength={100}
           placeholder={location ? 'Anderen Ort suchen… Straße | Hausnr. | Stadt' : 'Adresse suchen, Straße | Hausnr. | Stadt'} aria-label="Ort suchen" />
         <button onClick={search} type="submit" disabled={busy || !query.trim()}
           className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">

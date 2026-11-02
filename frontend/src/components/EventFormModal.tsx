@@ -160,7 +160,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     setResults(null);
     setQuery('');
     const settings = await getSettings();
-    if (!settings.homeLocation) {return;}
+    if (!settings.homeLocation) {setFieldErrors({travelTime: 'Bitte zuerst den Wohnort in den Einstellungen eingeben.'}); return;}
     const time = await getTravelTime(mode, settings.homeLocation.lat, settings.homeLocation.lon, place.lat, place.lon);
     setTravelTime(time);
     setFieldErrors({});
@@ -302,7 +302,8 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             </button>
             </div>
             <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-0 py-2">
-            <input {...fieldProps('location')} value={query} onChange={e => {setQuery(e.target.value)}}/>
+            <input {...fieldProps('location')} value={query} onChange={e => {setQuery(e.target.value)}} onKeyDown={e => {if(e.key === 'Enter'){e.preventDefault(); search();}}}
+               placeholder="Ort suchen ..."/>
             <button onClick={search} type="button" disabled={!query.trim()}
                className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
                Suchen
