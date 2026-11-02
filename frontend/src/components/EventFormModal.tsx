@@ -163,6 +163,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     if (!settings.homeLocation) {return;}
     const time = await getTravelTime(mode, settings.homeLocation.lat, settings.homeLocation.lon, place.lat, place.lon);
     setTravelTime(time);
+    setFieldErrors({});
   }catch(err){showError(err)}
   };
 
@@ -172,6 +173,13 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     setLon(place.lon);
     await gettravelTime(transportMode, place);
   }; 
+
+  const removeLocation = () => {
+    setLocation('');
+    setLat(null);
+    setLon(null);
+    setTravelTime(null);
+  }
   
   const getTimeLayout = (time: number) => {
     const days = Math.floor(time / 86400);
@@ -287,7 +295,19 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
           </Field>
 
           <Field id="event-location" label="Ort (optional)" error={fieldErrors.location}>
-            <input {...fieldProps('location')} value={location} onChange={e => {setQuery(e.target.value);setLocation(e.target.value)}}/>
+            <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-3 py-2">
+            <span className="text-sm text-slate-800 flex-1">📍 {location}</span>
+            <button type="button" disabled={busy} onClick={removeLocation} className="text-xs text-slate-500 hover:text-[#EF4444] disabled:opacity-50">
+               Entfernen
+            </button>
+            </div>
+            <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-0 py-2">
+            <input {...fieldProps('location')} value={query} onChange={e => {setQuery(e.target.value)}}/>
+            <button onClick={search} type="button" disabled={!query.trim()}
+               className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
+               Suchen
+            </button>
+            </div>
           </Field>
 
           {results && (
@@ -310,11 +330,6 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
               <option value="foot-walking">Zu Fuß</option>
             </select>
           </Field>
-
-          <button onClick={search} type="button" disabled={!query.trim()}
-          className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
-          Suchen
-        </button>
 
         <Field id="event-travel-time" label="Fahrzeit" error={fieldErrors.travelTime}>
           Fahrzeit: {getTimeLayout( travelTime ?? 0)}
