@@ -186,8 +186,13 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     const hours = Math.floor(time / 3600);
     const minutes = Math.floor((time % 3600) / 60);
     const seconds = Math.round(time % 60);
-    return `${days}d ${hours}h ${minutes}m ${seconds}s`;
-  }
+    if (days == 0 && hours == 0 && minutes == 0 && seconds == 0){
+      return '';}
+    if (days >=1){
+      return `${days}d ${hours}h ${minutes}m ${seconds}s`;}
+    if (hours >= 1){
+      return `${hours}h ${minutes}m ${seconds}s`;}
+    return `${minutes}m ${seconds}s`;}
 
   const getDeparture = useMemo(() => {
     if (!start || !travelTime) return null;
@@ -249,7 +254,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
           </Field>
 
         <Field id="event-departure" label="Abfahrt" error={fieldErrors.departure}>
-          Abfahrt: {getDeparture}
+          {getDeparture}
         </Field>
 
           <div className="grid grid-cols-2 gap-3">
@@ -333,7 +338,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
           </Field>
 
         <Field id="event-travel-time" label="Fahrzeit" error={fieldErrors.travelTime}>
-          Fahrzeit: {getTimeLayout( travelTime ?? 0)}
+          {getTimeLayout( travelTime ?? 0)}
         </Field>
 
           <Field id="event-description" label="Beschreibung (optional)" error={fieldErrors.description}>
