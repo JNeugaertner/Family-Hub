@@ -19,19 +19,22 @@ public class OrsService {
         }
         public List<OrsLocation> findPlaces(String query) {
             requireConfigured();
-            OrsApi.SearchResponse response = api.findPlaces(query);
-            return response.features().stream()
-                    .map(feature -> new OrsLocation(feature.properties().label(),
-                            feature.geometry().coordinates().get(1),
-                            feature.geometry().coordinates().get(0)))
-                    .toList();
+            try{
+                OrsApi.SearchResponse response = api.findPlaces(query);
+                return response.features().stream()
+                        .map(feature -> new OrsLocation(feature.properties().label(),
+                                feature.geometry().coordinates().get(1),
+                                feature.geometry().coordinates().get(0)))
+                        .toList();
+            }catch(OrsException e){
+                throw ApiException.invalidField("q",e.getMessage());}
         }
 
         public double gettravelTime(String transportMode, double startLat, double startLon, double endLat, double endLon) {
             requireConfigured();
             try{
-            OrsApi.RouteResponse response = api.gettravelTime(transportMode, startLat, startLon, endLat, endLon);
-            return response.features().get(0).properties().summary().duration();
+                OrsApi.RouteResponse response = api.gettravelTime(transportMode, startLat, startLon, endLat, endLon);
+                return response.features().get(0).properties().summary().duration();
             }catch(OrsException e){
                 throw ApiException.invalidField("travelTime",e.getMessage());}
         }
