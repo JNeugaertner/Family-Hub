@@ -1,0 +1,14 @@
+# Was nicht ins Docker-Image gelangt: Zugangsdaten, Build-Ergebnisse, heruntergeladene Abhängigkeiten und
+# alles, was das Image nicht braucht (siehe Dockerfile)
+**/local.properties
+**/.env
+.git/
+.idea/
+.vscode/
+target/
+frontend/node_modules/
+frontend/dist/
+src/main/resources/static/
+regression/
+deploy/
+*.log

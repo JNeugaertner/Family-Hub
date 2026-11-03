@@ -1,6 +1,7 @@
 # MongoDB für die lokale Entwicklung per Docker (Alternative zu scripts/start-mongodb.ps1).
 # Starten: docker compose up -d   ·   Beenden: docker compose down   (Daten bleiben im Volume mongodb_data)
 # Wie das Skript: ohne Benutzer und Passwort, aber nur vom eigenen Rechner aus erreichbar (127.0.0.1).
+# FamilyHub komplett (Oberfläche, Backend und MongoDB mit Passwort) per Docker: siehe deploy/compose.yaml.
 services:
   mongodb:
     image: mongo:8.0

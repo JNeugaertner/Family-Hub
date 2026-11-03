@@ -1,0 +1,47 @@
+# FamilyHub mit MongoDB per Docker betreiben (Anleitung im README unter „Mit Docker betreiben“).
+# Vorher .env.example nach .env kopieren und mindestens MONGO_PASSWORD setzen.
+#   Starten:  docker compose up -d          Beenden: docker compose down
+#   Update:   docker compose pull, danach docker compose up -d
+# Die Daten liegen im Volume familyhub-data und bleiben bei down und Updates erhalten.
+name: familyhub
+
+services:
+  mongodb:
+    image: docker.io/library/mongo:8.0
+    restart: unless-stopped
+    # Benutzer und Passwort legt MongoDB nur beim allerersten Start (leeres Volume) an
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: familyhub
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?In .env fehlt MONGO_PASSWORD (siehe .env.example)}
+    volumes:
+      - familyhub-data:/data/db
+    # Kein Port nach außen: Nur FamilyHub erreicht die Datenbank, über das gemeinsame Docker-Netz
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  familyhub:
+    image: ${FAMILYHUB_IMAGE:-ghcr.io/jneugaertner/family-hub:latest}
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    # Nur von diesem Rechner aus erreichbar. Für Handys und andere Geräte braucht es HTTPS (kommt später).
+    ports:
+      - "127.0.0.1:${FAMILYHUB_PORT:-8080}:8080"
+    # Zugangsdaten und weitere Einstellungen kommen aus .env (Namen siehe .env.example)
+    env_file: .env
+    environment:
+      SPRING_MONGODB_URI: mongodb://familyhub:${MONGO_PASSWORD}@mongodb:27017/familyhub?authSource=admin
+      # Ohne Beispielfamilie (Passwort "familyhub") startet FamilyHub mit „Familie einrichten“
+      FAMILYHUB_SAMPLEDATA_ENABLED: ${FAMILYHUB_SAMPLEDATA_ENABLED:-false}
+      # Oberfläche und API kommen von derselben Adresse; Google leitet nach der Anmeldung dorthin zurück
+      FAMILYHUB_CORS_ALLOWEDORIGINS: ${FAMILYHUB_URL:-http://localhost:8080}
+      FAMILYHUB_GOOGLE_FRONTENDURL: ${FAMILYHUB_URL:-http://localhost:8080}
+      FAMILYHUB_GOOGLE_REDIRECTURI: ${FAMILYHUB_URL:-http://localhost:8080}/api/google/callback
+
+volumes:
+  familyhub-data:

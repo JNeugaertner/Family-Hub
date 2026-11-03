@@ -45,6 +45,9 @@ kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 
 ## Schnellstart
 
+Für die Entwicklung. Wer FamilyHub nur benutzen will, nimmt
+[Docker](#mit-docker-betreiben).
+
 **Voraussetzungen:** JDK 25, MongoDB 8.0 (oder Docker) und für die Oberfläche
 Node.js 24 mit pnpm 10. Maven muss nicht installiert sein, der Maven Wrapper lädt
 es beim ersten Aufruf selbst. Unter Windows lässt sich MongoDB ohne
@@ -90,6 +93,65 @@ Entwicklung, alle mit dem Passwort `familyhub`):
 Ohne Beispieldaten (`familyhub.sample-data.enabled=false`) legt man beim ersten
 Start in der Oberfläche („Familie einrichten“) oder über `POST /api/auth/setup`
 den ersten Administrator an.
+
+## Mit Docker betreiben
+
+Für alle, die FamilyHub nur benutzen wollen: Oberfläche, Backend und MongoDB
+laufen zusammen in Docker, ohne JDK, Node oder pnpm. Die Oberfläche kommt dabei
+vom Backend selbst, FamilyHub läuft also unter **http://localhost:8080**.
+
+**Voraussetzung:** [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+(Windows braucht dafür WSL 2: einmal `wsl --install` in einer
+Administrator-Eingabeaufforderung, danach neu starten) oder unter Linux Docker
+Engine mit Compose.
+
+1. Im Projektordner das Image bauen:
+
+   ```bash
+   docker build -t familyhub:lokal .
+   ```
+
+   Sobald eine Version mit Tag veröffentlicht ist, entfällt das: GitHub baut
+   das Image dann selbst (`ghcr.io/jneugaertner/family-hub`), und vom
+   Repository braucht man nur die beiden Dateien aus `deploy/`.
+2. Im Ordner `deploy` die Vorlage kopieren:
+
+   ```bash
+   cd deploy
+   cp .env.example .env
+   ```
+
+   In `.env` mindestens `MONGO_PASSWORD` setzen und für das selbst gebaute
+   Image die Zeile `FAMILYHUB_IMAGE=familyhub:lokal` einkommentieren.
+3. Starten:
+
+   ```bash
+   docker compose up -d
+   ```
+
+   Dann http://localhost:8080 öffnen und unter „Familie einrichten“ den ersten
+   Administrator anlegen. Eine Beispielfamilie gibt es hier bewusst nicht
+   (`FAMILYHUB_SAMPLEDATA_ENABLED` in `.env`).
+
+| Aufgabe | Befehl (im Ordner `deploy`) |
+|---|---|
+| Beenden | `docker compose down` |
+| Protokoll ansehen | `docker compose logs -f familyhub` |
+| Update (veröffentlichtes Image) | `docker compose pull`, danach `docker compose up -d` |
+| Update (selbst gebaut) | `docker build -t familyhub:lokal ..`, danach `docker compose up -d` |
+
+Die Daten liegen im Docker-Volume `familyhub_familyhub-data` und bleiben bei
+`down` und bei Updates erhalten; erst `docker compose down -v` löscht sie.
+
+Zugangsdaten für Wetter, Google, Telegram und WhatsApp stehen hier nicht in
+`local.properties`, sondern in `.env`. Die Namen folgen den Einstellungen:
+Punkte werden zu `_`, Bindestriche fallen weg, alles in Großbuchstaben, z. B.
+`familyhub.weather.api-key` → `FAMILYHUB_WEATHER_APIKEY`. So lässt sich auch
+jede Einstellung aus der Tabelle unten setzen. Uhrzeiten gelten in der Zeitzone
+Europe/Berlin.
+
+So eingerichtet ist FamilyHub nur vom eigenen Rechner aus erreichbar. Für Handys
+und andere Geräte braucht es eine Adresse mit HTTPS; das ist der nächste Schritt.
 
 ## Einstellungen
 
@@ -300,8 +362,9 @@ wird die Nachricht nicht.
 
 FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im
 Startmenü bzw. auf dem Startbildschirm). In Edge oder Chrome
-`http://localhost:5173` öffnen und in der Adressleiste auf „App installieren“
-klicken (Edge: Menü „Apps“ → „Diese Website als App installieren“).
+`http://localhost:5173` (mit Docker: `http://localhost:8080`) öffnen und in der
+Adressleiste auf „App installieren“ klicken (Edge: Menü „Apps“ → „Diese Website
+als App installieren“).
 
 Auf dem Handy funktioniert das erst, wenn FamilyHub dort über HTTPS erreichbar
 ist, also auf einem Server läuft; im lokalen Entwicklungsbetrieb ist die
@@ -314,7 +377,9 @@ Oberfläche nur auf dem eigenen Rechner erreichbar.
 ├── src/test/java/de/familyhub/   Backend-Tests, gleiche Pakete
 ├── frontend/                     Oberfläche (React, siehe frontend/README.md)
 ├── scripts/                      Hilfsskripte (z. B. MongoDB starten)
-└── docker-compose.yml            MongoDB alternativ per Docker
+├── deploy/                       FamilyHub komplett per Docker (compose.yaml, Vorlage für .env)
+├── Dockerfile                    Docker-Image: Oberfläche und Backend in einem
+└── docker-compose.yml            nur MongoDB für die Entwicklung, per Docker
 ```
 
 Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
