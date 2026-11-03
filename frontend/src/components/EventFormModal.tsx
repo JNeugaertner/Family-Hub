@@ -186,15 +186,14 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   const getTimeLayout = (time: number) => {
     const days = Math.floor(time / 86400);
     const hours = Math.floor(time / 3600);
-    const minutes = Math.floor((time % 3600) / 60);
-    const seconds = Math.round(time % 60);
-    if (days == 0 && hours == 0 && minutes == 0 && seconds == 0){
+    const minutes = Math.round((time % 3600) / 60);
+    if (days == 0 && hours == 0 && minutes == 0){
       return '';}
     if (days >=1){
-      return `${days}d ${hours}h ${minutes}m ${seconds}s`;}
+      return `${days}d ${hours}h ${minutes}m`;}
     if (hours >= 1){
-      return `${hours}h ${minutes}m ${seconds}s`;}
-    return `${minutes}m ${seconds}s`;}
+      return `${hours}h ${minutes}m`;}
+    return `${minutes}m`;}
 
   const getDeparture = useMemo(() => {
     if (!start || !travelTime) return null;
