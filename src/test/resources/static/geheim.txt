@@ -1,0 +1,1 @@
+Liegt unter static/, gehört aber nicht zur Oberfläche und bleibt deshalb hinter der Anmeldung (FrontendDeliveryTest).

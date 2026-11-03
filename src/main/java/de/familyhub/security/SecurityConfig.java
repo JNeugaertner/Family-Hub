@@ -33,6 +33,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/whatsapp").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/whatsapp").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // Die gebaute Oberfläche, wenn das Backend sie mit ausliefert (Docker-Image, siehe Dockerfile):
+                        // index.html, die Dateien von Vite unter assets/ und die Dateien aus frontend/public.
+                        // Anmelden muss man sich erst in der Oberfläche.
+                        .requestMatchers(HttpMethod.GET, "/", "/index.html", "/assets/**", "/manifest.webmanifest",
+                                "/*.svg", "/*.png").permitAll()
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginProcessingUrl("/api/auth/login")
