@@ -154,6 +154,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     setLocation(individuallocation ?? '');
     setLat(null);
     setLon(null);
+    setTravelTime(null);
   }
 
   const search = async () => {
@@ -173,7 +174,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     const time = await getTravelTime(mode, settings.homeLocation.lat, settings.homeLocation.lon, place.lat, place.lon);
     setTravelTime(time);
     setFieldErrors({});
-  }catch(err){showError(err)}
+  }catch(err){showError(err), setTravelTime(null)}
   };
 
   const choose = async (place: OrsLocation) => {
