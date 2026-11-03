@@ -1,6 +1,5 @@
 package de.familyhub.ors;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -15,7 +14,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.web.client.ResourceAccessException;
-import java.net.URLEncoder;
 
 @Component
 public class OrsApi {

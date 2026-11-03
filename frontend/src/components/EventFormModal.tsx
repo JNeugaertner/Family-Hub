@@ -151,8 +151,10 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
 
   const search = async () => {
     if (!query.trim()) return;
+    try{
     const places = await findPlaces(query.trim());
-    setResults(places);
+    setResults(places);}
+    catch(err){showError(err)}
   };
 
   const gettravelTime =async (mode: 'driving-car' | 'cycling-regular' | 'foot-walking', place: OrsLocation) => {
@@ -309,9 +311,9 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
           <Field id="event-location" label="Ort (optional)" error={fieldErrors.location}>
             <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-3 py-2">
             <span className="text-sm text-slate-800 flex-1">📍 {location}</span>
-            <button type="button" disabled={busy} onClick={removeLocation} className="text-xs text-slate-500 hover:text-[#EF4444] disabled:opacity-50">
+            {location?.trim() && <button type="button" disabled={busy} onClick={removeLocation} className="text-xs text-slate-500 hover:text-[#EF4444] disabled:opacity-50">
                Entfernen
-            </button>
+            </button>}
             </div>
             <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-0 py-2">
             <input {...fieldProps('location')} value={query} onChange={e => {setQuery(e.target.value)}} onKeyDown={e => {if(e.key === 'Enter'){e.preventDefault(); search();}}}
