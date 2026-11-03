@@ -13,7 +13,7 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 
 | Bereich | Was FamilyHub kann |
 |---|---|
-| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private Termine, Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
+| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private Termine, Serientermine (z. B. jeden Dienstag Training), Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
 | Google Kalender | Termine aus dem eigenen Google Kalender übernehmen (schreibgeschützt); auf Wunsch die eigenen FamilyHub-Termine in einen Google-Kalender „FamilyHub“ eintragen |
 | Aufgaben und Punkte | Eltern vergeben Aufgaben mit Punkten, Kinder haken ab, nach der Bestätigung gibt es Punkte; Bonus-Aufgaben für alle Kinder; Erwachsene erledigen Aufgaben ohne Punkte |
 | Belohnungen | Shop, in dem Kinder und Jugendliche Punkte einlösen; die Eltern genehmigen oder lehnen ab |
@@ -105,6 +105,8 @@ sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 | `familyhub.login.max-failures` / `lock-duration` | `5` / `PT5M` | So viele Fehlversuche sperren ein Konto so lange |
 | `server.servlet.session.timeout` | `8h` | Dauer einer Anmeldung |
 | `familyhub.waste.task-sync-cron` | `0 50 7 * * *` | Täglich um 07:50 Uhr Müll-Aufgaben für die nächsten sieben Tage anlegen |
+| `familyhub.calendar.series-horizon` | `P12M` | So weit im Voraus legt FamilyHub die Termine einer Serie an |
+| `familyhub.calendar.series-extend-cron` | `0 20 3 * * *` | Täglich um 03:20 Uhr die Serien bis zu diesem Vorlauf verlängern |
 | `familyhub.google.sync-interval` | `PT15M` | Takt des Abgleichs mit Google |
 | `familyhub.google.push-delay` | `PT10S` | So schnell kommen geänderte Termine in den Google-Kalender „FamilyHub“ |
 | `familyhub.weather.cache-duration` | `PT10M` | So lange merkt sich das Backend eine Wetterabfrage |
@@ -113,6 +115,27 @@ sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 | `familyhub.notifications.short-notice` | `PT24H` | Termine, die so bald beginnen, gelten als kurzfristig |
 | `familyhub.notifications.pending-after` | `PT24H` | So lange darf eine Bestätigung offen sein, bevor FamilyHub erinnert |
 | `familyhub.cors.allowed-origins` | `http://localhost:5173` | Adresse der Oberfläche |
+
+## Serientermine
+
+Im Termin-Formular unter „Wiederholen“ wird aus einem Termin eine Serie:
+täglich, wöchentlich (an einem oder mehreren Wochentagen), monatlich am selben
+Tag oder jährlich, jeweils auch „alle 2 Wochen“ usw., ohne Ende, bis zu einem
+Datum oder für eine Anzahl von Terminen. Tage, die es nicht gibt, entfallen wie
+bei Google (monatlich am 31., jährlich am 29. Februar). Serientermine tragen im
+Kalender ein ↻.
+
+- FamilyHub legt die einzelnen Termine zwölf Monate im Voraus an und verlängert
+  die Serie jede Nacht. Für Rechte, Benachrichtigungen und den Google-Export
+  sind es ganz normale Termine.
+- Beim Ändern oder Löschen fragt FamilyHub: **nur diesen Termin** oder **diesen
+  und alle folgenden** (beim ersten Termin: die ganze Serie). Einzeln geänderte
+  Termine bleiben, wenn später die Serie geändert wird; einzeln gelöschte, etwa
+  in den Ferien, kommen nicht wieder.
+- Eine gemeinsame Serie von Jugendlichen ist ein Vorschlag mit nur dem ersten
+  Termin; erst die Freigabe legt die übrigen an.
+- Telegram meldet eine neue Serie einmal mit ihrem Rhythmus, wenn ihr nächster
+  Termin innerhalb von 24 Stunden liegt.
 
 ## Google Kalender einrichten (optional)
 

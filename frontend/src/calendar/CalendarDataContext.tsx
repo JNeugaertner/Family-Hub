@@ -4,6 +4,7 @@ import type { CalendarEvent } from '../components/data';
 import { listMembers, type ApiMember } from '../family/api';
 import type { RoleId } from '../roles';
 import * as api from './api';
+import type { SeriesScope } from './recurrence';
 
 export interface CalendarMember {
   id: string;
@@ -25,8 +26,9 @@ interface CalendarData {
   events: CalendarEvent[];
   memberById: (id: string) => CalendarMember | undefined;
   reload: () => Promise<void>;
-  saveEvent: (input: api.EventInput, id?: string) => Promise<void>;
-  removeEvent: (id: string) => Promise<void>;
+  // scope nur bei Serienterminen: nur dieser oder dieser und alle folgenden
+  saveEvent: (input: api.EventInput, id?: string, scope?: SeriesScope) => Promise<void>;
+  removeEvent: (id: string, scope?: SeriesScope) => Promise<void>;
   approveEvent: (id: string) => Promise<void>;
   rejectEvent: (id: string) => Promise<void>;
 }
@@ -63,6 +65,8 @@ function toEvent(e: api.ApiEvent): CalendarEvent {
     createdBy: e.createdBy ?? undefined,
     source: e.external?.provider === 'google' ? 'google' : undefined,
     allDay: e.start.slice(11, 16) === '00:00' && e.end.slice(11, 16) === '00:00' && e.end > e.start,
+    recurrence: e.recurrence ?? undefined,
+    series: e.series ?? undefined,
   };
 }
 
@@ -105,7 +109,8 @@ export function CalendarDataProvider({ children }: { children: ReactNode }) {
     status, error, members, events,
     memberById: (id: string) => members.find(m => m.id === id),
     reload,
-    saveEvent: afterChange((input: api.EventInput, id?: string) => id ? api.updateEvent(id, input) : api.createEvent(input)),
+    saveEvent: afterChange((input: api.EventInput, id?: string, scope?: SeriesScope) =>
+      id ? api.updateEvent(id, input, scope) : api.createEvent(input)),
     removeEvent: afterChange(api.deleteEvent),
     approveEvent: afterChange(api.approveEvent),
     rejectEvent: afterChange(api.rejectEvent),
