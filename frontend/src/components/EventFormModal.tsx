@@ -198,6 +198,13 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     if (!start || !travelTime) return null;
     const date = new Date (start);
     date.setMinutes(date.getMinutes()-travelTime/60-15);
+    const startDay = new Date(start).toLocaleDateString("de-DE",{day: "2-digit", month: "2-digit", year: "numeric"});
+    const departureDay = date.toLocaleDateString("de-DE",{day: "2-digit", month: "2-digit", year: "numeric"});
+    if (startDay !== departureDay){
+      const departureString = date.toLocaleString("de-DE",{day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"});
+      setDeparture(departureString);
+      return departureString;
+    }
     const departureString = date.toLocaleTimeString("de-DE",{hour: "2-digit", minute: "2-digit"});
     setDeparture(departureString);
     return departureString;},[start, travelTime]);

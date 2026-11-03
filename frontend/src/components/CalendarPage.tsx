@@ -272,6 +272,11 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
     return events.filter(e => e.date === dateStr);
   };
 
+  const getAllDepartureEventsForDay = (date: Date) => {
+    const dateStr = date.toLocaleDateString("de-DE",{day: "2-digit", month: "2-digit", year: "numeric"});
+    return events.filter(e => e.departure && e.departure.startsWith(dateStr));
+  };
+
   // Ganztägige Termine stehen oben am Tag (liegen außerhalb des Stundenrasters), auch über mehrere Tage
   const allDayFor = (dateStr: string) => events.filter(e => e.allDay && occursOn(e, dateStr));
 
@@ -351,10 +356,21 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
               // events whose departure falls in this hour
               const departureEvents = allDayEvents.filter(ev => {
                 if (!ev.travelTime) return false;
+                if (ev.departure.length > 5) return false; // wenn die Abfahrt ein Datum enthält, ist sie nicht an diesem Tag
                 const depHour  = parseInt(ev.departure.split(':')[0]);
                 const startH   = parseInt(ev.time.split(':')[0]);
                 return depHour === h && startH !== h; // show departure row only if event itself is in different row
               });
+
+              const allDayDepartureEvents = getAllDepartureEventsForDay(d);
+
+              const departureEvents2 = allDayDepartureEvents.filter(ev => {
+                const depTime = ev.departure.split(' ')[1]; // "dd.mm.yyyy hh:mm" -> "hh:mm"
+                const depHour = parseInt(depTime.split(':')[0]);
+                return depHour === h;
+              });
+
+              const allDepartureEvents = [...departureEvents, ...departureEvents2];
 
               return (
                 <div key={di} className="border-r border-slate-50 p-0.5 space-y-0.5 relative">
@@ -391,7 +407,7 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
                   })}
 
                   {/* Departure-only markers (when departure is in a different hour than the event) */}
-                  {departureEvents.map(ev => {
+                  {allDepartureEvents.map(ev => {
                     const color = memberColors(ev.memberIds, memberById)[0];
                     return (
                       <div
