@@ -67,6 +67,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<OrsLocation[] | null>(null);  
+  const [individuallocation, setIndividuallocation] = useState<string | null>(null);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -148,6 +149,12 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     if (!confirmDelete) { setConfirmDelete(true); return; }
     run(() => removeEvent(event.id));
   };
+
+  const setLocationAsIndividual = () => {
+    setLocation(individuallocation ?? '');
+    setLat(null);
+    setLon(null);
+  }
 
   const search = async () => {
     if (!query.trim()) return;
@@ -308,13 +315,15 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
           </Field>
 
           <Field id="event-location" label="Ort (optional)" error={fieldErrors.location}>
-            <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-2 py-2">
             <span className="text-sm text-slate-800 flex-1">📍 {location}</span>
             {location?.trim() && <button type="button" disabled={busy} onClick={removeLocation} className="text-xs text-slate-500 hover:text-[#EF4444] disabled:opacity-50">
                Entfernen
             </button>}
             </div>
-            <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-0 py-2">
+
+            <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-2 py-2">
+              <span className="text-xs text-slate-500">Adresse suchen</span>
             <input {...fieldProps('location')} value={query} onChange={e => {setQuery(e.target.value)}} onKeyDown={e => {if(e.key === 'Enter'){e.preventDefault(); search();}}}
                placeholder="Ort suchen ..."/>
             <button onClick={search} type="button" disabled={!query.trim()}
@@ -322,19 +331,27 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
                Suchen
             </button>
             </div>
-          </Field>
-
-          {results && (
-        <div className="mt-2 space-y-1" aria-label="Suchergebnisse">
-          {results.length === 0 && <p className="text-xs text-slate-400 px-1">Kein Ort gefunden.</p>}
-          {results.map(p => (
-            <button key={`${p.lat},${p.lon}`} type="button" disabled={busy} onClick={() => choose(p)}
-              className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-sm text-slate-700 disabled:opacity-50">
+            {results && (
+            <div className="mt-2 space-y-1" aria-label="Suchergebnisse">
+              {results.length === 0 && <p className="text-xs text-slate-400 px-1">Kein Ort gefunden.</p>}
+              {results.map(p => (
+              <button key={`${p.lat},${p.lon}`} type="button" disabled={busy} onClick={() => choose(p)}
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-sm text-slate-700 disabled:opacity-50">
                 {p.label}
-            </button>
-          ))}
-        </div>
-      )}
+              </button>
+                ))}
+            </div>
+            )}
+            <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-2 py-2">
+              <span className="text-xs text-slate-500">individuellen Ort eingeben</span>
+              <input {...fieldProps('location')} value={individuallocation ?? ''} onChange={e => {setIndividuallocation(e.target.value)}} 
+                onKeyDown={e => {if(e.key === 'Enter'){e.preventDefault(); setLocationAsIndividual();}}} placeholder="Ort eingeben ..."/>
+              <button onClick={setLocationAsIndividual} type="button" disabled={!individuallocation?.trim()}
+               className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
+               Übernehmen
+              </button>
+            </div>
+          </Field>
                     
           <Field id="transportMode" label="Verkehrsmittel" error={fieldErrors.transportMode}>
             <select {...fieldProps('transportMode')} value={transportMode} onChange={e => {setTransportMode(e.target.value as TransportMode);
