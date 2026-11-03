@@ -41,14 +41,17 @@ public class CalendarEventController {
     private final CurrentMember currentMember;
     private final CalendarAccess access;
     private final EventNotifications notifications;
+    private final EventSeriesService seriesService;
 
     public CalendarEventController(CalendarEventRepository events, FamilyMemberRepository members,
-            CurrentMember currentMember, CalendarAccess access, EventNotifications notifications) {
+            CurrentMember currentMember, CalendarAccess access, EventNotifications notifications,
+            EventSeriesService seriesService) {
         this.events = events;
         this.members = members;
         this.currentMember = currentMember;
         this.access = access;
         this.notifications = notifications;
+        this.seriesService = seriesService;
     }
 
     @GetMapping
@@ -98,47 +101,99 @@ public class CalendarEventController {
     @PostMapping
     @Operation(summary = "Termin anlegen", description = "Eine mitgeschickte id, status und createdBy werden ignoriert. "
             + "Wer für andere nur Vorschläge machen darf (Jugendliche), legt für Termine mit anderen Beteiligten "
-            + "einen Vorschlag an (status proposed).")
+            + "einen Vorschlag an (status proposed). Mit recurrence entsteht eine Serie: FamilyHub legt ihre Termine "
+            + "bis zu 12 Monate im Voraus an (bei einem Vorschlag nur den ersten) und gibt den ersten zurück.")
     public ResponseEntity<CalendarEvent> create(@Valid @RequestBody CalendarEvent event) {
         FamilyMember viewer = currentMember.get();
         EventStatus status = access.statusForNewEvent(viewer, event);
         requireMembers(event.memberIds());
-        CalendarEvent saved = events.save(copy(null, event, status, viewer.id(), null));
-        notifications.saved(null, saved, viewer);
+        CalendarEvent template = copy(null, event, status, viewer.id(), null);
+        CalendarEvent saved;
+        if (template.recurrence() == null) {
+            saved = events.save(template);
+            notifications.saved(null, saved, viewer);
+        } else {
+            List<CalendarEvent> created = seriesService.create(template);
+            saved = created.get(0);
+            notifications.savedSeries(null, created, viewer);
+        }
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(saved);
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Termin ändern", description = "Status und createdBy bleiben unverändert.")
-    public CalendarEvent update(@PathVariable String id, @Valid @RequestBody CalendarEvent event) {
+    @Operation(summary = "Termin ändern", description = "Status und createdBy bleiben unverändert. Bei Serienterminen "
+            + "ändert scope=single nur diesen Termin, scope=following diesen und alle folgenden (ab dem ersten Termin "
+            + "also die ganze Serie; ohne recurrence endet die Serie vor diesem Termin). Einzeln geänderte Termine "
+            + "übernehmen Änderungen an der Serie nicht. Vorschläge ändern immer die ganze Serie. Ein Einzeltermin "
+            + "mit recurrence wird zur Serie.")
+    public CalendarEvent update(@PathVariable String id, @Valid @RequestBody CalendarEvent event,
+            @Parameter(description = "Nur bei Serienterminen: single (Standard) oder following")
+            @RequestParam(defaultValue = "single") SeriesScope scope) {
         FamilyMember viewer = currentMember.get();
         CalendarEvent existing = findVisible(id, viewer);
         requireNotImported(existing);
         access.requireUpdate(viewer, existing, event);
         requireMembers(event.memberIds());
-        CalendarEvent saved = events.save(copy(id, event, existing.status(), existing.createdBy(), null));
+        CalendarEvent changed = copy(id, event, existing.status(), existing.createdBy(), null);
+        if (existing.isSeries() && (scope == SeriesScope.FOLLOWING || existing.isProposal())) {
+            List<CalendarEvent> result = seriesService.changeFollowing(existing, changed);
+            notifications.savedSeries(existing, result, viewer);
+            return result.get(0);
+        }
+        if (existing.isSeries()) {
+            // Nur dieser Termin: Er bleibt in der Serie, übernimmt aber keine Änderungen der Serie mehr
+            CalendarEvent saved = events.save(changed.withSeries(id, existing.recurrence(), existing.series().asChanged()));
+            notifications.saved(existing, saved, viewer);
+            return saved;
+        }
+        if (changed.recurrence() != null) {
+            // Aus dem Einzeltermin wird eine Serie, die an seiner Stelle beginnt (erst anlegen, damit eine unbrauchbare
+            // Regel den Termin nicht kostet)
+            List<CalendarEvent> created = seriesService.create(changed.withSeries(null, changed.recurrence(), null));
+            events.delete(existing);
+            notifications.savedSeries(existing, created, viewer);
+            return created.get(0);
+        }
+        CalendarEvent saved = events.save(changed);
         notifications.saved(existing, saved, viewer);
         return saved;
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Termin löschen oder eigenen Vorschlag zurückziehen")
-    public void delete(@PathVariable String id) {
+    @Operation(summary = "Termin löschen oder eigenen Vorschlag zurückziehen", description = "Bei Serienterminen "
+            + "löscht scope=single nur diesen Termin, scope=following diesen und alle folgenden (ab dem ersten Termin "
+            + "also die ganze Serie). Ein Vorschlag für eine Serie wird immer ganz zurückgezogen.")
+    public void delete(@PathVariable String id,
+            @Parameter(description = "Nur bei Serienterminen: single (Standard) oder following")
+            @RequestParam(defaultValue = "single") SeriesScope scope) {
         FamilyMember viewer = currentMember.get();
         CalendarEvent existing = findVisible(id, viewer);
         requireNotImported(existing);
         access.requireDelete(viewer, existing);
-        events.deleteById(id);
+        if (!existing.isSeries()) {
+            events.deleteById(id);
+        } else if (scope == SeriesScope.FOLLOWING) {
+            seriesService.following(existing).forEach(event -> access.requireDelete(viewer, event));
+            seriesService.deleteFollowing(existing);
+        } else {
+            seriesService.deleteOne(existing);
+        }
     }
 
     @PostMapping("/{id}/approve")
-    @Operation(summary = "Vorschlag freigeben", description = "Nur für Administratoren. Aus dem Vorschlag wird ein Termin.")
+    @Operation(summary = "Vorschlag freigeben", description = "Nur für Administratoren. Aus dem Vorschlag wird ein "
+            + "Termin; bei einer Serie entstehen jetzt auch die übrigen Termine.")
     public CalendarEvent approve(@PathVariable String id) {
         FamilyMember viewer = currentMember.get();
         access.requireDecision(viewer);
         CalendarEvent proposal = findOpenProposal(id, viewer);
+        if (proposal.isSeries()) {
+            List<CalendarEvent> approved = seriesService.approve(proposal);
+            notifications.savedSeries(proposal, approved, viewer);
+            return approved.get(0);
+        }
         CalendarEvent approved = events.save(copy(id, proposal, EventStatus.APPROVED, proposal.createdBy(),
                 proposal.external()));
         notifications.saved(proposal, approved, viewer);
@@ -147,12 +202,17 @@ public class CalendarEventController {
 
     @PostMapping("/{id}/reject")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Vorschlag ablehnen", description = "Nur für Administratoren. Der Vorschlag wird verworfen.")
+    @Operation(summary = "Vorschlag ablehnen", description = "Nur für Administratoren. Der Vorschlag wird verworfen, "
+            + "bei einer Serie die ganze Serie.")
     public void reject(@PathVariable String id) {
         FamilyMember viewer = currentMember.get();
         access.requireDecision(viewer);
-        findOpenProposal(id, viewer);
-        events.deleteById(id);
+        CalendarEvent proposal = findOpenProposal(id, viewer);
+        if (proposal.isSeries()) {
+            seriesService.reject(proposal);
+        } else {
+            events.deleteById(id);
+        }
     }
 
     private CalendarEvent findOpenProposal(String id, FamilyMember viewer) {
@@ -183,10 +243,11 @@ public class CalendarEventController {
         }
     }
 
-    // Eine mitgeschickte Herkunft (external) wird nie übernommen; nur der Google-Abgleich setzt sie.
+    // Eine mitgeschickte Herkunft (external) wird nie übernommen; nur der Google-Abgleich setzt sie. Ebenso setzt nur
+    // EventSeriesService den Verweis auf eine Serie (series).
     private static CalendarEvent copy(String id, CalendarEvent e, EventStatus status, String createdBy,
             ExternalRef external) {
         return new CalendarEvent(id, e.title(), e.start(), e.end(), e.memberIds(), e.category(), e.location(),
-                e.description(), e.privateEvent(), status, createdBy, external);
+                e.description(), e.privateEvent(), status, createdBy, external, e.recurrence(), null);
     }
 }

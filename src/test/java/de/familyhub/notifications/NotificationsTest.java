@@ -300,6 +300,18 @@ class NotificationsTest {
         verify(api, never()).sendMessage(eq(SARAH_CHAT), anyString());
     }
 
+    // Eine Serie meldet sich einmal, mit Rhythmus, nicht für jeden ihrer Termine
+    @Test
+    void seriesStartingSoonSendsOneMessageNamingTheRhythm() throws Exception {
+        String daily = eventJson("Training", inHours(2), sarah, lucas)
+                .replace("\"location\"", "\"recurrence\": {\"frequency\": \"daily\"}, \"location\"");
+        createEvent(sarah, daily);
+
+        verify(api).sendMessage(eq(LUCAS_CHAT), contains("📅 Neuer Serientermin "));
+        verify(api).sendMessage(eq(LUCAS_CHAT), contains("„Training“, täglich (Praxis Dr. Weber)"));
+        verify(api, times(1)).sendMessage(anyLong(), anyString());
+    }
+
     // ─── Chat ─────────────────────────────────────────────────────────────────
 
     private void sendChat(FamilyMember by, String conversation, String text) throws Exception {
