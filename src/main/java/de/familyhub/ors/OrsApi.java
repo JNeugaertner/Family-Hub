@@ -2,6 +2,8 @@ package de.familyhub.ors;
 
 import java.util.List;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -25,9 +27,9 @@ public class OrsApi {
         this.rest = RestClient.builder().build();
     }
     public SearchResponse findPlaces(String query) {
-        try{
+        try{                
         return rest.get()
-                .uri(properties.baseUrl() + "/geocode/search?text=" + query)
+                .uri(properties.baseUrl() + "/geocode/search?text="+URLEncoder.encode(query, StandardCharsets.UTF_8))
                 .header("Authorization", properties.apiKey())
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, (request, response) -> {throw apiError(response);})  
