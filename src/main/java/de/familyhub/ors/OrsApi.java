@@ -29,8 +29,7 @@ public class OrsApi {
     public SearchResponse findPlaces(String query) {
         try{
         return rest.get()
-                .uri(properties.baseUrl() + "/geocode/search?text="
-                + URLEncoder.encode(query, StandardCharsets.UTF_8))
+                .uri(properties.baseUrl() + "/geocode/search?text=" + query)
                 .header("Authorization", properties.apiKey())
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, (request, response) -> {throw apiError(response);})  
