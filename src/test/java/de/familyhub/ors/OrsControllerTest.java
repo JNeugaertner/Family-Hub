@@ -76,11 +76,6 @@ class OrsControllerTest {
         oma = members.save(TestUsers.member("Oma", Role.GAST));
     }
 
-    private static String locationJson(String label, double lat, double lon) {
-        return "{\"label\":"+label+", \"lat\": " + lat
-                + ", \"lon\": " + lon + "}";
-    }
-
     private void simulatePlaces() {
         when(api.findPlaces(anyString())).thenReturn(new SearchResponse(List.of(
                 new Feature(new Geometry(List.of(10.0, 20.0)), new FeatureProperties("Place A")),
@@ -123,5 +118,76 @@ class OrsControllerTest {
                 .with(as(sarah)))
             .andExpect(status().isOk())
             .andExpect(content().string("400.0"));}
+
+    @Test
+    void blankSearchIsRejected() throws Exception {
+        mvc.perform(get("/api/ors")
+                .param("q", " ")
+                .with(as(sarah)))
+                .andDo(print())
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errors.q").value("Bitte einen Ort eingeben."));}
+
+    @Test 
+    void searchErrorBecomesBadRequest() throws Exception {
+        when(api.findPlaces(anyString())).thenThrow(new OrsException("ungültige Anfrage"));
+
+        mvc.perform(get("/api/ors")
+                .param("q", "place")
+                .with(as(sarah)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errors.q").value("ungültige Anfrage"));}
+
+    @Test 
+    void routeErrorBecomesBadRequest() throws Exception {
+        when(api.gettravelTime(anyString(), anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                .thenThrow(new OrsException("ungültige Anfrage"));
+
+        mvc.perform(get("/api/ors/travelTime")
+                .param("transportMode", "driving-car")
+                .param("startLat", "20.0")
+                .param("startLon", "10.0")
+                .param("endLat", "40.0")
+                .param("endLon", "30.0")
+                .with(as(sarah)))
+                .andDo(print())
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errors.travelTime").value("ungültige Anfrage"));}
+
+    @Test 
+    void adminMaySetLocationOthersMayNot() throws Exception {
+        mvc.perform(put("/api/ors/location")
+                .with(as(emma))
+                .contentType(APPLICATION_JSON)
+                .content("{\"label\":\"Place A\",\"lat\":20.0,\"lon\":10.0}"))
+                .andDo(print())
+            .andExpect(status().isForbidden());
+
+        mvc.perform(put("/api/ors/location")
+                .with(as(lucas))
+                .contentType(APPLICATION_JSON)
+                .content("{\"label\":\"Place A\",\"lat\":20.0,\"lon\":10.0}"))
+            .andExpect(status().isForbidden());
+
+        mvc.perform(put("/api/ors/location")
+                .with(as(oma))
+                .contentType(APPLICATION_JSON)
+                .content("{\"label\":\"Place A\",\"lat\":20.0,\"lon\":10.0}"))
+            .andExpect(status().isForbidden());
+
+        mvc.perform(put("/api/ors/location")
+                .with(as(sarah))
+                .contentType(APPLICATION_JSON)
+                .content("{\"label\":\"Place A\",\"lat\":20.0,\"lon\":10.0}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.label").value("Place A"))
+            .andExpect(jsonPath("$.lat").value(20.0))
+            .andExpect(jsonPath("$.lon").value(10.0));
+
+        assertThat(settings.current().homeLocation()).isNotNull();
+        assertThat(settings.current().homeLocation().label()).isEqualTo("Place A");
+        assertThat(settings.current().homeLocation().lat()).isEqualTo(20.0);
+        assertThat(settings.current().homeLocation().lon()).isEqualTo(10.0);
+    }
 
 }
