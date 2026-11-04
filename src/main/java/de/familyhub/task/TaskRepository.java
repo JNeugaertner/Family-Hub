@@ -17,4 +17,7 @@ public interface TaskRepository extends MongoRepository<Task, String> {
     List<Task> findByStatus(TaskStatus status);
 
     List<Task> findByDueDateAndPriority(java.time.LocalDate dueDate, TaskPriority priority);
+
+    // Wiederkehrende Aufgaben: die Runde, die beim Abhaken dieser Aufgabe entstanden ist
+    List<Task> findByPreviousRoundTaskId(String taskId);
 }

@@ -8,6 +8,7 @@ import static de.familyhub.permission.Action.LOESCHEN;
 import static de.familyhub.permission.Module.AUFGABEN;
 import static de.familyhub.permission.Module.PUNKTE;
 
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.springframework.stereotype.Component;
@@ -29,6 +30,10 @@ import de.familyhub.web.ApiException;
 // - Punkte festlegen und Erledigung bestätigen: nur mit "punkte/freigeben/familie" (Administratoren).
 // - Bonus-Aufgaben (Entscheidungen vom 29.09.2026): legen Administratoren an; offene sehen und übernehmen Kinder und
 //   Jugendliche ("aufgaben/bearbeiten/eigen"), zurückgeben dürfen sie sie, solange sie nicht erledigt sind.
+// - Wiederkehrende Aufgaben (Entscheidungen vom 04.11.2026): legen nur an, wer Aufgaben für die Familie anlegt
+//   ("aufgaben/erstellen/familie"), denn jede neue Runde ist für alle offen. Offene Runden sehen, übernehmen und
+//   abhaken alle, die eigene Aufgaben abhaken dürfen ("aufgaben/bearbeiten/eigen"), auch Erwachsene. Punkte gibt es
+//   nur für Kinder und Jugendliche: Hakt ein Erwachsener eine Runde ab, verliert nur diese Runde ihre Punkte.
 @Component
 public class TaskAccess {
 
@@ -46,7 +51,29 @@ public class TaskAccess {
         boolean family = permissions.can(viewer, AUFGABEN, ANSEHEN, Scope.FAMILIE);
         boolean own = permissions.can(viewer, AUFGABEN, ANSEHEN, Scope.EIGEN);
         boolean claims = canClaim(viewer);
-        return task -> family || (own && isAssignedTo(viewer, task)) || (claims && task.isOpenBonus());
+        boolean takes = canTakeRounds(viewer);
+        return task -> family || (own && isAssignedTo(viewer, task)) || (claims && task.isOpenBonus())
+                || (takes && task.isOpenRound());
+    }
+
+    // Offene Runden wiederkehrender Aufgaben übernimmt, wer eigene Aufgaben abhaken darf.
+    public boolean canTakeRounds(FamilyMember viewer) {
+        return permissions.can(viewer, AUFGABEN, BEARBEITEN, Scope.EIGEN);
+    }
+
+    // Wer eine offene Runde übernimmt oder direkt abhakt
+    public void requireTakeRound(FamilyMember viewer, Task task) {
+        if (!canTakeRounds(viewer)) {
+            throw ApiException.forbidden("Keine Berechtigung, Aufgaben zu übernehmen.");
+        }
+        if (!task.isOpenRound() || task.status() != TaskStatus.TODO) {
+            throw ApiException.conflict("Diese Aufgabe hat schon jemand übernommen.");
+        }
+    }
+
+    // Punkte gibt es nur für Kinder und Jugendliche
+    public boolean collectsPoints(String memberId) {
+        return isChildOrTeenager(memberId);
     }
 
     // Wer Punkte sammelt (Kinder und Jugendliche) und eigene Aufgaben abhaken darf, kann Bonus-Aufgaben übernehmen.
@@ -57,6 +84,10 @@ public class TaskAccess {
     }
 
     public void requireClaim(FamilyMember viewer, Task task) {
+        if (task.repeat() != null) {
+            requireTakeRound(viewer, task);
+            return;
+        }
         if (!canClaim(viewer)) {
             throw ApiException.forbidden("Bonus-Aufgaben übernehmen nur Kinder und Jugendliche.");
         }
@@ -66,6 +97,10 @@ public class TaskAccess {
     }
 
     public void requireRelease(FamilyMember viewer, Task task) {
+        if (task.repeat() != null) {
+            requireReleaseRound(viewer, task);
+            return;
+        }
         if (!task.bonus() || task.assigneeId() == null) {
             throw ApiException.conflict("Nur übernommene Bonus-Aufgaben lassen sich zurückgeben.");
         }
@@ -74,6 +109,19 @@ public class TaskAccess {
         }
         if (task.status() == TaskStatus.DONE || task.status() == TaskStatus.CONFIRMED) {
             throw ApiException.conflict("Erledigte Bonus-Aufgaben lassen sich nicht mehr zurückgeben.");
+        }
+    }
+
+    // Eine Runde einer wiederkehrenden Aufgabe wieder für alle freigeben
+    private void requireReleaseRound(FamilyMember viewer, Task task) {
+        if (task.assigneeId() == null) {
+            throw ApiException.conflict("Diese Aufgabe ist schon für alle offen.");
+        }
+        if (!isAssignedTo(viewer, task) && !permissions.can(viewer, AUFGABEN, ERSTELLEN, Scope.FAMILIE)) {
+            throw ApiException.forbidden("Zurückgeben darf nur, wer die Aufgabe übernommen hat.");
+        }
+        if (task.status() == TaskStatus.DONE || task.status() == TaskStatus.CONFIRMED) {
+            throw ApiException.conflict("Erledigte Aufgaben lassen sich nicht mehr zurückgeben.");
         }
     }
 
@@ -89,6 +137,7 @@ public class TaskAccess {
         }
         Scope scope = viewer.id().equals(task.assigneeId()) ? Scope.EIGEN : Scope.FAMILIE;
         requireTaskRight(viewer, ERSTELLEN, scope, false, "Aufgaben anzulegen", "anlegen");
+        requireRepeatRight(viewer, task.repeat() != null);
         requirePointsRight(viewer, task.points() > 0);
         return requireNoPointsForAdults(task);
     }
@@ -98,15 +147,26 @@ public class TaskAccess {
         boolean own = isOwnTask(viewer, existing) && viewer.id().equals(changed.assigneeId());
         requireTaskRight(viewer, ERSTELLEN, own ? Scope.EIGEN : Scope.FAMILIE, isAssignedByOthers(viewer, existing),
                 "Aufgaben zu ändern", "ändern");
+        requireRepeatRight(viewer, !Objects.equals(existing.repeat(), changed.repeat()));
         requirePointsRight(viewer, !existing.points().equals(changed.points()));
         return requireNoPointsForAdults(changed);
     }
 
+    // Jede neue Runde ist für alle offen, deshalb Aufgaben für die ganze Familie
+    private void requireRepeatRight(FamilyMember viewer, boolean repeatChanged) {
+        if (repeatChanged && !permissions.can(viewer, AUFGABEN, ERSTELLEN, Scope.FAMILIE)) {
+            throw ApiException.forbidden("Wiederkehrende Aufgaben sind für alle offen; anlegen und ändern darf sie "
+                    + "nur, wer Aufgaben für die ganze Familie anlegt.");
+        }
+    }
+
     // Erwachsene sammeln keine Sterne: Eine Aufgabe, die einem Erwachsenen (kein Kind/Jugendlicher) zugewiesen ist,
-    // hat keine Punkte. Bonus-Aufgaben bleiben davon ausgenommen (sie sind nur für Kinder und Jugendliche offen).
+    // hat keine Punkte. Bonus-Aufgaben bleiben davon ausgenommen (sie sind nur für Kinder und Jugendliche offen),
+    // wiederkehrende auch: Die Punkte gelten für die nächsten Runden, beim Abhaken verliert nur die Runde eines
+    // Erwachsenen ihre Punkte (TaskController).
     // Gibt die (ggf. auf null gesetzte) Aufgabe zurück, damit der Aufrufer sie so verwenden kann.
     private Task requireNoPointsForAdults(Task task) {
-        if (!task.bonus() && task.assigneeId() != null && task.points() > 0
+        if (!task.bonus() && task.repeat() == null && task.assigneeId() != null && task.points() > 0
                 && !isChildOrTeenager(task.assigneeId())) {
             return task.withoutPoints();
         }
@@ -123,6 +183,11 @@ public class TaskAccess {
         requireNotConfirmed(task);
         if (task.isOpenBonus()) {
             throw ApiException.conflict("Eine Bonus-Aufgabe muss erst jemand übernehmen.");
+        }
+        // Offene Runde: wer sie abhakt, übernimmt sie damit (TaskController)
+        if (task.isOpenRound()) {
+            requireTakeRound(viewer, task);
+            return;
         }
         Scope scope = isAssignedTo(viewer, task) ? Scope.EIGEN : Scope.FAMILIE;
         requireTaskRight(viewer, BEARBEITEN, scope, false, "Aufgaben abzuhaken", "abhaken");

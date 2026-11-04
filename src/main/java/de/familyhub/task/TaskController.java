@@ -2,8 +2,10 @@ package de.familyhub.task;
 
 import java.net.URI;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import org.springframework.data.domain.Sort;
@@ -105,13 +107,14 @@ public class TaskController {
     @Operation(summary = "Aufgabe anlegen",
             description = "Neue Aufgaben sind offen (todo). Eine mitgeschickte id, status, createdBy und Bestätigung "
                     + "werden ignoriert. Punkte über 0 dürfen nur Administratoren festlegen. Bonus-Aufgaben (bonus) "
-                    + "legen nur Administratoren an: ohne Person, mit Punkten, Frist optional.")
+                    + "legen nur Administratoren an: ohne Person, mit Punkten, Frist optional. Wiederkehrende Aufgaben "
+                    + "(repeat) dürfen ohne Person sein (wer zuerst kommt).")
     public ResponseEntity<Task> create(@Valid @RequestBody Task task) {
         FamilyMember viewer = currentMember.get();
         // Aufgaben für Erwachsene (kein Kind/Jugendlicher) bekommen keine Punkte, da sie keine sammeln
         Task checked = access.requireCreate(viewer, task);
         Task toSave = copy(null, checked, checked.bonus() ? null : checked.assigneeId(), TaskStatus.TODO, viewer.id(),
-                checked.bonus());
+                checked.bonus(), null);
         requireAssignment(toSave);
         Task saved = tasks.save(toSave);
         notifications.saved(null, saved, viewer);
@@ -127,8 +130,9 @@ public class TaskController {
         Task existing = findVisible(id, viewer);
         // Ob Bonus-Aufgabe, bleibt; bei Bonus-Aufgaben bleibt auch, wer sie übernommen hat (claim/release)
         Task changed = existing.bonus()
-                ? copy(id, task, existing.assigneeId(), existing.status(), existing.createdBy(), true)
-                : copy(id, task, task.assigneeId(), existing.status(), existing.createdBy(), false);
+                ? copy(id, task, existing.assigneeId(), existing.status(), existing.createdBy(), true, null)
+                : copy(id, task, task.assigneeId(), existing.status(), existing.createdBy(), false,
+                        existing.previousRound());
         // Aufgaben für Erwachsene (kein Kind/Jugendlicher) behalten keine Punkte, da sie keine sammeln
         changed = access.requireEdit(viewer, existing, changed);
         requireAssignment(changed);
@@ -145,13 +149,19 @@ public class TaskController {
         FamilyMember viewer = currentMember.get();
         Task task = findVisible(id, viewer);
         access.requireClaim(viewer, task);
-        // Nur übernehmen, wenn sie in diesem Moment noch frei ist (zwei Kinder gleichzeitig)
+        return take(task, viewer);
+    }
+
+    // Nur übernehmen, wenn sie in diesem Moment noch frei ist (zwei Kinder gleichzeitig)
+    private Task take(Task task, FamilyMember viewer) {
         Task claimed = mongo.findAndModify(
-                Query.query(Criteria.where("_id").is(id).and("assigneeId").is(null).and("status").is(TaskStatus.TODO)),
+                Query.query(Criteria.where("_id").is(task.id()).and("assigneeId").is(null)
+                        .and("status").is(TaskStatus.TODO)),
                 Update.update("assigneeId", viewer.id()).set("status", TaskStatus.IN_PROGRESS),
                 FindAndModifyOptions.options().returnNew(true), Task.class);
         if (claimed == null) {
-            throw ApiException.conflict("Diese Bonus-Aufgabe hat schon jemand übernommen.");
+            throw ApiException.conflict(task.bonus() ? "Diese Bonus-Aufgabe hat schon jemand übernommen."
+                    : "Diese Aufgabe hat schon jemand übernommen.");
         }
         return claimed;
     }
@@ -169,7 +179,9 @@ public class TaskController {
 
     @PatchMapping("/{id}/status")
     @Operation(summary = "Status ändern (abhaken)",
-            description = "todo, inprogress oder done. Bestätigen geht über POST /api/tasks/{id}/confirm.")
+            description = "todo, inprogress oder done. Bestätigen geht über POST /api/tasks/{id}/confirm. Eine offene "
+                    + "Runde einer wiederkehrenden Aufgabe übernimmt, wer sie abhakt; beim Abhaken (done) entsteht die "
+                    + "nächste Runde, wird der Haken zurückgenommen, verschwindet sie wieder, solange sie noch offen ist.")
     public Task changeStatus(@PathVariable String id, @Valid @RequestBody StatusChange change) {
         if (change.status() == TaskStatus.CONFIRMED) {
             throw ApiException.invalidField("status", "Bestätigen darf nur ein Administrator über „Bestätigen“");
@@ -177,7 +189,53 @@ public class TaskController {
         FamilyMember viewer = currentMember.get();
         Task existing = findVisible(id, viewer);
         access.requireStatusChange(viewer, existing);
-        return tasks.save(existing.withStatus(change.status()));
+        if (existing.repeat() == null) {
+            return tasks.save(existing.withStatus(change.status()));
+        }
+        if (existing.isOpenRound()) {
+            if (change.status() == TaskStatus.TODO) {
+                return existing;
+            }
+            existing = take(existing, viewer);
+        }
+        if (change.status() == TaskStatus.DONE) {
+            return finishRound(existing);
+        }
+        return leaveDone(existing, change.status());
+    }
+
+    // Wiederkehrende Aufgabe abgehakt: Die nächste Runde ist fällig am Tag des Abhakens plus Abstand und für alle
+    // offen. Punkte gibt es nur für Kinder und Jugendliche; die nächste Runde behält sie trotzdem.
+    private Task finishRound(Task round) {
+        if (round.status() == TaskStatus.DONE) {
+            return round;
+        }
+        // Nur einmal abhaken, auch wenn zwei Anfragen gleichzeitig kommen
+        Task done = mongo.findAndModify(
+                Query.query(Criteria.where("_id").is(round.id()).and("status").ne(TaskStatus.DONE)),
+                Update.update("status", TaskStatus.DONE), FindAndModifyOptions.options().returnNew(true), Task.class);
+        if (done == null) {
+            throw ApiException.conflict("Diese Aufgabe ist schon erledigt.");
+        }
+        tasks.save(done.followingRound(LocalDate.now(clock), done.assigneeId()));
+        return access.collectsPoints(done.assigneeId()) ? done : tasks.save(done.withoutPoints());
+    }
+
+    // Haken zurückgenommen oder Erledigung zurückgegeben: Die nächste Runde verschwindet wieder, solange sie noch
+    // niemand übernommen hat; die Runde bekommt ihre Punkte zurück (bei Erwachsenen waren sie gestrichen).
+    private Task leaveDone(Task round, TaskStatus newStatus) {
+        Task changed = round.withStatus(newStatus);
+        if (round.status() != TaskStatus.DONE || newStatus == TaskStatus.DONE) {
+            return tasks.save(changed);
+        }
+        Optional<Task> next = tasks.findByPreviousRoundTaskId(round.id()).stream()
+                .filter(task -> task.isOpenRound() && task.status() == TaskStatus.TODO)
+                .findFirst();
+        if (next.isPresent()) {
+            tasks.delete(next.get());
+            changed = changed.withPoints(next.get().points());
+        }
+        return tasks.save(changed);
     }
 
     @DeleteMapping("/{id}")
@@ -229,11 +287,12 @@ public class TaskController {
 
     @PostMapping("/{id}/reopen")
     @Operation(summary = "Erledigte Aufgabe zurückgeben",
-            description = "Nur für Administratoren. Die Aufgabe ist wieder in Arbeit, es gibt keine Punkte.")
+            description = "Nur für Administratoren. Die Aufgabe ist wieder in Arbeit, es gibt keine Punkte. Bei "
+                    + "wiederkehrenden Aufgaben verschwindet die nächste Runde wieder, solange sie noch offen ist.")
     public Task reopen(@PathVariable String id) {
         FamilyMember viewer = currentMember.get();
         access.requireConfirmationRight(viewer);
-        return tasks.save(findAwaitingConfirmation(id, viewer).withStatus(TaskStatus.IN_PROGRESS));
+        return leaveDone(findAwaitingConfirmation(id, viewer), TaskStatus.IN_PROGRESS);
     }
 
     private Task findAwaitingConfirmation(String id, FamilyMember viewer) {
@@ -253,14 +312,14 @@ public class TaskController {
                 .orElseThrow(() -> ApiException.notFound("Aufgabe " + id + " existiert nicht."));
     }
 
-    // Normale Aufgaben brauchen Person und Frist, Bonus-Aufgaben Punkte
+    // Normale Aufgaben brauchen Person und Frist, Bonus-Aufgaben Punkte; wiederkehrende dürfen ohne Person sein
     private void requireAssignment(Task task) {
         if (task.bonus()) {
             if (task.points() <= 0) {
                 throw ApiException.invalidField("points", "Bonus-Aufgaben brauchen Punkte");
             }
         } else {
-            if (task.assigneeId() == null) {
+            if (task.assigneeId() == null && task.repeat() == null) {
                 throw ApiException.invalidField("assigneeId", "Aufgabe muss einem Familienmitglied zugewiesen sein");
             }
             if (task.dueDate() == null) {
@@ -273,8 +332,8 @@ public class TaskController {
     }
 
     private static Task copy(String id, Task t, String assigneeId, TaskStatus status, String createdBy,
-            boolean bonus) {
+            boolean bonus, PreviousRound previousRound) {
         return new Task(id, t.title(), t.description(), assigneeId, t.dueDate(), t.priority(), t.category(),
-                t.points(), status, createdBy, null, null, bonus, t.repeatable());
+                t.points(), status, createdBy, null, null, bonus, t.repeatable(), t.repeat(), previousRound);
     }
 }
