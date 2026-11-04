@@ -178,6 +178,31 @@ class RecurringTaskTest {
                 .satisfies(next -> assertThat(next.dueDate()).isEqualTo(today.plusMonths(1)));
     }
 
+    // Anforderung 8: Änderungen am Wiederholungsintervall werden für zukünftige Wiederholungen übernommen
+    @Test
+    void changedIntervalAppliesToTheFollowingRounds() throws Exception {
+        String id = create(recurring("Blumen gießen", today, 3, "days", 10));
+
+        mvc.perform(put("/api/tasks/" + id).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(recurring("Blumen gießen", today, 1, "weeks", 10)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.repeat.interval").value(1))
+                .andExpect(jsonPath("$.repeat.unit").value("weeks"))
+                .andExpect(jsonPath("$.dueDate").value(today.toString()));
+        changeStatus(lucas, id, "done").andExpect(status().isOk());
+
+        assertThat(roundsAfter(id)).singleElement().satisfies(next -> {
+            assertThat(next.dueDate()).isEqualTo(today.plusWeeks(1));
+            assertThat(next.repeat().interval()).isEqualTo(1);
+            assertThat(next.repeat().unit()).isEqualTo(RepeatUnit.WEEKS);
+        });
+        // und auch die Runde danach
+        String nextId = roundsAfter(id).getFirst().id();
+        changeStatus(emma, nextId, "done").andExpect(status().isOk());
+        assertThat(roundsAfter(nextId)).singleElement()
+                .satisfies(after -> assertThat(after.dueDate()).isEqualTo(today.plusWeeks(1)));
+    }
+
     @Test
     void adultsTakeRoundsWithoutPointsButTheNextRoundKeepsThem() throws Exception {
         String id = create(recurring("Blumen gießen", today, 3, "days", 10));
