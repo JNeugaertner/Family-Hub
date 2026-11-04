@@ -190,4 +190,28 @@ class OrsControllerTest {
         assertThat(settings.current().homeLocation().lon()).isEqualTo(10.0);
     }
 
+    @Test 
+    void adminMayRemoveLocationOthersMayNot() throws Exception {
+        settings.save(new FamilySettings(FamilySettings.ID, Set.of())
+                .withHomeLocation(new OrsLocation("Place A", 20.0, 10.0)));
+
+        mvc.perform(delete("/api/ors/location")
+                .with(as(emma)))
+            .andExpect(status().isForbidden());
+
+        mvc.perform(delete("/api/ors/location")
+                .with(as(lucas)))
+            .andExpect(status().isForbidden());
+
+        mvc.perform(delete("/api/ors/location")
+                .with(as(oma)))
+            .andExpect(status().isForbidden());
+
+        mvc.perform(delete("/api/ors/location")
+                .with(as(sarah)))
+            .andExpect(status().isNoContent());
+
+        assertThat(settings.current().homeLocation()).isNull();
+    }
+
 }
