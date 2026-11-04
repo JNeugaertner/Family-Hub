@@ -10,6 +10,7 @@ import java.io.IOException;
 
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.RestClient;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,10 +23,17 @@ public class OrsApi {
     private final OrsProperties properties;
     private final RestClient rest;
 
+    @Autowired 
     public OrsApi(OrsProperties properties) {
-        this.properties = properties;
-        this.rest = RestClient.builder().build();
+        this(properties, RestClient.builder());
     }
+
+    // Für Tests, die OpenRouteService mit MockRestServiceServer simulieren
+    OrsApi(OrsProperties properties, RestClient.Builder builder) {
+        this.properties = properties;
+        this.rest = builder.build();
+    }
+
     public SearchResponse findPlaces(String query) {
         try{                
         return rest.get()
