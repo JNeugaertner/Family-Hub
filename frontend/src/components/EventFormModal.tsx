@@ -192,9 +192,10 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   }
   
   const getTimeLayout = (time: number) => {
-    const days = Math.floor(time / 86400);
-    const hours = Math.floor(time / 3600);
-    const minutes = Math.round((time % 3600) / 60);
+    const totalMinutes = Math.round(time / 60);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = (totalMinutes % 60);
     if (days == 0 && hours == 0 && minutes == 0){
       return '';}
     if (days >=1){
@@ -316,12 +317,12 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
           </Field>
 
           <Field id="event-location" label="Ort (optional)" error={fieldErrors.location}>
-            <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-2 py-2">
+            {location?.trim() && (<div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-2 py-2">
             <span className="text-sm text-slate-800 flex-1">📍 {location}</span>
-            {location?.trim() && <button type="button" disabled={busy} onClick={removeLocation} className="text-xs text-slate-500 hover:text-[#EF4444] disabled:opacity-50">
+            <button type="button" disabled={busy} onClick={removeLocation} className="text-xs text-slate-500 hover:text-[#EF4444] disabled:opacity-50">
                Entfernen
-            </button>}
-            </div>
+            </button>
+            </div>)}
 
             <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-2 py-2">
               <span className="text-xs text-slate-500">Adresse suchen</span>
@@ -356,7 +357,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
                     
           <Field id="transportMode" label="Verkehrsmittel" error={fieldErrors.transportMode}>
             <select {...fieldProps('transportMode')} value={transportMode} onChange={e => {setTransportMode(e.target.value as TransportMode);
-          gettravelTime(e.target.value as TransportMode, { label: location, lat: lat ?? 0, lon: lon ?? 0 })}}>
+                gettravelTime(e.target.value as TransportMode, { label: location, lat: lat ?? 0, lon: lon ?? 0 })}}>
               <option value="driving-car">Auto</option>
               <option value="cycling-regular">Fahrrad</option>
               <option value="foot-walking">Zu Fuß</option>
