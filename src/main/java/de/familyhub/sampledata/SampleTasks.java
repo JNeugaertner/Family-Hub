@@ -16,17 +16,25 @@ import static de.familyhub.task.TaskStatus.TODO;
 
 import java.util.List;
 
+import de.familyhub.task.RepeatUnit;
 import de.familyhub.task.TaskCategory;
 import de.familyhub.task.TaskPriority;
+import de.familyhub.task.TaskRepeat;
 import de.familyhub.task.TaskStatus;
 
 // Beispielaufgaben (ursprünglich aus dem Figma-UI) und eine Punkte-Historie, die die
 // Punktestände aus dem Figma-UI ergibt (Emma 420, Lucas 285, Lily 190).
 final class SampleTasks {
 
-    // day: Fälligkeit relativ zu heute; username: zugewiesenes Mitglied der Beispielfamilie
+    // day: Fälligkeit relativ zu heute; username: zugewiesenes Mitglied der Beispielfamilie;
+    // repeat: wiederholt sich nach Erledigung (die nächste Runde ist für alle offen)
     record SampleTask(String title, String description, String username, int day, TaskPriority priority,
-            TaskCategory category, int points, TaskStatus status) {
+            TaskCategory category, int points, TaskStatus status, TaskRepeat repeat) {
+
+        SampleTask(String title, String description, String username, int day, TaskPriority priority,
+                TaskCategory category, int points, TaskStatus status) {
+            this(title, description, username, day, priority, category, points, status, null);
+        }
     }
 
     static final List<SampleTask> TASKS = List.of(
@@ -37,7 +45,8 @@ final class SampleTasks {
             new SampleTask("Wocheneinkauf", "Alles von der Einkaufsliste besorgen", "mike", 0, MEDIUM, ERRANDS, 0,
                     IN_PROGRESS),
             new SampleTask("Hund füttern", null, "lily", 0, HIGH, CHORES, 10, CONFIRMED),
-            new SampleTask("Blumen gießen", null, "emma", 2, LOW, CHORES, 10, TODO),
+            new SampleTask("Blumen gießen", null, "emma", 2, LOW, CHORES, 10, TODO,
+                    new TaskRepeat(3, RepeatUnit.DAYS)),
             new SampleTask("30 Minuten lesen", null, "lily", 0, MEDIUM, SCHOOL, 15, IN_PROGRESS),
             new SampleTask("Wochenende planen", null, "sarah", 3, LOW, FAMILY, 0, TODO),
             new SampleTask("Licht in der Garage reparieren", null, "mike", 4, MEDIUM, HOME, 0, TODO),

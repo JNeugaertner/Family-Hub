@@ -4,12 +4,27 @@ import { json, request } from '../api/client';
 export type TaskStatus = 'todo' | 'inprogress' | 'done' | 'confirmed';
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskCategory = 'chores' | 'school' | 'health' | 'errands' | 'family' | 'home';
+export type RepeatUnit = 'days' | 'weeks' | 'months';
+
+// Wiederholen nach Erledigung: Beim Abhaken entsteht die nächste Runde, fällig am Tag des Abhakens plus Abstand
+// und offen für alle (wer zuerst kommt)
+export interface TaskRepeat {
+  interval: number;
+  unit: RepeatUnit;
+}
+
+// In der neuen Runde: wer die Runde davor wann abgehakt hat
+export interface PreviousRound {
+  taskId: string;
+  doneOn: string;
+  doneBy: string;
+}
 
 export interface ApiTask {
   id: string;
   title: string;
   description: string | null;
-  // null bei einer offenen Bonus-Aufgabe (noch niemand hat sie übernommen)
+  // null bei einer offenen Bonus-Aufgabe oder einer offenen Runde (noch niemand hat sie übernommen)
   assigneeId: string | null;
   // bei Bonus-Aufgaben optional
   dueDate: string | null;
@@ -23,6 +38,9 @@ export interface ApiTask {
   // Bonus-Aufgabe: offen für alle Kinder und Jugendlichen; repeatable: nach der Bestätigung wieder offen
   bonus: boolean;
   repeatable: boolean;
+  // nur bei Aufgaben, die sich nach Erledigung wiederholen (nie bei Bonus-Aufgaben)
+  repeat: TaskRepeat | null;
+  previousRound: PreviousRound | null;
 }
 
 export interface TaskInput {
@@ -35,6 +53,7 @@ export interface TaskInput {
   points: number;
   bonus: boolean;
   repeatable: boolean;
+  repeat: TaskRepeat | null;
 }
 
 export const listTasks = () => request<ApiTask[]>('/api/tasks');
@@ -58,7 +77,7 @@ export const confirmTask =(id: string) => request<ApiTask>(`/api/tasks/${id}/con
 
 export const reopenTask = (id: string) => request<ApiTask>(`/api/tasks/${id}/reopen`, { method: 'POST' });
 
-// Bonus-Aufgaben: übernehmen (wer zuerst kommt) und zurückgeben, solange sie nicht erledigt sind
+// Bonus-Aufgaben und offene Runden: übernehmen (wer zuerst kommt) und zurückgeben, solange sie nicht erledigt sind
 export const claimTask = (id: string) => request<ApiTask>(`/api/tasks/${id}/claim`, { method: 'POST' });
 
 export const releaseTask = (id: string) => request<ApiTask>(`/api/tasks/${id}/release`, { method: 'POST' });

@@ -15,7 +15,7 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 |---|---|
 | Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private Termine, Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
 | Google Kalender | Termine aus dem eigenen Google Kalender übernehmen (schreibgeschützt); auf Wunsch die eigenen FamilyHub-Termine in einen Google-Kalender „FamilyHub“ eintragen |
-| Aufgaben und Punkte | Eltern vergeben Aufgaben mit Punkten, Kinder haken ab, nach der Bestätigung gibt es Punkte; Bonus-Aufgaben für alle Kinder; Erwachsene erledigen Aufgaben ohne Punkte |
+| Aufgaben und Punkte | Eltern vergeben Aufgaben mit Punkten, Kinder haken ab, nach der Bestätigung gibt es Punkte; Bonus-Aufgaben für alle Kinder; Aufgaben, die sich nach Erledigung wiederholen (z. B. Blumen gießen alle 3 Tage); Erwachsene erledigen Aufgaben ohne Punkte |
 | Belohnungen | Shop, in dem Kinder und Jugendliche Punkte einlösen; die Eltern genehmigen oder lehnen ab |
 | Erfolge | Automatische Erfolge (z. B. „7 Tage hintereinander“) mit einmaligen Bonuspunkten |
 | Einkaufsliste | Gemeinsame Liste mit Kategorien und „dringend“; Kinder schlagen Artikel vor, die Eltern übernehmen |
@@ -90,6 +90,29 @@ Entwicklung, alle mit dem Passwort `familyhub`):
 Ohne Beispieldaten (`familyhub.sample-data.enabled=false`) legt man beim ersten
 Start in der Oberfläche („Familie einrichten“) oder über `POST /api/auth/setup`
 den ersten Administrator an.
+
+## Wiederkehrende Aufgaben
+
+Im Aufgaben-Formular wiederholt „↻ Nach Erledigung wiederholen“ eine Aufgabe
+im Abstand von Tagen, Wochen oder Monaten, gezählt ab dem Abhaken (Beispiel in
+den Beispieldaten: „Blumen gießen“ alle 3 Tage). Anlegen und ändern dürfen das
+alle, die Aufgaben für die ganze Familie anlegen (in den Standardrollen die
+Administratoren).
+
+- Beim Abhaken entsteht sofort die nächste Runde: fällig am Tag des Abhakens
+  plus Abstand, mit Titel, Punkten und Priorität der alten. Wer früher abhakt,
+  ist früher wieder dran; bleibt eine Runde liegen, kommen keine neuen dazu.
+- Die neue Runde ist **für alle offen** („Wer zuerst kommt“): Kinder,
+  Jugendliche und Erwachsene sehen sie, übernehmen sie mit „Ich mach's“ oder
+  haken sie direkt ab. Gäste sehen sie nicht. Die Karte zeigt, wer zuletzt
+  wann erledigt hat.
+- Punkte gibt es wie immer nach der Bestätigung und nur für Kinder und
+  Jugendliche. Hakt ein Erwachsener ab, hat nur diese Runde keine Punkte.
+- Wird der Haken zurückgenommen oder die Erledigung zurückgegeben, verschwindet
+  die nächste Runde wieder, solange sie noch niemand übernommen hat.
+- Beenden: im Formular die Wiederholung abschalten oder die offene Runde löschen.
+  Bonus-Aufgaben behalten ihr eigenes „↻ Wiederkehrend“ (nach der Bestätigung
+  wieder offen, ohne Frist).
 
 ## Einstellungen
 

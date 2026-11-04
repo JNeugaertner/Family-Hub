@@ -293,7 +293,7 @@ public class SampleDataLoader implements ApplicationRunner {
                 .map(t -> new Task(null, t.title(), t.description(), idByUsername.get(t.username()),
                         now.toLocalDate().plusDays(t.day()), t.priority(), t.category(), t.points(), t.status(),
                         creator, t.status() == TaskStatus.CONFIRMED ? now.minusHours(3) : null,
-                        t.status() == TaskStatus.CONFIRMED ? creator : null))
+                        t.status() == TaskStatus.CONFIRMED ? creator : null, false, false, t.repeat(), null))
                 .toList());
 
         List<PointEntry> points = new ArrayList<>();
