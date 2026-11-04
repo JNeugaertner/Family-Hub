@@ -9,7 +9,7 @@ import PointsToast from '../points/PointsToast';
 import type { ApiTask, RepeatUnit, TaskCategory, TaskPriority, TaskRepeat, TaskStatus } from '../tasks/api';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { useTaskPermissions } from '../tasks/permissions';
-import { describeRepeat, isOpenRound, nextRoundIn, REPEAT_UNIT_OPTIONS } from '../tasks/repeat';
+import { describeRepeat, isOpenRound, nextRoundIn, REPEAT_UNIT_OPTIONS, repeatsForAll } from '../tasks/repeat';
 
 interface Props { onNavigate: (p: any) => void; }
 
@@ -62,6 +62,8 @@ const awaitsConfirmation = (task: ApiTask) => task.status === 'done' && task.poi
 // Erwachsene (kein Kind/Jugendlicher) sammeln keine Sterne: Die Punkte-Anzeige auf der Karte
 // bleibt ihnen erspart, damit nicht so aussieht, als hätten sie ein Punktekonto.
 const isAdult = (m?: CalendarMember) => !!m && m.effectiveRole !== 'kind' && m.effectiveRole !== 'jugendlicher';
+
+const memberName = (members: CalendarMember[], id: string) => members.find(m => m.id === id)?.name ?? 'jemand';
 
 function errorText(err: unknown) {
   return err instanceof Error ? err.message : String(err);
@@ -230,7 +232,7 @@ function BonusBadge({ repeatable }: { repeatable: boolean }) {
 function RepeatBadge({ repeat }: { repeat: TaskRepeat }) {
   return (
     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]"
-      title={`Wiederholt sich nach Erledigung: die nächste Runde ist ${describeRepeat(repeat)} nach dem Abhaken fällig und für alle offen`}>
+      title={`Wiederholt sich nach Erledigung: die nächste Runde ist ${describeRepeat(repeat)} nach dem Abhaken fällig, ${repeat.openToAll !== false ? 'für alle offen' : 'wieder für dieselbe Person'}`}>
       ↻ {describeRepeat(repeat)}
     </span>
   );
@@ -290,7 +292,7 @@ function Field({ id, label, error, children }: { id: string; label: string; erro
 }
 
 // readOnly: nur ansehen (z. B. bestätigte Aufgaben), Löschen bleibt möglich, wenn erlaubt
-function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, lastDoneBy, mayAssignPoints, mayRepeat, mayDelete, readOnly, todayKey, onClose }: {
+function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, lastDoneBy, mayAssignPoints, mayRepeat, mayRepeatForAll, mayDelete, readOnly, todayKey, onClose }: {
   task?: ApiTask;
   // neue Aufgabe direkt als Bonus-Aufgabe (Knopf im Bereich "Bonus-Aufgaben")
   bonusDefault?: boolean;
@@ -300,8 +302,9 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, l
   // wiederkehrende Aufgabe: wer die Runde davor abgehakt hat
   lastDoneBy?: CalendarMember;
   mayAssignPoints: boolean;
-  // Wiederholung einstellen (nur wer Aufgaben für die ganze Familie anlegt)
+  // Wiederholung einstellen; "Wer zuerst kommt" nur, wer Aufgaben für die ganze Familie anlegt
   mayRepeat: boolean;
+  mayRepeatForAll: boolean;
   mayDelete: boolean;
   readOnly: boolean;
   todayKey: string;
@@ -310,8 +313,10 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, l
   const { saveTask, removeTask } = useTaskData();
   const [title, setTitle] = useState(task?.title ?? defaultTitle ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
-  // '' = wer zuerst kommt (nur bei wiederkehrenden Aufgaben)
-  const [assigneeId, setAssigneeId] = useState(task ? task.assigneeId ?? '' : assignable[0]?.id ?? '');
+  // '' = wer zuerst kommt (nur bei wiederkehrenden Aufgaben). Hat jemand eine Runde für alle übernommen, steht hier
+  // trotzdem '' (die nächsten Runden bleiben offen), takenBy nennt die Person.
+  const [assigneeId, setAssigneeId] = useState(task ? (repeatsForAll(task) ? '' : task.assigneeId ?? '') : assignable[0]?.id ?? '');
+  const takenBy = task && repeatsForAll(task) && task.assigneeId ? task.assigneeId : null;
   const [repeatOn, setRepeatOn] = useState(!!task?.repeat);
   const [repeatInterval, setRepeatInterval] = useState(task?.repeat?.interval ?? 3);
   const [repeatUnit, setRepeatUnit] = useState<RepeatUnit>(task?.repeat?.unit ?? 'days');
@@ -327,18 +332,20 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, l
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Erwachsene sammeln keine Sterne: für eine erwachsene Person gibt es kein Punkte-Feld (0 Punkte).
-  // Bonus-Aufgaben betreffen nur Kinder/Jugendliche und behalten ihr Punkte-Feld, wiederkehrende auch: Die Punkte
-  // gelten für die nächsten Runden, wer sie auch übernimmt.
+  // Bonus-Aufgaben betreffen nur Kinder/Jugendliche und behalten ihr Punkte-Feld, wiederkehrende für alle auch: Die
+  // Punkte gelten für die nächsten Runden, wer sie auch übernimmt.
   const repeating = !bonus && repeatOn;
-  const assigneeIsAdult = !bonus && !repeating && isAdult(assignable.find(m => m.id === assigneeId));
+  const forAll = repeating && assigneeId === '';
+  const assigneeIsAdult = !bonus && !forAll && isAdult(assignable.find(m => m.id === assigneeId));
   const showPoints = mayAssignPoints && !assigneeIsAdult;
-  const repeat: TaskRepeat | null = repeating ? { interval: repeatInterval, unit: repeatUnit } : null;
+  const repeat: TaskRepeat | null = repeating ? { interval: repeatInterval, unit: repeatUnit, openToAll: forAll } : null;
+  const fixedName = assignable.find(m => m.id === assigneeId)?.name;
 
   const toggleRepeat = (on: boolean) => {
     setRepeatOn(on);
-    // Neue wiederkehrende Aufgaben sind zuerst für alle offen; ohne Wiederholung braucht es eine Person
-    if (on && !task) setAssigneeId('');
-    if (!on && !assigneeId) setAssigneeId(assignable[0]?.id ?? '');
+    // Neue wiederkehrende Aufgaben der Eltern sind zuerst für alle offen; ohne Wiederholung braucht es eine Person
+    if (on && !task && mayRepeatForAll) setAssigneeId('');
+    if (!on && !assigneeId) setAssigneeId(takenBy ?? assignable[0]?.id ?? '');
   };
 
   const run = async (action: () => Promise<void>) => {
@@ -363,7 +370,8 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, l
     run(() => saveTask({
       title,
       description: description.trim() || null,
-      assigneeId: bonus ? null : assigneeId || null,
+      // Wer eine Runde für alle übernommen hat, behält sie
+      assigneeId: bonus ? null : forAll ? takenBy : assigneeId || null,
       dueDate: dueDate || null,
       priority,
       category,
@@ -423,9 +431,12 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, l
               <Field id="task-assignee" label="Zuständig" error={errors.assigneeId}>
                 <select id="task-assignee" className={inputClass(!!errors.assigneeId)} value={assigneeId ?? ''}
                   onChange={e => setAssigneeId(e.target.value)}>
-                  {(repeating || !assigneeId) && <option value="">Wer zuerst kommt</option>}
+                  {((repeating && mayRepeatForAll) || !assigneeId) && <option value="">Wer zuerst kommt</option>}
                   {assignable.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
+                {forAll && takenBy && (
+                  <p className="text-xs text-slate-500 mt-1">Diese Runde hat {memberName(assignable, takenBy)} übernommen.</p>
+                )}
               </Field>
             )}
             <Field id="task-priority" label="Priorität" error={errors.priority}>
@@ -480,15 +491,20 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, l
                     <p className="text-xs text-[#DC2626]">{errors['repeat.interval'] ?? errors['repeat.unit'] ?? errors.repeat}</p>
                   )}
                   <p className="text-xs text-slate-500">
-                    Beim Abhaken entsteht die nächste Runde, {repeat ? nextRoundIn(repeat) : ''} fällig und für alle offen:
-                    wer zuerst kommt, macht sie. Punkte gibt es nur für Kinder und Jugendliche.
+                    {forAll
+                      ? <>Beim Abhaken entsteht die nächste Runde, {repeat ? nextRoundIn(repeat) : ''} fällig und für alle
+                        offen: wer zuerst kommt, macht sie. Punkte gibt es nur für Kinder und Jugendliche.</>
+                      : <>Beim Abhaken entsteht die nächste Runde, {repeat ? nextRoundIn(repeat) : ''} fällig,
+                        wieder für {fixedName ?? 'dieselbe Person'}.{mayRepeatForAll && ' Unter „Zuständig“ lässt sie sich auch für alle öffnen (wer zuerst kommt).'}</>}
                   </p>
                 </>
               )}
             </div>
           )}
           {!bonus && !mayRepeat && task?.repeat && (
-            <p className="text-xs text-slate-500">↻ Wiederholt sich {describeRepeat(task.repeat)} nach dem Abhaken, die nächste Runde ist für alle offen.</p>
+            <p className="text-xs text-slate-500">
+              ↻ Wiederholt sich {describeRepeat(task.repeat)} nach dem Abhaken, die nächste Runde ist {repeatsForAll(task) ? 'für alle offen' : 'wieder für dieselbe Person'}.
+            </p>
           )}
           {task?.previousRound && (
             <p className="text-xs text-slate-500">
@@ -607,7 +623,9 @@ export default function Tasks({ onNavigate }: Props) {
   const tick = (task: ApiTask, s: BoardStatus) => act(async () => {
     await changeStatus(task.id, s);
     if (task.repeat && s === 'done' && !isFinished(task)) {
-      setClearedMessage(`„${task.title}“ erledigt. Die nächste Runde ist ${nextRoundIn(task.repeat)} fällig und für alle offen.`);
+      const forWhom = repeatsForAll(task) ? 'für alle offen'
+        : `wieder für ${task.assigneeId === perms.me.id ? 'dich' : memberById(task.assigneeId ?? '')?.name ?? 'dieselbe Person'}`;
+      setClearedMessage(`„${task.title}“ erledigt. Die nächste Runde ist ${nextRoundIn(task.repeat)} fällig und ${forWhom}.`);
     }
   });
 
@@ -848,6 +866,7 @@ export default function Tasks({ onNavigate }: Props) {
           lastDoneBy={editor.task?.previousRound ? memberById(editor.task.previousRound.doneBy) : undefined}
           mayAssignPoints={perms.mayConfirm}
           mayRepeat={perms.mayRepeat}
+          mayRepeatForAll={perms.mayRepeatForAll}
           mayDelete={editor.task ? perms.canDelete(editor.task) : false}
           readOnly={!!editor.task && !perms.canEdit(editor.task)}
           todayKey={todayKey}

@@ -95,19 +95,28 @@ den ersten Administrator an.
 
 Im Aufgaben-Formular wiederholt „↻ Nach Erledigung wiederholen“ eine Aufgabe
 im Abstand von Tagen, Wochen oder Monaten, gezählt ab dem Abhaken (Beispiel in
-den Beispieldaten: „Blumen gießen“ alle 3 Tage). Anlegen und ändern dürfen das
-alle, die Aufgaben für die ganze Familie anlegen (in den Standardrollen die
-Administratoren).
+den Beispieldaten: „Blumen gießen“ alle 3 Tage). „Zuständig“ legt fest, wer die
+nächsten Runden bekommt:
+
+- **Eine Person:** Jede neue Runde geht wieder an sie. Das darf jeder, der die
+  Aufgabe auch ohne Wiederholung anlegen dürfte, z. B. Jugendliche für sich
+  selbst („Gitarre üben“ jeden Tag).
+- **Wer zuerst kommt:** Jede neue Runde ist für alle offen. Kinder,
+  Jugendliche und Erwachsene sehen sie, übernehmen sie mit „Ich mach's“ oder
+  haken sie direkt ab; mit „Wieder für alle freigeben“ geben sie sie zurück.
+  Gäste sehen sie nicht. Einrichten darf das nur, wer Aufgaben für die ganze
+  Familie anlegt (in den Standardrollen die Administratoren).
+
+Für beide gilt:
 
 - Beim Abhaken entsteht sofort die nächste Runde: fällig am Tag des Abhakens
   plus Abstand, mit Titel, Punkten und Priorität der alten. Wer früher abhakt,
   ist früher wieder dran; bleibt eine Runde liegen, kommen keine neuen dazu.
-- Die neue Runde ist **für alle offen** („Wer zuerst kommt“): Kinder,
-  Jugendliche und Erwachsene sehen sie, übernehmen sie mit „Ich mach's“ oder
-  haken sie direkt ab. Gäste sehen sie nicht. Die Karte zeigt, wer zuletzt
-  wann erledigt hat.
+  Die Karte zeigt, wer zuletzt wann erledigt hat.
+- Ein geänderter Abstand gilt ab der nächsten Runde.
 - Punkte gibt es wie immer nach der Bestätigung und nur für Kinder und
-  Jugendliche. Hakt ein Erwachsener ab, hat nur diese Runde keine Punkte.
+  Jugendliche. Hakt bei „Wer zuerst kommt“ ein Erwachsener ab, hat nur diese
+  Runde keine Punkte.
 - Wird der Haken zurückgenommen oder die Erledigung zurückgegeben, verschwindet
   die nächste Runde wieder, solange sie noch niemand übernommen hat.
 - Beenden: im Formular die Wiederholung abschalten oder die offene Runde löschen.

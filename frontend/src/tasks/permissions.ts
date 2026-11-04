@@ -1,6 +1,6 @@
 import { useAuth, useMe } from '../auth/AuthContext';
 import type { ApiTask } from './api';
-import { isOpenRound } from './repeat';
+import { isOpenRound, repeatsForAll } from './repeat';
 
 // Spiegelt die Regeln aus TaskAccess (Backend), damit das UI nur anbietet, was erlaubt ist.
 // Eigene Aufgabe zum Abhaken: mir zugewiesen. Zum Ändern und Löschen: mir zugewiesen und von mir angelegt.
@@ -37,10 +37,13 @@ export function useTaskPermissions() {
     mayClaim,
     // Offene Runden übernehmen alle, die eigene Aufgaben abhaken dürfen, auch Erwachsene (TaskAccess.canTakeRounds)
     mayTakeRounds: mayTickOwn,
-    // Wiederholung einstellen nur für die ganze Familie, weil jede neue Runde für alle offen ist
-    mayRepeat: mayCreateFamily,
-    // Zurückgeben: wer sie übernommen hat, oder ein Administrator, solange sie nicht erledigt ist
-    canRelease: (task: ApiTask) => (task.bonus || !!task.repeat) && task.assigneeId !== null
+    // Wiederholung einstellen darf, wer Aufgaben anlegt; "Wer zuerst kommt" nur für die ganze Familie, weil jede
+    // neue Runde dann für alle offen ist
+    mayRepeat: mayCreateOwn || mayCreateFamily,
+    mayRepeatForAll: mayCreateFamily,
+    // Zurückgeben: wer sie übernommen hat, oder ein Administrator, solange sie nicht erledigt ist. Wiederkehrende
+    // Aufgaben mit fester Person lassen sich nicht freigeben.
+    canRelease: (task: ApiTask) => (task.bonus || repeatsForAll(task)) && task.assigneeId !== null
       && (task.status === 'todo' || task.status === 'inprogress')
       && (isAssigned(task) || (task.bonus ? mayConfirm : mayCreateFamily)),
     canDelete: (task: ApiTask) => (isOwnTask(task) ? mayDeleteOwn : mayDeleteFamily),

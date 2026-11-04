@@ -6,11 +6,12 @@ export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskCategory = 'chores' | 'school' | 'health' | 'errands' | 'family' | 'home';
 export type RepeatUnit = 'days' | 'weeks' | 'months';
 
-// Wiederholen nach Erledigung: Beim Abhaken entsteht die nächste Runde, fällig am Tag des Abhakens plus Abstand
-// und offen für alle (wer zuerst kommt)
+// Wiederholen nach Erledigung: Beim Abhaken entsteht die nächste Runde, fällig am Tag des Abhakens plus Abstand.
+// openToAll: für alle offen (wer zuerst kommt), sonst wieder für dieselbe Person
 export interface TaskRepeat {
   interval: number;
   unit: RepeatUnit;
+  openToAll: boolean;
 }
 
 // In der neuen Runde: wer die Runde davor wann abgehakt hat

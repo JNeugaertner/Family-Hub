@@ -25,5 +25,8 @@ export function nextRoundIn(repeat: TaskRepeat): string {
   return `in ${repeat.interval} ${unit}`;
 }
 
-// Runde, die noch niemand übernommen hat: wer zuerst kommt
-export const isOpenRound = (task: ApiTask) => !!task.repeat && task.assigneeId === null;
+// Für alle offen (wer zuerst kommt) statt fest für eine Person; ältere Runden ohne Angabe waren immer offen
+export const repeatsForAll = (task: Pick<ApiTask, 'repeat'>) => !!task.repeat && task.repeat.openToAll !== false;
+
+// Runde für alle, die noch niemand übernommen hat: wer zuerst kommt
+export const isOpenRound = (task: ApiTask) => repeatsForAll(task) && task.assigneeId === null;
