@@ -12,14 +12,14 @@ class TaskRepeatTest {
 
     @Test
     void nextRoundIsDueTheIntervalAfterTheDayItWasDone() {
-        assertThat(new TaskRepeat(3, RepeatUnit.DAYS).nextDue(DONE)).isEqualTo(LocalDate.of(2027, 2, 3));
-        assertThat(new TaskRepeat(2, RepeatUnit.WEEKS).nextDue(DONE)).isEqualTo(LocalDate.of(2027, 2, 14));
-        assertThat(new TaskRepeat(3, RepeatUnit.MONTHS).nextDue(DONE)).isEqualTo(LocalDate.of(2027, 4, 30));
+        assertThat(new TaskRepeat(3, RepeatUnit.DAYS, true).nextDue(DONE)).isEqualTo(LocalDate.of(2027, 2, 3));
+        assertThat(new TaskRepeat(2, RepeatUnit.WEEKS, true).nextDue(DONE)).isEqualTo(LocalDate.of(2027, 2, 14));
+        assertThat(new TaskRepeat(3, RepeatUnit.MONTHS, true).nextDue(DONE)).isEqualTo(LocalDate.of(2027, 4, 30));
     }
 
     // Anders als bei Serienterminen wird nichts übersprungen: Fehlt der Tag, ist der letzte des Monats fällig.
     @Test
     void monthsEndingEarlierFallOnTheirLastDay() {
-        assertThat(new TaskRepeat(1, RepeatUnit.MONTHS).nextDue(DONE)).isEqualTo(LocalDate.of(2027, 2, 28));
+        assertThat(new TaskRepeat(1, RepeatUnit.MONTHS, true).nextDue(DONE)).isEqualTo(LocalDate.of(2027, 2, 28));
     }
 }

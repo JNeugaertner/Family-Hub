@@ -68,8 +68,8 @@ public record Task(
 
         @Valid
         @Schema(description = "Wiederholen nach Erledigung (nicht bei Bonus-Aufgaben): Beim Abhaken entsteht die nächste "
-                + "Runde, fällig am Tag des Abhakens plus Abstand und offen für alle. Anlegen und ändern nur mit "
-                + "\"aufgaben/erstellen/familie\".")
+                + "Runde, fällig am Tag des Abhakens plus Abstand, für alle offen oder wieder für dieselbe Person. "
+                + "Für alle offene nur mit \"aufgaben/erstellen/familie\".")
         TaskRepeat repeat,
 
         @Schema(accessMode = Schema.AccessMode.READ_ONLY,
@@ -113,10 +113,16 @@ public record Task(
         return bonus && assigneeId == null;
     }
 
-    // Runde einer wiederkehrenden Aufgabe, die noch niemand übernommen hat (wer zuerst kommt)
+    // Runde einer wiederkehrenden Aufgabe für alle, die noch niemand übernommen hat (wer zuerst kommt)
     @JsonIgnore
     public boolean isOpenRound() {
-        return repeat != null && assigneeId == null;
+        return repeat != null && repeat.nextRoundOpenToAll() && assigneeId == null;
+    }
+
+    // Wiederkehrend und für alle offen (auch wenn die Runde gerade jemand übernommen hat)
+    @JsonIgnore
+    public boolean repeatsForAll() {
+        return repeat != null && repeat.nextRoundOpenToAll();
     }
 
     // Wartet auf die Bestätigung durch einen Administrator (erledigt und mit Punkten)
@@ -146,6 +152,11 @@ public record Task(
                 confirmedAt, confirmedBy, bonus, repeatable, repeat, previousRound);
     }
 
+    public Task withRepeat(TaskRepeat newRepeat) {
+        return new Task(id, title, description, assigneeId, dueDate, priority, category, points, status, createdBy,
+                confirmedAt, confirmedBy, bonus, repeatable, newRepeat, previousRound);
+    }
+
     public Task withAssignee(String newAssigneeId, TaskStatus newStatus) {
         return new Task(id, title, description, newAssigneeId, dueDate, priority, category, points, newStatus,
                 createdBy, confirmedAt, confirmedBy, bonus, repeatable, repeat, previousRound);
@@ -162,9 +173,10 @@ public record Task(
                 null, null, true, true);
     }
 
-    // Wiederkehrende Aufgabe: die nächste Runde nach dem Abhaken, offen für alle
+    // Wiederkehrende Aufgabe: die nächste Runde nach dem Abhaken, für alle offen oder wieder für dieselbe Person
     public Task followingRound(LocalDate doneOn, String doneBy) {
-        return new Task(null, title, description, null, repeat.nextDue(doneOn), priority, category, points,
-                TaskStatus.TODO, createdBy, null, null, false, false, repeat, new PreviousRound(id, doneOn, doneBy));
+        return new Task(null, title, description, repeat.nextRoundOpenToAll() ? null : assigneeId, repeat.nextDue(doneOn),
+                priority, category, points, TaskStatus.TODO, createdBy, null, null, false, false, repeat,
+                new PreviousRound(id, doneOn, doneBy));
     }
 }

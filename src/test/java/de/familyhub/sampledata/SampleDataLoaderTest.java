@@ -202,7 +202,7 @@ class SampleDataLoaderTest {
                 .singleElement()
                 .satisfies(t -> {
                     assertThat(t.title()).isEqualTo("Blumen gießen");
-                    assertThat(t.repeat()).isEqualTo(new TaskRepeat(3, RepeatUnit.DAYS));
+                    assertThat(t.repeat()).isEqualTo(new TaskRepeat(3, RepeatUnit.DAYS, true));
                 });
     }
 

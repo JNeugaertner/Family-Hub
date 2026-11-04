@@ -77,8 +77,20 @@ class RecurringTaskTest {
                 """.formatted(title, due, pointValue, interval, unit);
     }
 
+    // Feste Person: jede neue Runde geht wieder an sie
+    private static String recurringFor(FamilyMember person, String title, int interval, int pointValue) {
+        return """
+                {"title": "%s", "dueDate": "%s", "priority": "low", "category": "home", "points": %d,
+                 "assigneeId": "%s", "repeat": {"interval": %d, "unit": "days", "openToAll": false}}
+                """.formatted(title, LocalDate.now(), pointValue, person.id(), interval);
+    }
+
     private String create(String body) throws Exception {
-        String response = mvc.perform(post("/api/tasks").with(as(sarah)).contentType(APPLICATION_JSON).content(body))
+        return create(sarah, body);
+    }
+
+    private String create(FamilyMember who, String body) throws Exception {
+        String response = mvc.perform(post("/api/tasks").with(as(who)).contentType(APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return JsonPath.read(response, "$.id");
@@ -101,15 +113,17 @@ class RecurringTaskTest {
                 .andExpect(jsonPath("$.assigneeId").doesNotExist())
                 .andExpect(jsonPath("$.repeat.interval").value(3))
                 .andExpect(jsonPath("$.repeat.unit").value("days"))
+                .andExpect(jsonPath("$.repeat.openToAll").value(true))
                 .andExpect(jsonPath("$.points").value(10));
 
         // Jugendliche legen nur eigene Aufgaben an, jede neue Runde wäre aber für alle offen
         mvc.perform(post("/api/tasks").with(as(emma)).contentType(APPLICATION_JSON)
                         .content(recurring("Blumen gießen", today, 3, "days", 0).replace("\"points\": 0,",
-                                "\"points\": 0, \"assigneeId\": \"" + emma.id() + "\",")))
+                                "\"points\": 0, \"assigneeId\": \"" + emma.id() + "\",")
+                                .replace("\"unit\": \"days\"", "\"unit\": \"days\", \"openToAll\": true")))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.detail").value("Wiederkehrende Aufgaben sind für alle offen; anlegen und "
-                        + "ändern darf sie nur, wer Aufgaben für die ganze Familie anlegt."));
+                .andExpect(jsonPath("$.detail").value("Wiederkehrende Aufgaben für alle (wer zuerst kommt) darf nur "
+                        + "anlegen und ändern, wer Aufgaben für die ganze Familie anlegt."));
 
         mvc.perform(post("/api/tasks").with(as(sarah)).contentType(APPLICATION_JSON)
                         .content(recurring("Zu oft", today, 0, "days", 0)))
@@ -152,7 +166,7 @@ class RecurringTaskTest {
             assertThat(next.status()).isEqualTo(TaskStatus.TODO);
             assertThat(next.dueDate()).isEqualTo(today.plusDays(3));
             assertThat(next.points()).isEqualTo(10);
-            assertThat(next.repeat()).isEqualTo(new TaskRepeat(3, RepeatUnit.DAYS));
+            assertThat(next.repeat()).isEqualTo(new TaskRepeat(3, RepeatUnit.DAYS, true));
             assertThat(next.previousRound()).isEqualTo(new PreviousRound(id, today, lucas.id()));
         });
         // Die erledigte Runde wartet wie jede Aufgabe mit Punkten auf die Bestätigung
@@ -316,5 +330,98 @@ class RecurringTaskTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.repeatable").value(true))
                 .andExpect(jsonPath("$.repeat").doesNotExist());
+    }
+
+    // Feste Person (Erweiterung vom 04.11.2026 nach dem Abgleich mit Anforderung 8)
+    @Test
+    void aFixedPersonGetsEveryRound() throws Exception {
+        String id = create(recurringFor(lucas, "Hamster füttern", 2, 10));
+
+        // gehört Lucas und ist nicht für alle offen
+        mvc.perform(get("/api/tasks").with(as(lily))).andExpect(jsonPath("$[*].title", not(hasItem("Hamster füttern"))));
+        mvc.perform(post("/api/tasks/" + id + "/claim").with(as(emma))).andExpect(status().isConflict());
+        mvc.perform(post("/api/tasks/" + id + "/release").with(as(lucas)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Diese Aufgabe gehört fest zu einer Person und lässt sich nicht freigeben."));
+
+        changeStatus(lucas, id, "done").andExpect(status().isOk());
+        assertThat(roundsAfter(id)).singleElement().satisfies(next -> {
+            assertThat(next.assigneeId()).isEqualTo(lucas.id());
+            assertThat(next.status()).isEqualTo(TaskStatus.TODO);
+            assertThat(next.dueDate()).isEqualTo(today.plusDays(2));
+            assertThat(next.points()).isEqualTo(10);
+            assertThat(next.repeat().nextRoundOpenToAll()).isFalse();
+        });
+        mvc.perform(get("/api/tasks").with(as(lily))).andExpect(jsonPath("$[*].title", not(hasItem("Hamster füttern"))));
+
+        // Haken zurück: Die nächste Runde verschwindet, solange Lucas sie nicht angefangen hat
+        changeStatus(lucas, id, "todo").andExpect(status().isOk());
+        assertThat(roundsAfter(id)).isEmpty();
+    }
+
+    @Test
+    void teensSetUpTheirOwnRecurringTasks() throws Exception {
+        // ohne openToAll: Mit Person geht jede Runde an sie
+        String id = create(emma, """
+                {"title": "Gitarre üben", "dueDate": "%s", "priority": "medium", "category": "school",
+                 "assigneeId": "%s", "repeat": {"interval": 1, "unit": "days"}}
+                """.formatted(today, emma.id()));
+        assertThat(tasks.findById(id)).get().satisfies(t -> assertThat(t.repeat().nextRoundOpenToAll()).isFalse());
+        // für andere weiterhin nicht
+        mvc.perform(post("/api/tasks").with(as(emma)).contentType(APPLICATION_JSON)
+                        .content(recurringFor(lucas, "Für Lucas", 2, 0)))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(put("/api/tasks/" + id).with(as(emma)).contentType(APPLICATION_JSON).content("""
+                        {"title": "Gitarre üben", "dueDate": "%s", "priority": "medium", "category": "school",
+                         "assigneeId": "%s", "repeat": {"interval": 2, "unit": "days"}}
+                        """.formatted(today, emma.id())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.repeat.interval").value(2))
+                .andExpect(jsonPath("$.repeat.openToAll").value(false));
+        changeStatus(emma, id, "done").andExpect(status().isOk());
+        assertThat(roundsAfter(id)).singleElement().satisfies(next -> {
+            assertThat(next.assigneeId()).isEqualTo(emma.id());
+            assertThat(next.dueDate()).isEqualTo(today.plusDays(2));
+        });
+    }
+
+    @Test
+    void fixedRecurringTasksNeedAPersonAndAdultsGetNoPoints() throws Exception {
+        mvc.perform(post("/api/tasks").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(recurring("Ohne Person", today, 3, "days", 0)
+                                .replace("\"unit\": \"days\"", "\"unit\": \"days\", \"openToAll\": false")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.assigneeId").value("Aufgabe muss einem Familienmitglied zugewiesen sein"));
+
+        mvc.perform(post("/api/tasks").with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(recurringFor(sarah, "Filter wechseln", 30, 20)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.points").value(0));
+    }
+
+    @Test
+    void parentsSwitchBetweenOpenAndFixed() throws Exception {
+        String id = create(recurring("Blumen gießen", today, 3, "days", 10));
+        mvc.perform(put("/api/tasks/" + id).with(as(sarah)).contentType(APPLICATION_JSON)
+                        .content(recurringFor(lucas, "Blumen gießen", 3, 10)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assigneeId").value(lucas.id()))
+                .andExpect(jsonPath("$.repeat.openToAll").value(false));
+        changeStatus(lucas, id, "done").andExpect(status().isOk());
+        assertThat(roundsAfter(id)).singleElement()
+                .satisfies(next -> assertThat(next.assigneeId()).isEqualTo(lucas.id()));
+
+        // Eine übernommene Runde bleibt beim Bearbeiten für alle offen, wenn openToAll mitkommt
+        String litter = create(recurring("Katzenklo", today, 2, "days", 5));
+        mvc.perform(post("/api/tasks/" + litter + "/claim").with(as(lily))).andExpect(status().isOk());
+        mvc.perform(put("/api/tasks/" + litter).with(as(sarah)).contentType(APPLICATION_JSON).content("""
+                        {"title": "Katzenklo sauber machen", "dueDate": "%s", "priority": "low", "category": "home",
+                         "points": 5, "assigneeId": "%s", "repeat": {"interval": 2, "unit": "days", "openToAll": true}}
+                        """.formatted(today, lily.id())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assigneeId").value(lily.id()));
+        changeStatus(lily, litter, "done").andExpect(status().isOk());
+        assertThat(roundsAfter(litter)).singleElement().satisfies(next -> assertThat(next.assigneeId()).isNull());
     }
 }

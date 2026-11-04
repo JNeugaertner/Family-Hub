@@ -112,7 +112,7 @@ public class TaskController {
     public ResponseEntity<Task> create(@Valid @RequestBody Task task) {
         FamilyMember viewer = currentMember.get();
         // Aufgaben für Erwachsene (kein Kind/Jugendlicher) bekommen keine Punkte, da sie keine sammeln
-        Task checked = access.requireCreate(viewer, task);
+        Task checked = access.requireCreate(viewer, task.withRepeat(repeatMode(task, null)));
         Task toSave = copy(null, checked, checked.bonus() ? null : checked.assigneeId(), TaskStatus.TODO, viewer.id(),
                 checked.bonus(), null);
         requireAssignment(toSave);
@@ -129,9 +129,10 @@ public class TaskController {
         FamilyMember viewer = currentMember.get();
         Task existing = findVisible(id, viewer);
         // Ob Bonus-Aufgabe, bleibt; bei Bonus-Aufgaben bleibt auch, wer sie übernommen hat (claim/release)
+        Task requested = task.withRepeat(repeatMode(task, existing.repeat()));
         Task changed = existing.bonus()
-                ? copy(id, task, existing.assigneeId(), existing.status(), existing.createdBy(), true, null)
-                : copy(id, task, task.assigneeId(), existing.status(), existing.createdBy(), false,
+                ? copy(id, requested, existing.assigneeId(), existing.status(), existing.createdBy(), true, null)
+                : copy(id, requested, requested.assigneeId(), existing.status(), existing.createdBy(), false,
                         existing.previousRound());
         // Aufgaben für Erwachsene (kein Kind/Jugendlicher) behalten keine Punkte, da sie keine sammeln
         changed = access.requireEdit(viewer, existing, changed);
@@ -229,7 +230,7 @@ public class TaskController {
             return tasks.save(changed);
         }
         Optional<Task> next = tasks.findByPreviousRoundTaskId(round.id()).stream()
-                .filter(task -> task.isOpenRound() && task.status() == TaskStatus.TODO)
+                .filter(task -> task.status() == TaskStatus.TODO && (task.isOpenRound() || !task.repeatsForAll()))
                 .findFirst();
         if (next.isPresent()) {
             tasks.delete(next.get());
@@ -319,7 +320,7 @@ public class TaskController {
                 throw ApiException.invalidField("points", "Bonus-Aufgaben brauchen Punkte");
             }
         } else {
-            if (task.assigneeId() == null && task.repeat() == null) {
+            if (task.assigneeId() == null && !task.repeatsForAll()) {
                 throw ApiException.invalidField("assigneeId", "Aufgabe muss einem Familienmitglied zugewiesen sein");
             }
             if (task.dueDate() == null) {
@@ -329,6 +330,16 @@ public class TaskController {
         if (task.assigneeId() != null && !members.existsById(task.assigneeId())) {
             throw ApiException.invalidField("assigneeId", "Familienmitglied existiert nicht");
         }
+    }
+
+    // Fehlt bei einer Wiederholung "openToAll": beim Anlegen ohne Person für alle offen, mit Person fest; beim
+    // Ändern bleibt es, wie es war
+    private static TaskRepeat repeatMode(Task requested, TaskRepeat before) {
+        TaskRepeat repeat = requested.repeat();
+        if (repeat == null || repeat.openToAll() != null) {
+            return repeat;
+        }
+        return repeat.withOpenToAll(before != null ? before.nextRoundOpenToAll() : requested.assigneeId() == null);
     }
 
     private static Task copy(String id, Task t, String assigneeId, TaskStatus status, String createdBy,

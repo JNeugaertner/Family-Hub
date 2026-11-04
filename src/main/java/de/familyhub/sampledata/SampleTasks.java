@@ -46,7 +46,7 @@ final class SampleTasks {
                     IN_PROGRESS),
             new SampleTask("Hund füttern", null, "lily", 0, HIGH, CHORES, 10, CONFIRMED),
             new SampleTask("Blumen gießen", null, "emma", 2, LOW, CHORES, 10, TODO,
-                    new TaskRepeat(3, RepeatUnit.DAYS)),
+                    new TaskRepeat(3, RepeatUnit.DAYS, true)),
             new SampleTask("30 Minuten lesen", null, "lily", 0, MEDIUM, SCHOOL, 15, IN_PROGRESS),
             new SampleTask("Wochenende planen", null, "sarah", 3, LOW, FAMILY, 0, TODO),
             new SampleTask("Licht in der Garage reparieren", null, "mike", 4, MEDIUM, HOME, 0, TODO),
