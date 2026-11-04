@@ -7,7 +7,6 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 
@@ -105,30 +104,53 @@ class OrsApiTest {
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(queryParam("text", "München"))
                 .andExpect(header("Authorization", "key-123"))
-                .andExpect(requestTo(startsWith("https://ors.test/geocode/search?text=M%C3%BCnchen")));
+                .andExpect(requestTo(startsWith("https://ors.test/geocode/search?text=M%C3%BCnchen")))
+                .andRespond(withSuccess("""
+                        {"features": []}
+                        """, MediaType.APPLICATION_JSON));
 
         server.expect(requestTo(startsWith("https://ors.test/geocode/search?")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(queryParam("text", "GmbH & Co. KG"))
                 .andExpect(header("Authorization", "key-123"))
-                .andExpect(requestTo(startsWith("https://ors.test/geocode/search?text=GmbH%20%26%20Co.%20KG")));
+                .andExpect(requestTo(startsWith("https://ors.test/geocode/search?text=GmbH%20%26%20Co.%20KG")))
+                .andRespond(withSuccess("""
+                        {"features": []}
+                        """, MediaType.APPLICATION_JSON));
 
         server.expect(requestTo(startsWith("https://ors.test/geocode/search?")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(queryParam("text", "Halle {A} Ulm"))
                 .andExpect(header("Authorization", "key-123"))
-                .andExpect(requestTo(startsWith("https://ors.test/geocode/search?text=Halle%20%7BA%7D%20Ulm")));
+                .andExpect(requestTo(startsWith("https://ors.test/geocode/search?text=Halle%20%7BA%7D%20Ulm")))
+                .andRespond(withSuccess("""
+                        {"features": []}
+                        """, MediaType.APPLICATION_JSON));
 
         server.expect(requestTo(startsWith("https://ors.test/geocode/search?")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(queryParam("text", "C+A"))
                 .andExpect(header("Authorization", "key-123"))
-                .andExpect(requestTo(startsWith("https://ors.test/geocode/search?text=C%2BA")));
+                .andExpect(requestTo(startsWith("https://ors.test/geocode/search?text=C%2BA")))
+                .andRespond(withSuccess("""
+                        {"features": []}
+                        """, MediaType.APPLICATION_JSON));
 
         server.expect(requestTo(startsWith("https://ors.test/geocode/search?")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(queryParam("text", "Königstraße 1"))
                 .andExpect(header("Authorization", "key-123"))
-                .andExpect(requestTo(startsWith("https://ors.test/geocode/search?text=K%C3%B6nigstra%C3%9Fe%201")));
+                .andExpect(requestTo(startsWith("https://ors.test/geocode/search?text=K%C3%B6nigstra%C3%9Fe%201")))
+                .andRespond(withSuccess("""
+                        {"features": []}
+                        """, MediaType.APPLICATION_JSON));
+
+        api.findPlaces("München");
+        api.findPlaces("GmbH & Co. KG");
+        api.findPlaces("Halle {A} Ulm");
+        api.findPlaces("c++");
+        api.findPlaces("Königstraße 1");
+
+        server.verify();
     }
 }

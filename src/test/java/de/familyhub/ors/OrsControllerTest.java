@@ -4,8 +4,6 @@ import static de.familyhub.testsupport.TestUsers.as;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -16,9 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +25,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import de.familyhub.calendar.EventCategory;
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
 import de.familyhub.permission.Role;
@@ -103,7 +98,8 @@ class OrsControllerTest {
             .andExpect(jsonPath("$[0].lon").value(10.0))
             .andExpect(jsonPath("$[1].label").value("Place B"))
             .andExpect(jsonPath("$[1].lat").value(40.0))
-            .andExpect(jsonPath("$[1].lon").value(30.0));}
+            .andExpect(jsonPath("$[1].lon").value(30.0));
+        }
 
     @Test
     void userCanGetRoute() throws Exception {
