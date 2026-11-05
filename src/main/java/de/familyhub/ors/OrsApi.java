@@ -1,6 +1,7 @@
 package de.familyhub.ors;
 
 import java.util.List;
+import java.util.Map;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.RestClient;
+import org.springframework.core.ParameterizedTypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -34,25 +36,24 @@ public class OrsApi {
         this.rest = builder.build();
     }
 
-    public SearchResponse findPlaces(String query) {
-        try{                
-        return rest.get()
-                .uri(properties.baseUrl() + "/geocode/search?text="+URLEncoder.encode(query, StandardCharsets.UTF_8))
-                .header("Authorization", properties.apiKey())
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, (request, response) -> {throw apiError(response);})  
-                .body(SearchResponse.class);
-        }catch (ResourceAccessException e){throw new OrsException("OpenRouteService ist nicht erreichbar.");}}
-
-    public RouteResponse gettravelTime(String transportMode, double startLat, double startLon, double endLat, double endLon) {
+    private <T> T get(String path, Map<String, ?> vars, ParameterizedTypeReference<T> type) {
         try{
-        return rest.get()
-                .uri(properties.baseUrl() + "/v2/directions/" + transportMode + "?start="+startLon+","+startLat+"&end="+endLon+","+endLat)
+        return rest.get().uri(properties.baseUrl() + path, vars)
                 .header("Authorization", properties.apiKey())
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, (request, response) -> {throw apiError(response);})                
-                .body(RouteResponse.class);
+                .body(type);
         }catch (ResourceAccessException e){throw new OrsException("OpenRouteService ist nicht erreichbar.");}}
+
+    public SearchResponse findPlaces(String query) {
+        return get("/geocode/search?text={query}", Map.of("query", query), new ParameterizedTypeReference<SearchResponse>() {});
+    }
+
+    public RouteResponse gettravelTime(String transportMode, double startLat, double startLon, double endLat, double endLon) {
+        return get("/v2/directions/{transportMode}?start={startLon},{startLat}&end={endLon},{endLat}",
+                Map.of("transportMode", transportMode, "startLat", startLat, "startLon", startLon, "endLat", endLat, "endLon", endLon),
+                new ParameterizedTypeReference<RouteResponse>() {});
+    }
 
     record SearchResponse(List<Feature> features) {
     }
