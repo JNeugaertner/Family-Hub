@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {findPlaces, getSettings, OrsLocation, setHomeLocation, removeHomeLocation} from './OrsApi';
+import { ApiError } from '@/api/client';
 
 const INPUT = 'flex-1 min-w-0 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20';
 
@@ -7,21 +8,37 @@ export default function OrslocationCard(){
 
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<OrsLocation[] | null>(null);
-    const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
     const [location, setLocation] = useState<String | null | undefined>(undefined);
     const [lat, setLat] = useState<number | null>(null);
     const [lon, setLon] = useState<number | null>(null);
+
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+    const [formError, setFormError] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
       useEffect(() => {
         getSettings().then(s => setLocation(s.homeLocation?.label));
       }, []);
 
+    const showError = (err: unknown) => {
+      if (err instanceof ApiError && err.problem.errors) {
+        const mapped: Record<string, string> = {};
+        Object.entries(err.problem.errors).forEach(([field, msg]) => { mapped[field] = msg; });
+        setFieldErrors(mapped);
+        setFormError(null);
+      } else {
+        setFieldErrors({});
+        setFormError(err instanceof Error ? err.message : String(err));
+      }};
+
     const search = async () => {
     if (!query.trim()) return;
+    try{
     const places = await findPlaces(query.trim());
-    setResults(places);
+    setResults(places);}
+    catch(err){showError(err);}
     }
 
     const choose = async (place: OrsLocation) => {
@@ -64,6 +81,8 @@ export default function OrslocationCard(){
           Suchen
         </button>
             </div>
+            
+      {fieldErrors.location && <p role="alert" className="text-sm text-[#DC2626] mt-2">{fieldErrors.location}</p>}
       
 
       {results && (
@@ -78,7 +97,7 @@ export default function OrslocationCard(){
         </div>
       )}
 
-      {error && <p role="alert" className="text-sm text-[#DC2626] mt-2">{error}</p>}
+      {formError && <p role="alert" className="text-sm text-[#DC2626] mt-2">{formError}</p>}
       {message && <p role="status" className="text-xs text-[#16A34A] mt-2">{message}</p>}
     </section>
   );
