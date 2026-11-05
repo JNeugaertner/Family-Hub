@@ -147,8 +147,8 @@ class GoogleCalendarSyncTest {
 
     @Test
     void secondSyncUpdatesChangedAndRemovesDeletedEventsButKeepsOwnEvents() {
-        CalendarEvent own = events.save(new CalendarEvent(null, "Eigener Termin", LocalDateTime.of(2026, 10, 1, 8, 0),
-                LocalDateTime.of(2026, 10, 1, 9, 0), emma.id(), EventCategory.FAMILY, null, null));
+        CalendarEvent own = events.save(new CalendarEvent(null, "Eigener Termin", null, LocalDateTime.of(2026, 10, 1, 8, 0),
+                LocalDateTime.of(2026, 10, 1, 9, 0), emma.id(), EventCategory.FAMILY, null, null, null, null, null, null));
         googleHas(PRIMARY, googleEvent("p1", "Zahnarzt", null, 1), googleEvent("p2", "Friseur", null, 2));
         googleHas(FUSSBALL, googleEvent("f1", "Training", null, 3));
         sync.sync(connection);

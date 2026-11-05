@@ -1,15 +1,20 @@
 import { json, request } from '../api/client';
-import type { EventCategory, EventStatus } from '../components/data';
+import type { EventCategory, EventStatus, TransportMode } from '../components/data';
 
 export interface ApiEvent {
   id: string;
   title: string;
+  departure: string;
   start: string;
   end: string;
   // Beteiligte, mindestens eine Person
   memberIds: string[];
   category: EventCategory;
   location: string | null;
+  lat: number | null;
+  lon: number | null;
+  transportMode: TransportMode;
+  travelTime: number | null;
   description: string | null;
   private: boolean;
   status: EventStatus;
@@ -20,11 +25,16 @@ export interface ApiEvent {
 
 export interface EventInput {
   title: string;
+  departure: string | null;
   start: string | null;
   end: string | null;
   memberIds: string[];
   category: EventCategory;
   location: string | null;
+  lat: number | null;
+  lon: number | null;
+  transportMode: TransportMode;
+  travelTime: number | null;
   description: string | null;
   private: boolean;
 }

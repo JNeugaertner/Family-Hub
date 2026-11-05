@@ -49,6 +49,7 @@ function toEvent(e: api.ApiEvent): CalendarEvent {
   return {
     id: e.id,
     title: e.title,
+    departure: e.departure,
     start: e.start,
     end: e.end,
     date: e.start.slice(0, 10),
@@ -57,6 +58,10 @@ function toEvent(e: api.ApiEvent): CalendarEvent {
     memberIds: e.memberIds,
     category: e.category,
     location: e.location ?? undefined,
+    lat: e.lat ?? undefined,
+    lon: e.lon ?? undefined,
+    transportMode: e.transportMode,
+    travelTime: e.travelTime ?? undefined,
     description: e.description ?? undefined,
     private: e.private,
     status: e.status,

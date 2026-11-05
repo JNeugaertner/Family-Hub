@@ -61,7 +61,7 @@ class CalendarEventControllerTest {
     }
 
     private CalendarEvent save(String title, LocalDateTime start, LocalDateTime end, FamilyMember member) {
-        return events.save(new CalendarEvent(null, title, start, end, member.id(), EventCategory.FAMILY, null, null));
+        return events.save(new CalendarEvent(null, title, null, start, end, member.id(), EventCategory.FAMILY, null, null, null, null,null, null));
     }
 
     @Test

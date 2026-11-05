@@ -296,6 +296,18 @@ zählt ab dem Moment, in dem FamilyHub den offenen Punkt bemerkt (alle
 einen Tag später. Ist Telegram nicht erreichbar, steht das im Log; nachgeholt
 wird die Nachricht nicht.
 
+## OpenRouteService einrichten 
+
+Für die Ortssuche und später auch Fahrzeitberechnung.
+
+1. Bei OpenRouteService Api-Key generieren lassen.
+2. In `local.properties` im Projektordner eintragen (steht in `.gitignore`,
+   **nie einchecken**):
+
+   ```properties
+   familyhub.ors.api-key=<API-Schlüssel>
+   ```
+
 ## Als App installieren
 
 FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im

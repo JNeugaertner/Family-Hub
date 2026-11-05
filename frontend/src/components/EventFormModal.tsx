@@ -1,11 +1,12 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import type { CalendarEvent, EventCategory } from './data';
+import { useEffect, useState, useMemo, type FormEvent, type ReactNode } from 'react';
+import type { CalendarEvent, EventCategory, TransportMode } from './data';
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import { useCalendarPermissions } from '../calendar/permissions';
 import { ApiError } from '../api/client';
 import { CATEGORY_OPTIONS } from '../calendar/categories';
 import GoogleBadge from '../google/GoogleBadge';
 import { eventColor, memberColors } from '../calendar/eventStyle';
+import {findPlaces, OrsLocation, getTravelTime, getSettings} from './OrsApi';
 
 // Das Backend meldet "Ende nach Beginn" unter endAfterStart; im Formular gehört es zum Feld "Ende".
 const FIELD_ALIASES: Record<string, string> = { endAfterStart: 'end' };
@@ -51,13 +52,22 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     ?? (permissions.canAssignTo(me.id) ? [me.id] : assignable[0] ? [assignable[0].id] : []);
 
   const [title, setTitle] = useState(event?.title ?? defaultTitle ?? '');
+  const [departure, setDeparture] = useState(event?.departure ?? null);
   const [start, setStart] = useState(event?.start.slice(0, 16) ?? `${defaultDate}T09:00`);
   const [end, setEnd] = useState(event?.end.slice(0, 16) ?? `${defaultDate}T10:00`);
   const [memberIds, setMemberIds] = useState<string[]>(initialMembers);
   const [category, setCategory] = useState<EventCategory>(event?.category ?? 'family');
   const [location, setLocation] = useState(event?.location ?? '');
+  const [lat, setLat] = useState<number | null>(event?.lat ?? null);
+  const [lon, setLon] = useState<number | null>(event?.lon ?? null);
+  const [transportMode, setTransportMode] = useState<TransportMode>(event?.transportMode ?? 'driving-car');
+  const [travelTime, setTravelTime] = useState<number | null>(event?.travelTime ?? null);
   const [description, setDescription] = useState(event?.description ?? '');
   const [privateEvent, setPrivateEvent] = useState(event?.private ?? false);
+
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<OrsLocation[] | null>(null);  
+  const [individuallocation, setIndividuallocation] = useState<string | null>(null);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -119,11 +129,16 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     if (readOnly) return;
     run(() => saveEvent({
       title,
+      departure: departure || null,
       start: start || null,
       end: end || null,
       memberIds,
       category,
       location: location.trim() || null,
+      lat: lat,
+      lon: lon,
+      transportMode,
+      travelTime: travelTime,
       description: description.trim() || null,
       private: privateEvent,
     }, event?.id));
@@ -134,6 +149,76 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     if (!confirmDelete) { setConfirmDelete(true); return; }
     run(() => removeEvent(event.id));
   };
+
+  const setLocationAsIndividual = () => {
+    setLocation(individuallocation ?? '');
+    setLat(null);
+    setLon(null);
+    setTravelTime(null);
+  }
+
+  const search = async () => {
+    if (!query.trim()) return;
+    try{
+    const places = await findPlaces(query.trim());
+    setResults(places);}
+    catch(err){showError(err)}
+  };
+
+  const gettravelTime =async (mode: 'driving-car' | 'cycling-regular' | 'foot-walking', place: OrsLocation) => {
+    try{
+    setResults(null);
+    setQuery('');
+    const settings = await getSettings();
+    if (!settings.homeLocation) {setFieldErrors({travelTime: 'Bitte zuerst den Wohnort in den Einstellungen eingeben.'}); return;}
+    if(!place.lat || !place.lon){return}
+    const time = await getTravelTime(mode, settings.homeLocation.lat, settings.homeLocation.lon, place.lat, place.lon);
+    setTravelTime(time);
+    setFieldErrors({});
+  }catch(err){showError(err), setTravelTime(null)}
+  };
+
+  const choose = async (place: OrsLocation) => {
+    setLocation(place.label);
+    setLat(place.lat);
+    setLon(place.lon);
+    await gettravelTime(transportMode, place);
+  }; 
+
+  const removeLocation = () => {
+    setLocation('');
+    setLat(null);
+    setLon(null);
+    setTravelTime(null);
+  }
+  
+  const getTimeLayout = (time: number) => {
+    const totalMinutes = Math.round(time / 60);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = (totalMinutes % 60);
+    if (days == 0 && hours == 0 && minutes == 0){
+      return '';}
+    if (days >=1){
+      return `${days}d ${hours}h ${minutes}m`;}
+    if (hours >= 1){
+      return `${hours}h ${minutes}m`;}
+    return `${minutes}m`;}
+
+  const getDeparture = useMemo(() => {
+    if (!start || !travelTime) return null;
+    const date = new Date (start);
+    date.setMinutes(date.getMinutes()-travelTime/60-15);
+    const startDay = new Date(start).toLocaleDateString("de-DE",{day: "2-digit", month: "2-digit", year: "numeric"});
+    const departureDay = date.toLocaleDateString("de-DE",{day: "2-digit", month: "2-digit", year: "numeric"});
+    if (startDay !== departureDay){
+      const departureString = date.toLocaleString("de-DE",{day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"});
+      setDeparture(departureString);
+      return departureString;
+    }
+    const departureString = date.toLocaleTimeString("de-DE",{hour: "2-digit", minute: "2-digit"});
+    setDeparture(departureString);
+    return departureString;},[start, travelTime]);
 
   const heading = readOnly ? 'Termin' : isProposal ? 'Vorschlag bearbeiten' : isEdit ? 'Termin bearbeiten'
     : willBeProposal ? 'Neuer Vorschlag' : 'Neuer Termin';
@@ -186,6 +271,10 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             <input {...fieldProps('title')} value={title} onChange={e => setTitle(e.target.value)} autoFocus={!readOnly} />
           </Field>
 
+        <Field id="event-departure" label="Abfahrt" error={fieldErrors.departure}>
+          {getDeparture}
+        </Field>
+
           <div className="grid grid-cols-2 gap-3">
             <Field id="event-start" label="Beginn" error={fieldErrors.start}>
               <input type="datetime-local" {...fieldProps('start')} value={start} onChange={e => setStart(e.target.value)} />
@@ -229,8 +318,56 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
           </Field>
 
           <Field id="event-location" label="Ort (optional)" error={fieldErrors.location}>
-            <input {...fieldProps('location')} value={location} onChange={e => setLocation(e.target.value)} />
+            {location?.trim() && (<div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-2 py-2">
+            <span className="text-sm text-slate-800 flex-1">📍 {location}</span>
+            <button type="button" disabled={busy} onClick={removeLocation} className="text-xs text-slate-500 hover:text-[#EF4444] disabled:opacity-50">
+               Entfernen
+            </button>
+            </div>)}
+
+            <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-2 py-2">
+              <span className="text-xs text-slate-500">Adresse suchen</span>
+            <input {...fieldProps('location')} value={query} onChange={e => {setQuery(e.target.value)}} onKeyDown={e => {if(e.key === 'Enter'){e.preventDefault(); search();}}}
+               placeholder="Ort suchen ..."/>
+            <button onClick={search} type="button" disabled={!query.trim()}
+               className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
+               Suchen
+            </button>
+            </div>
+            {results && (
+            <div className="mt-2 space-y-1" aria-label="Suchergebnisse">
+              {results.length === 0 && <p className="text-xs text-slate-400 px-1">Kein Ort gefunden.</p>}
+              {results.map(p => (
+              <button key={`${p.lat},${p.lon}`} type="button" disabled={busy} onClick={() => choose(p)}
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-sm text-slate-700 disabled:opacity-50">
+                {p.label}
+              </button>
+                ))}
+            </div>
+            )}
+            <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-2 py-2">
+              <span className="text-xs text-slate-500">individuellen Ort eingeben</span>
+              <input {...fieldProps('individuallocation')} value={individuallocation ?? ''} onChange={e => {setIndividuallocation(e.target.value)}} 
+                onKeyDown={e => {if(e.key === 'Enter'){e.preventDefault(); setLocationAsIndividual();}}} placeholder="Ort eingeben ..."/>
+              <button onClick={setLocationAsIndividual} type="button" disabled={!individuallocation?.trim()}
+               className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
+               Übernehmen
+              </button>
+            </div>
           </Field>
+                    
+          <Field id="event-transportMode" label="Verkehrsmittel" error={fieldErrors.transportMode}>
+            <select {...fieldProps('transportMode')} value={transportMode} onChange={e => {setTransportMode(e.target.value as TransportMode);
+                gettravelTime(e.target.value as TransportMode, { label: location, lat: lat ?? 0, lon: lon ?? 0 })}}>
+              <option value="driving-car">Auto</option>
+              <option value="cycling-regular">Fahrrad</option>
+              <option value="foot-walking">Zu Fuß</option>
+            </select>
+          </Field>
+
+        <Field id="event-travel-time" label="Fahrzeit" error={fieldErrors.travelTime}>
+          {getTimeLayout( travelTime ?? 0)}
+        </Field>
 
           <Field id="event-description" label="Beschreibung (optional)" error={fieldErrors.description}>
             <textarea rows={3} {...fieldProps('description')} value={description} onChange={e => setDescription(e.target.value)} />

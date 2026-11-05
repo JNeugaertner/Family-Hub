@@ -18,6 +18,7 @@ import WhatsAppCard from '../whatsapp/WhatsAppCard';
 import TelegramCard from '../telegram/TelegramCard';
 import { hasPermission, permissionKey, ROLE_NAMES, type Permission, type RoleId } from '../roles';
 import { useFlashFocus } from '../navigation/focus';
+import OrsLocationCard from './OrsLocationCard';
 
 function ShieldLock({ size = 16, className = '' }: { size?: number; className?: string }) {
   return (
@@ -595,6 +596,7 @@ export default function Profiles({ onNavigate }: Props) {
         {mayManageRights && <GuestSettingsCard />}
         {mayManageRights && <WeatherLocationCard />}
         {mayManageRights && <WasteCalendarCard members={members} />}
+        {mayManageRights && <OrsLocationCard/>}
         <PasswordCard />
         <WhatsAppCard />
         {mayUseMessenger && <TelegramCard />}

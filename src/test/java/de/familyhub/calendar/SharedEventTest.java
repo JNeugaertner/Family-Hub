@@ -89,8 +89,8 @@ class SharedEventTest {
     }
 
     private CalendarEvent saved(String title, FamilyMember... who) {
-        return events.save(new CalendarEvent(null, title, DAY.withHour(18), DAY.withHour(20),
-                Arrays.stream(who).map(FamilyMember::id).toList(), EventCategory.FAMILY, null, null, false,
+        return events.save(new CalendarEvent(null, title, null, DAY.withHour(18), DAY.withHour(20),
+                Arrays.stream(who).map(FamilyMember::id).toList(), EventCategory.FAMILY, null, null, null, null, null, null, false,
                 EventStatus.APPROVED, sarah.id(), null));
     }
 

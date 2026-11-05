@@ -38,7 +38,7 @@ class CalendarEventTest {
 
     private static CalendarEvent event(String title, LocalDateTime start, LocalDateTime end,
             String memberId, EventCategory category) {
-        return new CalendarEvent(null, title, start, end, memberId, category, "Sports Center", null);
+        return new CalendarEvent(null, title, null, start, end, memberId, category, "Sports Center", null, null, null ,null, null);
     }
 
     private static CalendarEvent validEvent() {

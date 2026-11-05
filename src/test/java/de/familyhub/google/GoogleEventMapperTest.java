@@ -112,9 +112,9 @@ class GoogleEventMapperTest {
     }
 
     private static CalendarEvent familyHubEvent(boolean privateEvent, String description) {
-        return new CalendarEvent("abc", "Arzt", LocalDateTime.of(2026, 10, 1, 10, 0),
-                LocalDateTime.of(2026, 10, 1, 11, 0), List.of("m"), EventCategory.APPOINTMENT, "Praxis", description,
-                privateEvent, EventStatus.APPROVED, "m", null);
+        return new CalendarEvent("abc", "Arzt", null, LocalDateTime.of(2026, 10, 1, 10, 0),
+                LocalDateTime.of(2026, 10, 1, 11, 0), List.of("m"), EventCategory.APPOINTMENT, "Praxis", null, null,
+                null, null, description, privateEvent, EventStatus.APPROVED, "m", null);
     }
 
     @Test

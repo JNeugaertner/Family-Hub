@@ -101,8 +101,8 @@ class GoogleCalendarExportTest {
     }
 
     private CalendarEvent event(String title, List<String> memberIds, boolean privateEvent, EventStatus status) {
-        return events.save(new CalendarEvent(null, title, start, start.plusHours(1), memberIds, EventCategory.FAMILY,
-                null, null, privateEvent, status, sarah.id(), null));
+        return events.save(new CalendarEvent(null, title, null, start, start.plusHours(1), memberIds, EventCategory.FAMILY,
+                null, null, null, null, null, null, privateEvent, status, sarah.id(), null));
     }
 
     private GoogleConnection exporting() {
