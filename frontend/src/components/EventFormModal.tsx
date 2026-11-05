@@ -355,7 +355,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             </div>
           </Field>
                     
-          <Field id="transportMode" label="Verkehrsmittel" error={fieldErrors.transportMode}>
+          <Field id="event-transportMode" label="Verkehrsmittel" error={fieldErrors.transportMode}>
             <select {...fieldProps('transportMode')} value={transportMode} onChange={e => {setTransportMode(e.target.value as TransportMode);
                 gettravelTime(e.target.value as TransportMode, { label: location, lat: lat ?? 0, lon: lon ?? 0 })}}>
               <option value="driving-car">Auto</option>

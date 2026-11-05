@@ -132,7 +132,7 @@ class OrsControllerTest {
                 .param("q", "place")
                 .with(as(sarah)))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.errors.q").value("ungültige Anfrage"));}
+            .andExpect(jsonPath("$.errors.location").value("ungültige Anfrage"));}
 
     @Test 
     void routeErrorBecomesBadRequest() throws Exception {
