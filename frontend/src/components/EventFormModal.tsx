@@ -171,6 +171,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     setQuery('');
     const settings = await getSettings();
     if (!settings.homeLocation) {setFieldErrors({travelTime: 'Bitte zuerst den Wohnort in den Einstellungen eingeben.'}); return;}
+    if(!place.lat || !place.lon){return}
     const time = await getTravelTime(mode, settings.homeLocation.lat, settings.homeLocation.lon, place.lat, place.lon);
     setTravelTime(time);
     setFieldErrors({});

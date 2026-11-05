@@ -15,8 +15,10 @@ public class OrsService {
         public OrsService(OrsApi api, OrsProperties properties) {
         this.api = api;
         this.properties = properties;
-
         }
+
+        private static final List<String> VALID_TRANSPORT_MODES = List.of("driving-car", "cycling-regular", "foot-walking");
+        
         public List<OrsLocation> findPlaces(String query) {
             requireConfigured();
             try{
@@ -32,6 +34,8 @@ public class OrsService {
 
         public double gettravelTime(String transportMode, double startLat, double startLon, double endLat, double endLon) {
             requireConfigured();
+            if(!VALID_TRANSPORT_MODES.contains(transportMode)){
+                throw ApiException.invalidField("transportMode","Ungültiges Verkehrsmittel: "+transportMode);}
             try{
                 OrsApi.RouteResponse response = api.gettravelTime(transportMode, startLat, startLon, endLat, endLon);
                 return response.features().get(0).properties().summary().duration();
