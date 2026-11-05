@@ -346,7 +346,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             )}
             <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-2 py-2">
               <span className="text-xs text-slate-500">individuellen Ort eingeben</span>
-              <input {...fieldProps('location')} value={individuallocation ?? ''} onChange={e => {setIndividuallocation(e.target.value)}} 
+              <input {...fieldProps('individuallocation')} value={individuallocation ?? ''} onChange={e => {setIndividuallocation(e.target.value)}} 
                 onKeyDown={e => {if(e.key === 'Enter'){e.preventDefault(); setLocationAsIndividual();}}} placeholder="Ort eingeben ..."/>
               <button onClick={setLocationAsIndividual} type="button" disabled={!individuallocation?.trim()}
                className="px-4 py-2 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">

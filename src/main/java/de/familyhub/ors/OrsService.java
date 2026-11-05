@@ -27,7 +27,7 @@ public class OrsService {
                                 feature.geometry().coordinates().get(0)))
                         .toList();
             }catch(OrsException e){
-                throw ApiException.invalidField("q",e.getMessage());}
+                throw ApiException.invalidField("location",e.getMessage());}
         }
 
         public double gettravelTime(String transportMode, double startLat, double startLon, double endLat, double endLon) {
