@@ -48,11 +48,16 @@ kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 **Voraussetzungen:** JDK 25, MongoDB 8.0 (oder Docker) und für die Oberfläche
 Node.js 24 mit pnpm 10. Maven muss nicht installiert sein, der Maven Wrapper lädt
 es beim ersten Aufruf selbst. Unter Windows lässt sich MongoDB ohne
-Admin-Rechte als ZIP nach `%LOCALAPPDATA%\Programs\mongodb` entpacken.
+Admin-Rechte als ZIP nach `%LOCALAPPDATA%\Programs\mongodb` entpacken, unter
+macOS mit Homebrew installieren: `brew tap mongodb/brew && brew install
+mongodb-community@8.0`.
 
 ```bash
 # 1. MongoDB starten (lauscht nur auf 127.0.0.1:27017, beenden mit Strg+C)
+#    Windows:
 powershell -ExecutionPolicy Bypass -File scripts/start-mongodb.ps1
+#    macOS und Linux:
+scripts/start-mongodb.sh
 #    oder mit Docker (läuft im Hintergrund, beenden mit: docker compose down)
 docker compose up -d
 
