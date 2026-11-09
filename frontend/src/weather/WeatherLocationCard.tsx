@@ -60,7 +60,7 @@ export default function WeatherLocationCard() {
       </h3>
       <p className="text-xs text-slate-500 mb-3">Die Übersicht zeigt allen das Wetter an diesem Ort (Daten von OpenWeather).</p>
 
-      {location === undefined && !error && <p className="text-sm text-slate-400">Wird geladen…</p>}
+      {location === undefined && !error && <p className="text-sm text-slate-500">Wird geladen…</p>}
       {location === null && <p className="text-sm text-slate-500 mb-3">Noch kein Wohnort eingestellt.</p>}
       {location && (
         <div className="flex items-center gap-2 mb-3 bg-slate-50 rounded-xl px-3 py-2">
@@ -82,7 +82,7 @@ export default function WeatherLocationCard() {
 
       {results && (
         <div className="mt-2 space-y-1" aria-label="Suchergebnisse">
-          {results.length === 0 && <p className="text-xs text-slate-400 px-1">Kein Ort gefunden.</p>}
+          {results.length === 0 && <p className="text-xs text-slate-500 px-1">Kein Ort gefunden.</p>}
           {results.map(p => (
             <button key={`${p.lat},${p.lon}`} type="button" disabled={busy} onClick={() => choose(p)}
               className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-sm text-slate-700 disabled:opacity-50">
@@ -93,7 +93,7 @@ export default function WeatherLocationCard() {
       )}
 
       {error && <p role="alert" className="text-sm text-[#DC2626] mt-2">{error}</p>}
-      {message && <p role="status" className="text-xs text-[#16A34A] mt-2">{message}</p>}
+      {message && <p role="status" className="text-xs text-[#15803D] mt-2">{message}</p>}
     </section>
   );
 }

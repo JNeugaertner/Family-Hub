@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { CalendarMember } from '../calendar/CalendarDataContext';
 import { useOpenProfile } from './ProfileCard';
+import { readable } from '../family/colors';
 
 // Farbiger Kreis mit Initiale, der das Profil der Person öffnet. Klicks und Tasten gehen nicht an die umgebende
 // Zeile weiter (z. B. Termin in der Übersicht, Aufgabenkarte).
@@ -22,7 +23,7 @@ export default function AvatarButton({ member, size = 24, className = '', style 
       aria-label={`Profil von ${member.name}`}
       title={member.name}
       className={`rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 cursor-pointer hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2563EB] ${className}`}
-      style={{ ...box, backgroundColor: member.color, ...style }}>
+      style={{ ...box, backgroundColor: readable(member.color), ...style }}>
       {member.initials[0]}
     </button>
   );

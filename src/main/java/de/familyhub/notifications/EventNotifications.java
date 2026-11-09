@@ -4,7 +4,9 @@ import static de.familyhub.notifications.NotificationTexts.dayAndTime;
 import static de.familyhub.notifications.NotificationTexts.quoted;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
@@ -20,6 +22,7 @@ import de.familyhub.family.FamilyMemberRepository;
 // wird. Kommt jemand zu einem kurzfristigen Termin dazu, erfährt es nur diese Person.
 // Vorschläge zählen erst ab der Freigabe, aus Google übernommene Termine gar nicht (die kennt die Person schon).
 // Wer die Änderung selbst gemacht hat, bekommt keine Nachricht.
+// Bei Serien (Entscheidung vom 03.11.2026) zählt nur der nächste Termin, und die Nachricht nennt den Rhythmus.
 @Component
 public class EventNotifications {
 
@@ -60,6 +63,14 @@ public class EventNotifications {
         }
     }
 
+    // Serien (EventSeriesService): Maßgeblich ist der nächste Termin, der noch nicht vorbei ist. So gibt es eine
+    // Nachricht für die Serie, nicht eine je Termin.
+    public void savedSeries(CalendarEvent before, List<CalendarEvent> occurrences, FamilyMember actor) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        occurrences.stream().filter(event -> event.end().isAfter(now)).min(Comparator.comparing(CalendarEvent::start))
+                .ifPresent(next -> saved(before, next, actor));
+    }
+
     private void send(List<String> memberIds, String text, CalendarEvent event, FamilyMember actor) {
         for (String id : memberIds) {
             if (actor == null || !actor.id().equals(id)) {
@@ -75,6 +86,11 @@ public class EventNotifications {
     }
 
     private static String newEvent(CalendarEvent event, LocalDateTime now) {
+        if (event.recurrence() != null) {
+            LocalDate first = event.isSeries() ? event.series().date() : event.start().toLocalDate();
+            return "📅 Neuer Serientermin " + dayAndTime(event.start(), now.toLocalDate()) + ": "
+                    + quoted(event.title()) + ", " + event.recurrence().describe(first) + location(event);
+        }
         return "📅 Neuer Termin " + dayAndTime(event.start(), now.toLocalDate()) + ": " + quoted(event.title())
                 + location(event);
     }

@@ -14,11 +14,13 @@ import { CATEGORY_LABELS } from '../calendar/categories';
 import { SHARED_COLOR, blockBackground, cardBackground, dotBackground, memberColors, participantLabel, proposalStyle } from '../calendar/eventStyle';
 import GoogleBadge from '../google/GoogleBadge';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
+import { describeRecurrence } from '../calendar/recurrence';
 import { useFlashFocus, useFocus } from '../navigation/focus';
 import { SoonBadge } from './Placeholder';
 import { PLACEHOLDER } from '../placeholders';
 import { getWasteCollection } from '../waste/api';
 import { useAutoRefresh } from '../api/useAutoRefresh';
+import { readable } from '../family/colors';
 
 type SelectEvent = (event: CalendarEvent) => void;
 type SelectDay = (date: Date) => void;
@@ -27,6 +29,13 @@ type Page = string;
 interface Props { onNavigate: (p: any) => void; }
 
 type View = 'month' | 'week' | 'day';
+
+// Beschriftung der Pfeile für Screenreader, je nach Ansicht
+const STEP_LABELS: Record<View, { prev: string; next: string }> = {
+  month: { prev: 'Vorheriger Monat', next: 'Nächster Monat' },
+  week: { prev: 'Vorherige Woche', next: 'Nächste Woche' },
+  day: { prev: 'Vorheriger Tag', next: 'Nächster Tag' },
+};
 
 const CATEGORY_COLORS: Record<string, string> = {
   school:      '#2563EB',
@@ -66,9 +75,13 @@ function departureMins(ev: CalendarEvent): number | null {
 
 // ─── compact event pill (month grid) ─────────────────────────────────────────
 
-// Vorschläge (warten auf Freigabe) und private Termine sollen auf einen Blick erkennbar sein.
+// Vorschläge (warten auf Freigabe), private Termine und Serientermine sollen auf einen Blick erkennbar sein.
 const eventMarker = (event: CalendarEvent) =>
-  `${event.status === 'proposed' ? '⏳ ' : ''}${event.private ? '🔒 ' : ''}`;
+  `${event.status === 'proposed' ? '⏳ ' : ''}${event.private ? '🔒 ' : ''}${event.series ? '↻ ' : ''}`;
+
+// "jeden Dienstag bis 31.07.2027" für Serientermine, sonst leer
+const seriesText = (event: CalendarEvent) =>
+  event.recurrence && event.series ? describeRecurrence(event.recurrence, event.series.date) : '';
 
 const sourceNote = (event: CalendarEvent) => (event.source === 'google' ? ' (Google Kalender)' : '');
 
@@ -116,11 +129,14 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
           {event.private && (
             <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium">🔒 Privat</span>
           )}
+          {event.series && (
+            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium">↻ {seriesText(event)}</span>
+          )}
           {event.source === 'google' && (
-            <span className="text-[10px] bg-white border border-slate-200 text-[#4285F4] px-1.5 py-0.5 rounded-full font-medium">Google</span>
+            <span className="text-[10px] bg-white border border-slate-200 text-[#1967D2] px-1.5 py-0.5 rounded-full font-medium">Google</span>
           )}
           {(event.conflict || event.travelConflict) && (
-            <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
+            <span className="text-[10px] bg-[#FEF2F2] text-[#B91C1C] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
               <AlertTriangleIcon size={10} />
               {event.travelConflict ? 'Fahrzeit-Konflikt' : 'Konflikt'}
             </span>
@@ -144,12 +160,12 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
         </div>
         {/* Departure info */}
         {event.travelTime && (
-          <div className={`mt-1.5 flex items-center gap-1.5 text-xs font-semibold ${event.travelConflict ? 'text-[#EF4444]' : 'text-[#F97316]'}`}>
+          <div className={`mt-1.5 flex items-center gap-1.5 text-xs font-semibold ${event.travelConflict ? 'text-[#DC2626]' : 'text-[#C2410C]'}`}>
             <span>{TRANSPORT_ICONS[event.transportMode || 'car']}</span>
             <span>{departureMins(event)} min Fahrt</span>
             <span>·</span>
             <span>Abfahrt {event.departure}</span>
-            {event.travelConflict && <span className="ml-1 text-[#EF4444]">⚠ Zeitkonflikt!</span>}
+            {event.travelConflict && <span className="ml-1 text-[#DC2626]">⚠ Zeitkonflikt!</span>}
           </div>
         )}
       </div>
@@ -212,7 +228,7 @@ function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, o
               <div className="flex items-center justify-between mb-1">
                 <button type="button" onClick={openDay} aria-label={`${formatLongDate(cellDate)} öffnen`}
                   className={`inline-flex items-center justify-center w-6 h-6 text-xs font-semibold rounded-full hover:ring-2 hover:ring-[#BFDBFE]
-                  ${isToday ? 'bg-[#2563EB] text-white' : cell.type !== 'curr' ? 'text-slate-300' : 'text-slate-700'}`}>
+                  ${isToday ? 'bg-[#2563EB] text-white' : cell.type !== 'curr' ? 'text-slate-500' : 'text-slate-700'}`}>
                   {cell.day}
                 </button>
                 {hasConflict && <AlertTriangleIcon size={11} className="text-[#EF4444]" />}
@@ -294,7 +310,7 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
 
           return (
             <div key={d.toISOString()} className={`text-center py-2 border-r border-slate-50 ${isToday ? 'bg-[#EFF6FF]' : ''}`}>
-              <div className={`text-[10px] font-semibold ${isToday ? 'text-[#2563EB]' : 'text-slate-400'} uppercase`}>
+              <div className={`text-[10px] font-semibold ${isToday ? 'text-[#2563EB]' : 'text-slate-500'} uppercase`}>
                 {WEEKDAYS_SHORT[weekdayIndex(d)]}
               </div>
               <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm mx-auto mt-1 ${isToday ? 'bg-[#2563EB] text-white' : 'text-slate-700'}`}>
@@ -337,12 +353,14 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
       </div>
 
       {/* Time grid */}
-      <div ref={gridRef} className="relative overflow-y-auto max-h-[520px] scrollbar-hide">
+      {/* Per Tastatur scrollbar (Fokus mit Tab, dann Pfeiltasten) */}
+      <div ref={gridRef} tabIndex={0} role="region" aria-label="Woche, nach Uhrzeit"
+        className="relative overflow-y-auto max-h-[520px] scrollbar-hide focus-visible:outline-2 focus-visible:outline-[#2563EB]">
         {hours.map(h => (
           <div key={h} ref={h === 6 ? firstHourRef : undefined} className="grid border-b border-slate-50 min-h-[64px]" style={{ gridTemplateColumns: '52px repeat(7, 1fr)' }}>
             {/* Hour label */}
             <div className="border-r border-slate-100 py-1 pr-2 text-right flex-shrink-0">
-              <span className="text-[10px] text-slate-400 font-medium">
+              <span className="text-[10px] text-slate-500 font-medium">
                 {String(h).padStart(2, '0')}:00
               </span>
             </div>
@@ -395,9 +413,9 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
                         <div className="truncate font-semibold">
                           {ev.source === 'google' && <GoogleBadge className="mr-0.5" />}{eventMarker(ev)}{ev.title}
                         </div>
-                        <div className="opacity-80 text-[9px]">{ev.time}{ev.endTime ? `–${ev.endTime}` : ''}</div>
+                        <div className="text-[9px]">{ev.time}{ev.endTime ? `–${ev.endTime}` : ''}</div>
                         {hasTravel && (
-                          <div className={`text-[9px] font-bold mt-0.5 ${hasTravelConflict ? 'text-[#EF4444]' : 'text-white/90'}`}>
+                          <div className={`text-[9px] font-bold mt-0.5 ${hasTravelConflict ? 'text-[#DC2626]' : 'text-white'}`}>
                             {TRANSPORT_ICONS[ev.transportMode || 'car']} Abf. {ev.departure}
                             {hasTravelConflict && ' ⚠'}
                           </div>
@@ -456,7 +474,7 @@ function DayView({ day, events, garbagePickups, onSelect }: { day: Date; events:
         </div>
       ))}
       {dayEvents.length === 0 ? (
-        dayPickups.length === 0 && <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400">
+        dayPickups.length === 0 && <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-500">
           {isToday ? 'Heute keine Termine 🎉' : 'An diesem Tag keine Termine'}
         </div>
       ) : (
@@ -567,13 +585,15 @@ export default function CalendarPage({ onNavigate }: Props) {
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="flex items-center gap-2">
-          <button onClick={prev} className="p-2 rounded-xl hover:bg-white border border-slate-200 text-slate-500 shadow-sm transition-colors">
+          <button onClick={prev} aria-label={STEP_LABELS[view].prev}
+            className="p-2 rounded-xl hover:bg-white border border-slate-200 text-slate-500 shadow-sm transition-colors">
             <ChevronLeftIcon size={16} />
           </button>
           <h2 className="font-bold text-slate-800 text-lg min-w-[180px] text-center">
             {heading}
           </h2>
-          <button onClick={next} className="p-2 rounded-xl hover:bg-white border border-slate-200 text-slate-500 shadow-sm transition-colors">
+          <button onClick={next} aria-label={STEP_LABELS[view].next}
+            className="p-2 rounded-xl hover:bg-white border border-slate-200 text-slate-500 shadow-sm transition-colors">
             <ChevronRightIcon size={16} />
           </button>
         </div>
@@ -629,7 +649,7 @@ export default function CalendarPage({ onNavigate }: Props) {
                     {p.title}
                   </button>
                   <span className="text-xs text-slate-500">
-                    {p.date.split('-').reverse().join('.')} {p.time}–{p.endTime} · für {participantLabel(p.memberIds, members)}
+                    {p.date.split('-').reverse().join('.')} {p.time}–{p.endTime}{p.series ? ` · ↻ ${seriesText(p)}` : ''} · für {participantLabel(p.memberIds, members)}
                     {proposer && p.createdBy !== permissions.me.id ? ` · vorgeschlagen von ${proposer}` : ''}
                   </span>
                   {permissions.mayDecide && (
@@ -639,7 +659,7 @@ export default function CalendarPage({ onNavigate }: Props) {
                         Ablehnen
                       </button>
                       <button onClick={() => decide(approveEvent, p.id)}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#22C55E] text-white hover:bg-[#16A34A]">
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#15803D] text-white hover:bg-[#166534]">
                         Freigeben
                       </button>
                     </span>
@@ -665,7 +685,7 @@ export default function CalendarPage({ onNavigate }: Props) {
             key={m.id}
             onClick={() => setSelectedMember(selectedMember === m.id ? null : m.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selectedMember === m.id ? 'text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
-            style={selectedMember === m.id ? { backgroundColor: m.color } : {}}
+            style={selectedMember === m.id ? { backgroundColor: readable(m.color) } : {}}
           >
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: m.color }} />
             {m.name}
@@ -726,13 +746,13 @@ export default function CalendarPage({ onNavigate }: Props) {
       {/* Transport legend (week/day only); Platzhalter, solange Fahrzeiten nicht berechnet werden */}
       {view !== 'month' && !PLACEHOLDER.travelTimes && (
         <div className="mb-4 flex flex-wrap gap-2 items-center">
-          <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">Verkehrsmittel:</span>
+          <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">Verkehrsmittel:</span>
           {Object.entries(TRANSPORT_ICONS).map(([mode, icon]) => (
             <span key={mode} className="flex items-center gap-1 text-xs text-slate-500 bg-white border border-slate-100 px-2.5 py-1 rounded-full shadow-sm">
               {icon} {mode === 'car' ? 'Auto' : mode === 'transit' ? 'ÖPNV' : mode === 'bike' ? 'Fahrrad' : 'Zu Fuß'}
             </span>
           ))}
-          <span className="flex items-center gap-1 text-xs text-[#EF4444] bg-[#FEF2F2] border border-[#FECACA] px-2.5 py-1 rounded-full ml-auto">
+          <span className="flex items-center gap-1 text-xs text-[#B91C1C] bg-[#FEF2F2] border border-[#FECACA] px-2.5 py-1 rounded-full ml-auto">
             <AlertTriangleIcon size={11} /> Konflikt
           </span>
         </div>

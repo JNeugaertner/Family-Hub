@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {findPlaces, getSettings, OrsLocation, setHomeLocation, removeHomeLocation} from './OrsApi';
 import { ApiError } from '@/api/client';
+import OrsAttribution from './OrsAttribution';
 
 const INPUT = 'flex-1 min-w-0 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20';
 
@@ -56,8 +57,8 @@ export default function OrslocationCard(){
     };
 
   return (
-    <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5" aria-labelledby="weather-location-title">
-      <h3 id="weather-location-title" className="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
+    <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5" aria-labelledby="home-location-title">
+      <h3 id="home-location-title" className="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
           Adresse
       </h3>
       <p className="text-xs text-slate-500 mb-3">Eingabe der genauen Wohnadresse zur Fahrzeitberechnung.</p>
@@ -87,7 +88,7 @@ export default function OrslocationCard(){
 
       {results && (
         <div className="mt-2 space-y-1" aria-label="Suchergebnisse">
-          {results.length === 0 && <p className="text-xs text-slate-400 px-1">Kein Ort gefunden.</p>}
+          {results.length === 0 && <p className="text-xs text-slate-500 px-1">Kein Ort gefunden.</p>}
           {results.map(p => (
             <button key={`${p.lat},${p.lon}`} type="button" disabled={busy} onClick={() => choose(p)}
               className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-sm text-slate-700 disabled:opacity-50">
@@ -98,7 +99,8 @@ export default function OrslocationCard(){
       )}
 
       {formError && <p role="alert" className="text-sm text-[#DC2626] mt-2">{formError}</p>}
-      {message && <p role="status" className="text-xs text-[#16A34A] mt-2">{message}</p>}
+      {message && <p role="status" className="text-xs text-[#15803D] mt-2">{message}</p>}
+      <OrsAttribution className="mt-3" />
     </section>
   );
 }

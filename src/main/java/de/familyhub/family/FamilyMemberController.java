@@ -22,6 +22,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import de.familyhub.achievements.AchievementService;
 import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
+import de.familyhub.calendar.EventSeriesService;
 import de.familyhub.google.GoogleAccountService;
 import de.familyhub.meals.MealEntryRepository;
 import de.familyhub.messages.MessageService;
@@ -66,13 +67,14 @@ public class FamilyMemberController {
     private final MessageService messages;
     private final TelegramService telegram;
     private final Notifications notifications;
+    private final EventSeriesService eventSeries;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
             TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
             PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts,
             RedemptionRepository redemptions, AchievementService achievements, MealEntryRepository meals,
             ShoppingItemRepository shopping, MessageService messages, TelegramService telegram,
-            Notifications notifications) {
+            Notifications notifications, EventSeriesService eventSeries) {
         this.members = members;
         this.events = events;
         this.tasks = tasks;
@@ -89,6 +91,7 @@ public class FamilyMemberController {
         this.messages = messages;
         this.telegram = telegram;
         this.notifications = notifications;
+        this.eventSeries = eventSeries;
     }
 
     @GetMapping
@@ -186,6 +189,7 @@ public class FamilyMemberController {
                     + "Bitte zuerst genehmigen oder ablehnen.");
         }
         events.saveAll(ownEvents.stream().map(e -> e.withoutMember(id)).toList());
+        eventSeries.forgetMember(id);
         googleAccounts.forgetMember(id);
         achievements.forgetMember(id);
         // Offene Wünsche und Vorschläge könnte sonst niemand mehr zuordnen; bereits übernommene bleiben

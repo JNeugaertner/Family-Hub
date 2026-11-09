@@ -75,7 +75,7 @@ export default function WasteCalendarCard({ members }: { members: ApiMember[] })
         </div>
         {!assigneeId && <p className="text-xs text-slate-500">Offene Aufgaben benötigen mindestens einen Punkt und können von Kindern übernommen werden.</p>}
         {error && <p role="alert" className="text-sm text-[#DC2626]">{error}</p>}
-        {message && <p role="status" className="text-sm text-[#16A34A]">{message}</p>}
+        {message && <p role="status" className="text-sm text-[#15803D]">{message}</p>}
         <button type="submit" disabled={busy || !file}
           className="px-4 py-2 rounded-lg bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50">
           {busy ? 'Importiere…' : 'Kalender importieren'}

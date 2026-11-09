@@ -4,6 +4,81 @@ Alle Versionen von FamilyHub AI mit den wichtigsten Neuerungen. Jede Version ist
 auf `main` mit einem Tag markiert (`v0.1.0`, …). Ältere Einträge beschreiben den
 Stand ihrer Version; was sich später geändert hat, steht bei der neueren Version.
 
+## v0.7.0 – 09.11.2026
+
+### Neu
+
+- **Terminserien:** Im Termin-Formular macht „Wiederholen“ aus einem Termin eine
+  Serie: täglich, wöchentlich (an einem oder mehreren Wochentagen), monatlich
+  oder jährlich, auch „alle 2 Wochen“ usw., ohne Ende, bis zu einem Datum oder
+  für eine Anzahl von Terminen. FamilyHub legt die Termine zwölf Monate im
+  Voraus an und verlängert die Serie jede Nacht. Beim Ändern oder Löschen fragt
+  das Formular nach „nur diesen Termin“ oder „diesen und alle folgenden“.
+  Serientermine tragen im Kalender ein ↻.
+- **Wiederkehrende Aufgaben:** „↻ Nach Erledigung wiederholen“ legt beim
+  Abhaken sofort die nächste Runde an, im Abstand von Tagen, Wochen oder Monaten.
+  Zuständig ist eine feste Person oder „Wer zuerst kommt“: Dann ist jede Runde
+  für alle offen und wird mit „Ich mach's“ übernommen. Die Karte zeigt, wer
+  zuletzt wann erledigt hat.
+- **Wiederkehrende Einkäufe:** Artikel kommen „bei jedem Einkauf“ oder einige
+  Tage, Wochen oder Monate nach dem Kauf zurück auf die Liste. Bis dahin stehen
+  sie unter „Kommt wieder“; „Jetzt auf die Liste“ holt sie früher.
+- **Fahrzeit (Alexa Müller):** Termine bekommen einen Ort aus der Ortssuche
+  (OpenRouteService) oder einen frei eingetippten Ort. Aus dem Wohnort der
+  Familie, dem Verkehrsmittel (Auto, Fahrrad, zu Fuß) und dem Ort berechnet
+  FamilyHub die Fahrzeit und die Abfahrt (mit 15 Minuten Puffer). Beides steht
+  im Kalender und in der Übersicht. Den Wohnort stellen Administratoren unter
+  „Familie“ ein.
+- **Telegram:** Die Familie bekommt einen eigenen Bot. Wer sein Konto unter
+  „Familie“ verbindet, bekommt Benachrichtigungen zu dringenden Aufgaben,
+  kurzfristigen Terminen, offenen Bestätigungen und Chat-Nachrichten. Jede Art
+  lässt sich einzeln abschalten. Nachrichten an den Bot landen in FamilyHub.
+- **WhatsApp (in Arbeit):** FamilyHub nimmt Nachrichten an die WhatsApp-Nummer
+  der Familie entgegen und speichert sie. Ausgewertet werden sie noch nicht.
+- **Regressionstests (Uwe):** Cucumber-, Playwright- und axe-Tests im Ordner
+  `regression/`.
+
+### Geändert
+
+- **Lange Passwörter (Issues #1, #2):** Passwörter mit 73 bis 100 Zeichen, oder
+  kürzere mit Umlauten und Emojis, führten zu einem Serverfehler. Jetzt gehen
+  alle Passwörter mit 8 bis 100 Zeichen. Die Felder kürzen eingefügte
+  Passwörter nicht mehr ohne Hinweis.
+- **Barrierefreiheit (Issue #3):** Hellgraue Texte und helle Akzentfarben sind
+  dunkler und damit besser lesbar (WCAG 2.2 AA). Mitgliedsfarben werden dort
+  abgedunkelt, wo weiße Schrift auf ihnen steht. Bedienelemente wie die
+  Monats-Pfeile haben eine Beschriftung für Screenreader.
+- **Entwicklung unter macOS und Linux:** `scripts/start-mongodb.sh`, und
+  `./mvnw` ist ausführbar.
+
+### Hinweise zum Update
+
+- Neue, optionale Zugangsdaten in `local.properties` (oder als
+  Umgebungsvariablen): `familyhub.ors.api-key` (Ortssuche und Fahrzeit),
+  `familyhub.telegram.bot-token` (`TELEGRAM_BOT_TOKEN`) und
+  `familyhub.whatsapp.*` (`WHATSAPP_*`). Ohne sie startet FamilyHub wie bisher;
+  die jeweilige Funktion meldet dann, dass sie nicht eingerichtet ist.
+- Neue Einstellungen: `familyhub.calendar.series-horizon` (`P12M`),
+  `familyhub.calendar.series-extend-cron` (`0 20 3 * * *`),
+  `familyhub.shopping.return-cron` (`0 1 0 * * *`),
+  `familyhub.telegram.polling` (`true`) und `familyhub.notifications.*`
+  (siehe README).
+- Neue Endpunkte: `/api/ors` (Ortssuche, Fahrzeit, Wohnort), `/api/telegram`,
+  `/api/whatsapp`, `/api/inbox` und `/api/notifications/settings`. Termine
+  haben die neuen Felder `departure`, `lat`, `lon`, `transportMode`,
+  `travelTime`, `recurrence` und `series`; `PUT` und `DELETE` auf
+  `/api/events/{id}` nehmen `scope` (`single` oder `following`). Aufgaben und
+  Einkaufsartikel haben das Feld `repeat` (Details in der Swagger UI).
+- Bestehende Passwörter bleiben gültig. Neue Passwörter über 72 Bytes werden
+  als `{bcrypt-sha256}` gespeichert; eine ältere FamilyHub-Version kann sich mit
+  solchen Konten nicht mehr anmelden.
+- Bestehende Termine, Aufgaben und Artikel bleiben einmalig; es gibt keine
+  Umstellung der Daten.
+- Ortssuche und Fahrzeit zeigen die Quellenangabe, die openrouteservice in
+  seinen Nutzungsbedingungen verlangt („© openrouteservice.org by HeiGIT | Map
+  data © OpenStreetMap contributors“).
+- 408 automatisierte Backend-Tests, dazu 207 Szenarien in den Regressionstests.
+
 ## v0.6.0 – 20.10.2026
 
 ### Neu
