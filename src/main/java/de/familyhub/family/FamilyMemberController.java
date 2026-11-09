@@ -22,10 +22,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import de.familyhub.achievements.AchievementService;
 import de.familyhub.calendar.CalendarEvent;
 import de.familyhub.calendar.CalendarEventRepository;
+import de.familyhub.calendar.EventSeriesService;
 import de.familyhub.google.GoogleAccountService;
 import de.familyhub.meals.MealEntryRepository;
 import de.familyhub.messages.MessageService;
 import de.familyhub.meals.MealStatus;
+import de.familyhub.notifications.Notifications;
 import de.familyhub.permission.Action;
 import de.familyhub.permission.Module;
 import de.familyhub.permission.Permission;
@@ -38,6 +40,7 @@ import de.familyhub.security.CurrentMember;
 import de.familyhub.shopping.ShoppingItemRepository;
 import de.familyhub.shopping.ShoppingItemStatus;
 import de.familyhub.task.TaskRepository;
+import de.familyhub.telegram.TelegramService;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -62,12 +65,16 @@ public class FamilyMemberController {
     private final MealEntryRepository meals;
     private final ShoppingItemRepository shopping;
     private final MessageService messages;
+    private final TelegramService telegram;
+    private final Notifications notifications;
+    private final EventSeriesService eventSeries;
 
     public FamilyMemberController(FamilyMemberRepository members, CalendarEventRepository events,
             TaskRepository tasks, CurrentMember currentMember, MemberResponses responses, FamilyRules rules,
             PasswordEncoder passwordEncoder, Permissions permissions, GoogleAccountService googleAccounts,
             RedemptionRepository redemptions, AchievementService achievements, MealEntryRepository meals,
-            ShoppingItemRepository shopping, MessageService messages) {
+            ShoppingItemRepository shopping, MessageService messages, TelegramService telegram,
+            Notifications notifications, EventSeriesService eventSeries) {
         this.members = members;
         this.events = events;
         this.tasks = tasks;
@@ -82,6 +89,9 @@ public class FamilyMemberController {
         this.meals = meals;
         this.shopping = shopping;
         this.messages = messages;
+        this.telegram = telegram;
+        this.notifications = notifications;
+        this.eventSeries = eventSeries;
     }
 
     @GetMapping
@@ -108,11 +118,13 @@ public class FamilyMemberController {
             throw ApiException.invalidField("password", "Passwort ist Pflicht");
         }
         requireFreeUsername(request.username(), null);
+        String phone = MemberRules.normalizePhone(request.phone());
+        requireFreePhone(phone, null);
         rules.checkLimits(request.role(), null);
 
         FamilyMember saved = members.save(new FamilyMember(null, request.name(), request.color(), request.username(),
                 passwordEncoder.encode(request.password()), request.role(), request.birthDate(), request.isRoleFixed(),
-                orEmpty(request.extraPermissions()), orEmpty(request.revokedPermissions())));
+                orEmpty(request.extraPermissions()), orEmpty(request.revokedPermissions()), phone));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(responses.of(saved, admin));
     }
@@ -128,11 +140,14 @@ public class FamilyMemberController {
                 ? existing.extraPermissions() : request.extraPermissions();
         Set<Permission> revoked = request.revokedPermissions() == null
                 ? existing.revokedPermissions() : request.revokedPermissions();
+        String phone = MemberRules.normalizePhone(request.phone());
         FamilyMember updated = new FamilyMember(id, request.name(), request.color(), request.username(),
-                existing.passwordHash(), request.role(), request.birthDate(), request.isRoleFixed(), extra, revoked);
+                existing.passwordHash(), request.role(), request.birthDate(), request.isRoleFixed(), extra, revoked,
+                phone);
         requireAllowedChange(admin, existing, updated, request.password() != null);
         checkRoleAssignable(request.role());
         requireFreeUsername(request.username(), id);
+        requireFreePhone(phone, id);
         rules.checkLimits(request.role(), id);
         rules.checkAdministratorRemains(existing, request.role());
 
@@ -148,7 +163,7 @@ public class FamilyMemberController {
             description = "Nur für Administratoren und nur, wenn das Mitglied an keinem Termin allein beteiligt ist. "
                     + "Aus gemeinsamen Terminen wird es ausgetragen; aus Google importierte Termine und die "
                     + "Google-Verbindung werden mitgelöscht, ebenso offene Essenswünsche, Einkaufsvorschläge und "
-                    + "Einzelchats. Nachrichten in der Familiengruppe bleiben.")
+                    + "Einzelchats und die Verknüpfung mit Telegram. Nachrichten in der Familiengruppe bleiben.")
     public void delete(@PathVariable String id) {
         FamilyMember admin = requireManager();
         FamilyMember member = find(id);
@@ -174,12 +189,15 @@ public class FamilyMemberController {
                     + "Bitte zuerst genehmigen oder ablehnen.");
         }
         events.saveAll(ownEvents.stream().map(e -> e.withoutMember(id)).toList());
+        eventSeries.forgetMember(id);
         googleAccounts.forgetMember(id);
         achievements.forgetMember(id);
         // Offene Wünsche und Vorschläge könnte sonst niemand mehr zuordnen; bereits übernommene bleiben
         meals.deleteByCreatedByAndStatus(id, MealStatus.PROPOSED);
         shopping.deleteByCreatedByAndStatus(id, ShoppingItemStatus.PROPOSED);
         messages.forgetMember(id);
+        telegram.forgetMember(id);
+        notifications.forgetMember(id);
         members.deleteById(id);
     }
 
@@ -221,6 +239,10 @@ public class FamilyMemberController {
         if (loginChanged && !before.id().equals(manager.id())) {
             requireRightsManager(manager, "Nur Administratoren dürfen Benutzername und Passwort anderer ändern.");
         }
+        // Die Nummer entscheidet, wessen WhatsApp-Nachrichten jemand sieht, auch bei der eigenen
+        if (!Objects.equals(before.phone(), after.phone())) {
+            requireRightsManager(manager, "Nur Administratoren dürfen Handynummern eintragen.");
+        }
     }
 
     private static Set<Permission> orEmpty(Set<Permission> permissions) {
@@ -238,6 +260,19 @@ public class FamilyMemberController {
                 .filter(other -> !other.id().equals(ownId))
                 .ifPresent(other -> {
                     throw ApiException.invalidField("username", "Benutzername ist bereits vergeben");
+                });
+    }
+
+    // Eine Nummer gehört zu höchstens einer Person, sonst wären ihre WhatsApp-Nachrichten nicht eindeutig zugeordnet.
+    private void requireFreePhone(String phone, String ownId) {
+        if (phone == null) {
+            return;
+        }
+        members.findByPhone(phone)
+                .filter(other -> !other.id().equals(ownId))
+                .ifPresent(other -> {
+                    throw ApiException.invalidField("phone", "Diese Nummer ist schon bei " + other.name()
+                            + " eingetragen");
                 });
     }
 

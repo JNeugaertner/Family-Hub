@@ -25,6 +25,7 @@ import de.familyhub.web.ApiException;
 // - Direkt auf die Liste: "einkauf/erstellen"; wer nur "einkauf/vorschlagen" hat (Kinder), macht einen Vorschlag.
 // - Ändern und abhaken: "einkauf/bearbeiten"; löschen: "einkauf/loeschen" (eigene Vorschläge darf man zurückziehen).
 // - Vorschläge übernehmen oder ablehnen: "einkauf/freigeben" (nur Administratoren).
+// - Wiederkehrende Artikel anlegen: "einkauf/erstellen"; ändern wie jeden anderen Artikel ("einkauf/bearbeiten").
 @Component
 public class ShoppingAccess {
 
@@ -70,8 +71,18 @@ public class ShoppingAccess {
         require(viewer, ERSTELLEN, "Keine Berechtigung, Artikel auf die Einkaufsliste zu setzen.");
     }
 
+    // Wiederkehrende Artikel legt an, wer direkt auf die Liste schreibt; Kinder schlagen nur einzelne Artikel vor.
+    public void requireRepeat(FamilyMember viewer) {
+        require(viewer, ERSTELLEN,
+                "Wiederkehrende Artikel darf nur anlegen, wer direkt auf die Einkaufsliste schreibt.");
+    }
+
     public void requireDeleteChecked(FamilyMember viewer) {
         require(viewer, LOESCHEN, "Keine Berechtigung, Artikel zu löschen.");
+    }
+
+    public boolean mayDecide(FamilyMember viewer) {
+        return can(viewer, FREIGEBEN);
     }
 
     public void requireDecision(FamilyMember viewer) {

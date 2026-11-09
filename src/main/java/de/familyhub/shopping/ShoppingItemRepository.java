@@ -10,6 +10,11 @@ public interface ShoppingItemRepository extends MongoRepository<ShoppingItem, St
 
     List<ShoppingItem> findByCheckedTrueAndStatus(ShoppingItemStatus status);
 
+    List<ShoppingItem> findByStatus(ShoppingItemStatus status);
+
+    // gekaufte wiederkehrende Artikel, die zurück auf die Liste kommen könnten (ShoppingRepeats)
+    List<ShoppingItem> findByCheckedTrueAndRepeatNotNull();
+
     // offene Vorschläge eines gelöschten Mitglieds entfernen
     long deleteByCreatedByAndStatus(String createdBy, ShoppingItemStatus status);
 }

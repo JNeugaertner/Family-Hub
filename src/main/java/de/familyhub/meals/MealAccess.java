@@ -62,6 +62,10 @@ public class MealAccess {
         require(viewer, BEARBEITEN, "Keine Berechtigung, Gerichte zu verwalten.");
     }
 
+    public boolean mayDecide(FamilyMember viewer) {
+        return can(viewer, FREIGEBEN);
+    }
+
     public void requireDecision(FamilyMember viewer) {
         require(viewer, FREIGEBEN, "Nur Administratoren dürfen Wünsche übernehmen oder ablehnen.");
     }

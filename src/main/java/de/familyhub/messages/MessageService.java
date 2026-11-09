@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
+import de.familyhub.notifications.MessageNotifications;
 
 @Service
 public class MessageService {
@@ -18,14 +19,16 @@ public class MessageService {
     private final ReadMarkRepository reads;
     private final FamilyMemberRepository members;
     private final MessageAccess access;
+    private final MessageNotifications notifications;
     private final Clock clock;
 
     public MessageService(ChatMessageRepository messages, ReadMarkRepository reads, FamilyMemberRepository members,
-            MessageAccess access, Clock clock) {
+            MessageAccess access, MessageNotifications notifications, Clock clock) {
         this.messages = messages;
         this.reads = reads;
         this.members = members;
         this.access = access;
+        this.notifications = notifications;
         this.clock = clock;
     }
 
@@ -59,6 +62,7 @@ public class MessageService {
         ChatMessage saved = messages.save(new ChatMessage(null, conversation, sender.id(), text.strip(), now));
         // Wer schreibt, hat die Unterhaltung bis hierhin gelesen
         reads.save(ReadMark.of(sender.id(), conversation, now));
+        notifications.sent(saved, sender);
         return saved;
     }
 

@@ -3,7 +3,10 @@ package de.familyhub.calendar;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -38,7 +41,7 @@ class CalendarEventTest {
 
     private static CalendarEvent event(String title, LocalDateTime start, LocalDateTime end,
             String memberId, EventCategory category) {
-        return new CalendarEvent(null, title, start, end, memberId, category, "Sports Center", null);
+        return new CalendarEvent(null, title, null, start, end, memberId, category, "Sports Center", null, null, null ,null, null);
     }
 
     private static CalendarEvent validEvent() {
@@ -129,5 +132,28 @@ class CalendarEventTest {
 
         assertThatThrownBy(() -> JSON.readValue(json, CalendarEvent.class))
                 .hasMessageContaining("party");
+    }
+
+    // Fahrzeit und Serie stehen im selben Datensatz: Serientermine und Änderungen dürfen Ort und Fahrzeit nicht verlieren
+    @Test
+    void seriesOccurrencesAndCopiesKeepTravelData() {
+        CalendarEvent template = new CalendarEvent(null, "Training", "17:35", START, START.plusHours(1), List.of("4", "5"),
+                EventCategory.SPORTS, "Sporthalle", 48.1, 11.5, "cycling-regular", 600.0, null, false,
+                EventStatus.APPROVED, "4", null,
+                new Recurrence(Frequency.WEEKLY, 1, Set.of(DayOfWeek.FRIDAY), null, 3), null);
+
+        CalendarEvent next = template.occurrence("s1", LocalDate.of(2026, 10, 2));
+        assertThat(next.start()).isEqualTo(LocalDateTime.of(2026, 10, 2, 10, 0));
+        assertThat(next.series().seriesId()).isEqualTo("s1");
+        for (CalendarEvent e : List.of(next, template.withStatus(EventStatus.PROPOSED), template.withoutMember("5"),
+                template.withSeries("x", template.recurrence(), next.series()))) {
+            assertThat(e.location()).isEqualTo("Sporthalle");
+            assertThat(e.lat()).isEqualTo(48.1);
+            assertThat(e.lon()).isEqualTo(11.5);
+            assertThat(e.transportMode()).isEqualTo("cycling-regular");
+            assertThat(e.travelTime()).isEqualTo(600.0);
+            assertThat(e.departure()).isEqualTo("17:35");
+            assertThat(e.recurrence()).isEqualTo(template.recurrence());
+        }
     }
 }

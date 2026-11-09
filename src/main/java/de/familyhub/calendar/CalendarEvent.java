@@ -1,5 +1,7 @@
 package de.familyhub.calendar;
 
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -12,7 +14,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -25,6 +30,8 @@ public record CalendarEvent(
         @NotBlank(message = "Titel darf nicht leer sein")
         @Size(max = 100, message = "Titel darf höchstens 100 Zeichen lang sein")
         String title,
+
+        String departure,
 
         @NotNull(message = "Beginn ist Pflicht")
         LocalDateTime start,
@@ -42,6 +49,18 @@ public record CalendarEvent(
         @Size(max = 200, message = "Ort darf höchstens 200 Zeichen lang sein")
         String location,
 
+        @DecimalMin(value = "-90", message = "Ungültiger Breitengrad")
+        @DecimalMax(value = "90", message = "Ungültiger Breitengrad")
+        Double lat,
+
+        @DecimalMin(value = "-180", message = "Ungültiger Längengrad")
+        @DecimalMax(value = "180", message = "Ungültiger Längengrad")
+        Double lon,
+
+        String transportMode,
+        
+        Double travelTime,
+
         @Size(max = 1000, message = "Beschreibung darf höchstens 1000 Zeichen lang sein")
         String description,
 
@@ -58,7 +77,16 @@ public record CalendarEvent(
 
         @Schema(accessMode = Schema.AccessMode.READ_ONLY,
                 description = "Nur bei importierten Terminen (z. B. Google Kalender); diese sind schreibgeschützt")
-        ExternalRef external) {
+        ExternalRef external,
+
+        // Neue Felder stehen am Ende; die Konstruktoren unten behalten die bisherige Form.
+        @Valid
+        @Schema(description = "Wiederholung. Beim Anlegen entsteht damit eine Serie; bei Serienterminen die Regel der "
+                + "Serie. Beim Ändern zählt sie nur mit scope=following oder um einen Einzeltermin zur Serie zu machen.")
+        Recurrence recurrence,
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY, description = "Nur bei Serienterminen")
+        SeriesRef series) {
 
     @PersistenceCreator
     public CalendarEvent {
@@ -67,6 +95,42 @@ public record CalendarEvent(
                 : memberIds.stream().filter(Objects::nonNull).filter(m -> !m.isBlank()).distinct().toList();
         privateEvent = Boolean.TRUE.equals(privateEvent);
         status = status == null ? EventStatus.APPROVED : status;
+    }
+
+    // Ohne Wiederholung (Form der Fahrzeitberechnung)
+    public CalendarEvent(String id, String title, String departure, LocalDateTime start, LocalDateTime end,
+            List<String> memberIds, EventCategory category, String location, Double lat, Double lon,
+            String transportMode, Double travelTime, String description, Boolean privateEvent, EventStatus status,
+            String createdBy, ExternalRef external) {
+        this(id, title, departure, start, end, memberIds, category, location, lat, lon, transportMode, travelTime,
+                description, privateEvent, status, createdBy, external, null, null);
+    }
+
+    public CalendarEvent(String id, String title, String departure, LocalDateTime start, LocalDateTime end, String memberId,
+            EventCategory category, String location, Double lat, Double lon, String transportMode, Double travelTime, String description, Boolean privateEvent, EventStatus status,
+            String createdBy) {
+        this(id, title, departure, start, end, List.of(memberId), category, location, lat, lon, transportMode, travelTime, description, privateEvent, status, createdBy,
+                null);
+    }
+
+    public CalendarEvent(String id, String title, String departure, LocalDateTime start, LocalDateTime end, String memberId,
+            EventCategory category, String location, Double lat, Double lon, String transportMode, Double travelTime, String description) {
+        this(id, title, departure, start, end, memberId, category, location, lat, lon, transportMode, travelTime, description, false, EventStatus.APPROVED, null);
+    }
+
+    // Ohne Fahrzeit (Form der Terminserien)
+    public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, List<String> memberIds,
+            EventCategory category, String location, String description, Boolean privateEvent, EventStatus status,
+            String createdBy, ExternalRef external, Recurrence recurrence, SeriesRef series) {
+        this(id, title, null, start, end, memberIds, category, location, null, null, null, null, description,
+                privateEvent, status, createdBy, external, recurrence, series);
+    }
+
+    public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, List<String> memberIds,
+            EventCategory category, String location, String description, Boolean privateEvent, EventStatus status,
+            String createdBy, ExternalRef external) {
+        this(id, title, start, end, memberIds, category, location, description, privateEvent, status, createdBy,
+                external, null, null);
     }
 
     public CalendarEvent(String id, String title, LocalDateTime start, LocalDateTime end, String memberId,
@@ -93,8 +157,28 @@ public record CalendarEvent(
     }
 
     public CalendarEvent withoutMember(String memberId) {
-        return new CalendarEvent(id, title, start, end, memberIds.stream().filter(m -> !m.equals(memberId)).toList(),
-                category, location, description, privateEvent, status, createdBy, external);
+        return new CalendarEvent(id, title, departure, start, end,
+                memberIds.stream().filter(m -> !m.equals(memberId)).toList(), category, location, lat, lon,
+                transportMode, travelTime, description, privateEvent, status, createdBy, external, recurrence, series);
+    }
+
+    public CalendarEvent withStatus(EventStatus newStatus) {
+        return new CalendarEvent(id, title, departure, start, end, memberIds, category, location, lat, lon,
+                transportMode, travelTime, description, privateEvent, newStatus, createdBy, external, recurrence, series);
+    }
+
+    public CalendarEvent withSeries(String newId, Recurrence newRecurrence, SeriesRef newSeries) {
+        return new CalendarEvent(newId, title, departure, start, end, memberIds, category, location, lat, lon,
+                transportMode, travelTime, description, privateEvent, status, createdBy, external, newRecurrence,
+                newSeries);
+    }
+
+    // Termin der Serie seriesId am Tag date, mit Uhrzeit und Dauer dieser Vorlage (Ort und Fahrzeit inklusive)
+    public CalendarEvent occurrence(String seriesId, LocalDate date) {
+        LocalDateTime from = date.atTime(start.toLocalTime());
+        return new CalendarEvent(null, title, departure, from, from.plus(Duration.between(start, end)), memberIds,
+                category, location, lat, lon, transportMode, travelTime, description, privateEvent, status, createdBy,
+                external, recurrence, new SeriesRef(seriesId, date, false));
     }
 
     @JsonIgnore
@@ -107,10 +191,22 @@ public record CalendarEvent(
         return external != null;
     }
 
+    @JsonIgnore
+    public boolean isSeries() {
+        return series != null;
+    }
+
     // Fehlende Zeiten meldet bereits @NotNull, daher hier nur die Reihenfolge prüfen.
     @JsonIgnore
     @AssertTrue(message = "Ende muss nach dem Beginn liegen")
     public boolean isEndAfterStart() {
         return start == null || end == null || end.isAfter(start);
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "Die Wiederholung muss nach dem Beginn enden")
+    public boolean isRecurrenceEndAfterStart() {
+        return recurrence == null || recurrence.until() == null || start == null
+                || !recurrence.until().isBefore(start.toLocalDate());
     }
 }

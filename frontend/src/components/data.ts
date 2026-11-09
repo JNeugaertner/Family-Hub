@@ -1,8 +1,9 @@
 // Gemeinsame Typen für Termine und feste Beispieldaten für das, was noch nicht ans Backend angeschlossen ist.
+import type { Recurrence, SeriesRef } from '../calendar/recurrence';
 
 export type EventCategory = 'school' | 'sports' | 'appointment' | 'family' | 'work' | 'reminder';
 
-export type TransportMode = 'car' | 'transit' | 'bike' | 'walk';
+export type TransportMode = 'driving-car' | 'cycling-regular' | 'foot-walking';
 
 // approved: gültiger Termin; proposed: Vorschlag, wartet auf Freigabe durch einen Administrator
 export type EventStatus = 'approved' | 'proposed';
@@ -12,6 +13,7 @@ export type EventStatus = 'approved' | 'proposed';
 export interface CalendarEvent {
   id: string;
   title: string;
+  departure: string;
   start: string;
   end: string;
   date: string;
@@ -21,6 +23,10 @@ export interface CalendarEvent {
   memberIds: string[];
   category: EventCategory;
   location?: string;
+  lat?: number;
+  lon?: number;
+  transportMode?: TransportMode;
+  travelTime?: number;
   description?: string;
   private: boolean;
   status: EventStatus;
@@ -29,8 +35,9 @@ export interface CalendarEvent {
   source?: 'google';
   // Von 00:00 bis 00:00 eines späteren Tages (z. B. ganztägige Google-Termine)
   allDay?: boolean;
-  travelTime?: number;
-  transportMode?: TransportMode;
+  // Nur bei Serienterminen: die Regel der Serie und die Zugehörigkeit
+  recurrence?: Recurrence;
+  series?: SeriesRef;
   conflict?: boolean;
   travelConflict?: boolean; // travel time overlaps with previous/next event
 }

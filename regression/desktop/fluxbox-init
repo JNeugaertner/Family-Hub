@@ -1,0 +1,4 @@
+session.styleFile: /tests/desktop/style
+session.screen0.rootCommand: /usr/bin/fbsetroot -solid gray20
+session.screen0.workspaces: 1
+session.screen0.toolbar.visible: true

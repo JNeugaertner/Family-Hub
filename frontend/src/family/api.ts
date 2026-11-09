@@ -16,6 +16,9 @@ export interface ApiMember {
   // Nur für Administratoren gefüllt
   extraPermissions: Permission[] | null;
   revokedPermissions: Permission[] | null;
+  // Handynummer nur aus Ziffern mit Ländervorwahl (z. B. 491701234567); nur für Administratoren und die Person
+  // selbst gefüllt
+  phone: string | null;
 }
 
 export interface MemberInput {
@@ -29,6 +32,8 @@ export interface MemberInput {
   roleFixed: boolean;
   extraPermissions: Permission[];
   revokedPermissions: Permission[];
+  // Beliebig geschrieben, z. B. "+49 170 1234567" oder "0170 1234567"; das Backend vereinheitlicht sie. null: keine
+  phone: string | null;
 }
 
 export interface RoleInfo {

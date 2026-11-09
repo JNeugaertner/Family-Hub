@@ -1,0 +1,596 @@
+[
+  {
+    "id": "artikel-leer",
+    "entity": "shopping",
+    "field": "name",
+    "value": "",
+    "valid": false,
+    "stored": "",
+    "update": true
+  },
+  {
+    "id": "artikel-leerzeichen",
+    "entity": "shopping",
+    "field": "name",
+    "value": "   ",
+    "valid": false,
+    "stored": "   ",
+    "update": true
+  },
+  {
+    "id": "artikel-tab",
+    "entity": "shopping",
+    "field": "name",
+    "value": "\t",
+    "valid": false,
+    "stored": "\t",
+    "update": true
+  },
+  {
+    "id": "artikel-zeilenumbruch",
+    "entity": "shopping",
+    "field": "name",
+    "value": "\r\n",
+    "valid": false,
+    "stored": "\r\n",
+    "update": true
+  },
+  {
+    "id": "artikel-em-space",
+    "entity": "shopping",
+    "field": "name",
+    "value": " ",
+    "valid": false,
+    "stored": " ",
+    "update": true
+  },
+  {
+    "id": "artikel-umlaute",
+    "entity": "shopping",
+    "field": "name",
+    "value": "Äpfel, Öl & süße Grüße",
+    "valid": true,
+    "stored": "Äpfel, Öl & süße Grüße",
+    "update": false
+  },
+  {
+    "id": "artikel-satzzeichen",
+    "entity": "shopping",
+    "field": "name",
+    "value": "O'Connor: \"Brot\" & Co. <3",
+    "valid": true,
+    "stored": "O'Connor: \"Brot\" & Co. <3",
+    "update": false
+  },
+  {
+    "id": "artikel-smiley",
+    "entity": "shopping",
+    "field": "name",
+    "value": "Milch 😀 🥛",
+    "valid": true,
+    "stored": "Milch 😀 🥛",
+    "update": true
+  },
+  {
+    "id": "artikel-nfc",
+    "entity": "shopping",
+    "field": "name",
+    "value": "Café",
+    "valid": true,
+    "stored": "Café",
+    "update": false
+  },
+  {
+    "id": "artikel-nfd",
+    "entity": "shopping",
+    "field": "name",
+    "value": "Café",
+    "valid": true,
+    "stored": "Café",
+    "update": true
+  },
+  {
+    "id": "artikel-nbspace",
+    "entity": "shopping",
+    "field": "name",
+    "value": " ",
+    "valid": true,
+    "stored": " ",
+    "update": false
+  },
+  {
+    "id": "artikel-zero-width",
+    "entity": "shopping",
+    "field": "name",
+    "value": "​",
+    "valid": true,
+    "stored": "​",
+    "update": false
+  },
+  {
+    "id": "artikel-randspaces",
+    "entity": "shopping",
+    "field": "name",
+    "value": "  Milch  ",
+    "valid": true,
+    "stored": "Milch",
+    "update": true
+  },
+  {
+    "id": "artikel-randtabs",
+    "entity": "shopping",
+    "field": "name",
+    "value": "\t\nMilch\r\n",
+    "valid": true,
+    "stored": "Milch",
+    "update": true
+  },
+  {
+    "id": "artikel-innenspaces",
+    "entity": "shopping",
+    "field": "name",
+    "value": "Milch  und  Brot",
+    "valid": true,
+    "stored": "Milch  und  Brot",
+    "update": true
+  },
+  {
+    "id": "artikel-rand-em-space",
+    "entity": "shopping",
+    "field": "name",
+    "value": " Milch ",
+    "valid": true,
+    "stored": "Milch",
+    "update": false
+  },
+  {
+    "id": "artikel-emoji-80",
+    "entity": "shopping",
+    "field": "name",
+    "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "valid": true,
+    "stored": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "update": true
+  },
+  {
+    "id": "artikel-emoji-82",
+    "entity": "shopping",
+    "field": "name",
+    "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "valid": false,
+    "stored": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "update": true
+  },
+  {
+    "id": "artikel-mix-81",
+    "entity": "shopping",
+    "field": "name",
+    "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀",
+    "valid": false,
+    "stored": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀",
+    "update": true
+  },
+  {
+    "id": "artikel-nfd-80",
+    "entity": "shopping",
+    "field": "name",
+    "value": "éééééééééééééééééééééééééééééééééééééééé",
+    "valid": true,
+    "stored": "éééééééééééééééééééééééééééééééééééééééé",
+    "update": true
+  },
+  {
+    "id": "artikel-nfd-82",
+    "entity": "shopping",
+    "field": "name",
+    "value": "ééééééééééééééééééééééééééééééééééééééééé",
+    "valid": false,
+    "stored": "ééééééééééééééééééééééééééééééééééééééééé",
+    "update": true
+  },
+  {
+    "id": "artikel-zwj-80",
+    "entity": "shopping",
+    "field": "name",
+    "value": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦xxx",
+    "valid": true,
+    "stored": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦xxx",
+    "update": true
+  },
+  {
+    "id": "artikel-zwj-88",
+    "entity": "shopping",
+    "field": "name",
+    "value": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦",
+    "valid": false,
+    "stored": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦",
+    "update": true
+  },
+  {
+    "id": "artikel-vor-strip-80",
+    "entity": "shopping",
+    "field": "name",
+    "value": " xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ",
+    "valid": true,
+    "stored": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "update": true
+  },
+  {
+    "id": "artikel-vor-strip-82",
+    "entity": "shopping",
+    "field": "name",
+    "value": " xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ",
+    "valid": false,
+    "stored": " xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ",
+    "update": true
+  },
+  {
+    "id": "menge-null",
+    "entity": "shopping",
+    "field": "quantity",
+    "value": null,
+    "valid": true,
+    "stored": null,
+    "update": false
+  },
+  {
+    "id": "menge-leer",
+    "entity": "shopping",
+    "field": "quantity",
+    "value": "",
+    "valid": true,
+    "stored": null,
+    "update": false
+  },
+  {
+    "id": "menge-spaces",
+    "entity": "shopping",
+    "field": "quantity",
+    "value": "   ",
+    "valid": true,
+    "stored": null,
+    "update": true
+  },
+  {
+    "id": "menge-tabs",
+    "entity": "shopping",
+    "field": "quantity",
+    "value": "\t\r\n",
+    "valid": true,
+    "stored": null,
+    "update": false
+  },
+  {
+    "id": "menge-emspace",
+    "entity": "shopping",
+    "field": "quantity",
+    "value": " ",
+    "valid": true,
+    "stored": null,
+    "update": false
+  },
+  {
+    "id": "menge-rand",
+    "entity": "shopping",
+    "field": "quantity",
+    "value": "  2 × ½ l  ",
+    "valid": true,
+    "stored": "2 × ½ l",
+    "update": true
+  },
+  {
+    "id": "menge-smiley",
+    "entity": "shopping",
+    "field": "quantity",
+    "value": "2 🥛",
+    "valid": true,
+    "stored": "2 🥛",
+    "update": false
+  },
+  {
+    "id": "menge-nbsp",
+    "entity": "shopping",
+    "field": "quantity",
+    "value": " ",
+    "valid": true,
+    "stored": " ",
+    "update": false
+  },
+  {
+    "id": "menge-emoji-30",
+    "entity": "shopping",
+    "field": "quantity",
+    "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "valid": true,
+    "stored": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "update": true
+  },
+  {
+    "id": "menge-emoji-32",
+    "entity": "shopping",
+    "field": "quantity",
+    "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "valid": false,
+    "stored": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "update": true
+  },
+  {
+    "id": "mitglied-spaces",
+    "entity": "member",
+    "field": "name",
+    "value": "   ",
+    "valid": false,
+    "stored": "   ",
+    "update": true
+  },
+  {
+    "id": "mitglied-tabs",
+    "entity": "member",
+    "field": "name",
+    "value": "\t\n",
+    "valid": false,
+    "stored": "\t\n",
+    "update": false
+  },
+  {
+    "id": "mitglied-emspace",
+    "entity": "member",
+    "field": "name",
+    "value": " ",
+    "valid": false,
+    "stored": " ",
+    "update": false
+  },
+  {
+    "id": "mitglied-umlaut",
+    "entity": "member",
+    "field": "name",
+    "value": "Jörg O'Connor",
+    "valid": true,
+    "stored": "Jörg O'Connor",
+    "update": false
+  },
+  {
+    "id": "mitglied-smiley",
+    "entity": "member",
+    "field": "name",
+    "value": "Mia 😀",
+    "valid": true,
+    "stored": "Mia 😀",
+    "update": true
+  },
+  {
+    "id": "mitglied-randspaces",
+    "entity": "member",
+    "field": "name",
+    "value": "  Mia  ",
+    "valid": true,
+    "stored": "  Mia  ",
+    "update": true
+  },
+  {
+    "id": "mitglied-nbspace",
+    "entity": "member",
+    "field": "name",
+    "value": " ",
+    "valid": true,
+    "stored": " ",
+    "update": false
+  },
+  {
+    "id": "mitglied-nfd",
+    "entity": "member",
+    "field": "name",
+    "value": "José",
+    "valid": true,
+    "stored": "José",
+    "update": false
+  },
+  {
+    "id": "mitglied-emoji-50",
+    "entity": "member",
+    "field": "name",
+    "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "valid": true,
+    "stored": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "update": true
+  },
+  {
+    "id": "mitglied-emoji-52",
+    "entity": "member",
+    "field": "name",
+    "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "valid": false,
+    "stored": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "update": true
+  },
+  {
+    "id": "benutzer-zeichen",
+    "entity": "member",
+    "field": "username",
+    "value": "abc._-09",
+    "valid": true,
+    "stored": "abc._-09",
+    "update": true
+  },
+  {
+    "id": "benutzer-randspaces",
+    "entity": "member",
+    "field": "username",
+    "value": " user123 ",
+    "valid": false,
+    "stored": " user123 ",
+    "update": true
+  },
+  {
+    "id": "benutzer-innenraum",
+    "entity": "member",
+    "field": "username",
+    "value": "user name",
+    "valid": false,
+    "stored": "user name",
+    "update": false
+  },
+  {
+    "id": "benutzer-tab",
+    "entity": "member",
+    "field": "username",
+    "value": "user\tname",
+    "valid": false,
+    "stored": "user\tname",
+    "update": false
+  },
+  {
+    "id": "benutzer-umlaut",
+    "entity": "member",
+    "field": "username",
+    "value": "jörg",
+    "valid": false,
+    "stored": "jörg",
+    "update": false
+  },
+  {
+    "id": "benutzer-emoji",
+    "entity": "member",
+    "field": "username",
+    "value": "user😀",
+    "valid": false,
+    "stored": "user😀",
+    "update": true
+  },
+  {
+    "id": "benutzer-fullwidth",
+    "entity": "member",
+    "field": "username",
+    "value": "ｕｓｅｒ",
+    "valid": false,
+    "stored": "ｕｓｅｒ",
+    "update": false
+  },
+  {
+    "id": "benutzer-nfd",
+    "entity": "member",
+    "field": "username",
+    "value": "usér",
+    "valid": false,
+    "stored": "usér",
+    "update": false
+  },
+  {
+    "id": "benutzer-nbspace",
+    "entity": "member",
+    "field": "username",
+    "value": "user name",
+    "valid": false,
+    "stored": "user name",
+    "update": false
+  },
+  {
+    "id": "passwort-sonderzeichen",
+    "entity": "member",
+    "field": "password",
+    "value": "A!§$%&/()=?_+-#",
+    "valid": true,
+    "stored": "A!§$%&/()=?_+-#",
+    "update": false
+  },
+  {
+    "id": "passwort-randspaces",
+    "entity": "member",
+    "field": "password",
+    "value": "  Abc123!  ",
+    "valid": true,
+    "stored": "  Abc123!  ",
+    "update": true
+  },
+  {
+    "id": "passwort-innenraum",
+    "entity": "member",
+    "field": "password",
+    "value": "Abc  123!",
+    "valid": true,
+    "stored": "Abc  123!",
+    "update": false
+  },
+  {
+    "id": "passwort-nurspaces",
+    "entity": "member",
+    "field": "password",
+    "value": "        ",
+    "valid": true,
+    "stored": "        ",
+    "update": false
+  },
+  {
+    "id": "passwort-umlaut-72bytes",
+    "entity": "member",
+    "field": "password",
+    "value": "ääääääääääääääääääääääääääääääääääää",
+    "valid": true,
+    "stored": "ääääääääääääääääääääääääääääääääääää",
+    "update": false
+  },
+  {
+    "id": "passwort-umlaut-74bytes",
+    "entity": "member",
+    "field": "password",
+    "value": "äääääääääääääääääääääääääääääääääääää",
+    "valid": true,
+    "stored": "äääääääääääääääääääääääääääääääääääää",
+    "update": true
+  },
+  {
+    "id": "passwort-emoji-72bytes",
+    "entity": "member",
+    "field": "password",
+    "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "valid": true,
+    "stored": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "update": false
+  },
+  {
+    "id": "passwort-emoji-76bytes",
+    "entity": "member",
+    "field": "password",
+    "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "valid": true,
+    "stored": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "update": true
+  },
+  {
+    "id": "passwort-nfd-72bytes",
+    "entity": "member",
+    "field": "password",
+    "value": "éééééééééééééééééééééééé",
+    "valid": true,
+    "stored": "éééééééééééééééééééééééé",
+    "update": false
+  },
+  {
+    "id": "passwort-nfd-75bytes",
+    "entity": "member",
+    "field": "password",
+    "value": "ééééééééééééééééééééééééé",
+    "valid": true,
+    "stored": "ééééééééééééééééééééééééé",
+    "update": false
+  },
+  {
+    "id": "passwort-emoji-6utf16",
+    "entity": "member",
+    "field": "password",
+    "value": "😀😀😀",
+    "valid": false,
+    "stored": "😀😀😀",
+    "update": false
+  },
+  {
+    "id": "passwort-emoji-8utf16",
+    "entity": "member",
+    "field": "password",
+    "value": "😀😀😀😀",
+    "valid": true,
+    "stored": "😀😀😀😀",
+    "update": false
+  }
+]

@@ -1,0 +1,11 @@
+FROM mcr.microsoft.com/playwright:v1.56.1-noble
+ENV DEBIAN_FRONTEND=noninteractive DISPLAY=:99 HEADLESS=false BASE_URL=http://127.0.0.1:8081 SLOW_MO=100
+RUN apt-get update && apt-get install -y --no-install-recommends xvfb fluxbox x11vnc novnc websockify supervisor xterm x11-utils fonts-dejavu curl && rm -rf /var/lib/apt/lists/*
+WORKDIR /tests
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN mkdir -p /tests/reports && cp -r /usr/share/novnc /opt/desktop && ln -s /tests/reports /opt/desktop/reports && cp desktop/index.html /opt/desktop/index.html && chmod +x desktop/run-tests.sh
+COPY desktop/supervisord.conf /etc/supervisor/conf.d/familyhub.conf
+EXPOSE 6080
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]

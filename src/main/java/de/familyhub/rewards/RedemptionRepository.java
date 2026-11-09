@@ -17,4 +17,6 @@ public interface RedemptionRepository extends MongoRepository<Redemption, String
     boolean existsByRewardIdAndStatus(String rewardId, RedemptionStatus status);
 
     long countByMemberIdAndStatus(String memberId, RedemptionStatus status);
+
+    List<Redemption> findByStatus(RedemptionStatus status);
 }

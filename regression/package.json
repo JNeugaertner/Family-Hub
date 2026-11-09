@@ -1,0 +1,22 @@
+{
+  "name": "familyhub-regression",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/run.mjs",
+    "test:smoke": "node scripts/run.mjs --tags @smoke",
+    "test:extended": "node scripts/run.mjs --tags @extended",
+    "test:security": "node scripts/run.mjs --tags @security",
+    "test:backend": "node scripts/run.mjs --tags @backend",
+    "test:a11y": "node scripts/run.mjs --tags @a11y",
+    "test:audit": "node scripts/run.mjs --tags \"@a11y or @injectionaudit\"",
+    "test:dry": "cucumber-js --config cucumber.mjs --dry-run",
+    "browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "12.2.0",
+    "@playwright/test": "1.56.1",
+    "axe-core": "4.14.0"
+  }
+}

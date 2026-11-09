@@ -7,6 +7,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import de.familyhub.calendar.EventStatus;
+import de.familyhub.calendar.SeriesScope;
+import de.familyhub.inbox.Channel;
 import de.familyhub.rewards.RedemptionStatus;
 import de.familyhub.task.TaskStatus;
 
@@ -17,8 +19,10 @@ public class EnumParameterConfig implements WebMvcConfigurer {
     @Override
     public void addFormatters(FormatterRegistry registry) {
         registry.addConverter(String.class, EventStatus.class, value -> byJsonName(EventStatus.class, value));
+        registry.addConverter(String.class, SeriesScope.class, value -> byJsonName(SeriesScope.class, value));
         registry.addConverter(String.class, TaskStatus.class, value -> byJsonName(TaskStatus.class, value));
         registry.addConverter(String.class, RedemptionStatus.class, value -> byJsonName(RedemptionStatus.class, value));
+        registry.addConverter(String.class, Channel.class, value -> byJsonName(Channel.class, value));
     }
 
     private static <E extends Enum<E>> E byJsonName(Class<E> type, String value) {

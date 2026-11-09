@@ -1,0 +1,52 @@
+package de.familyhub.ors;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import de.familyhub.web.ApiException;
+
+// Terminort
+@Service
+public class OrsService {
+        private final OrsApi api;
+        private final OrsProperties properties;
+
+        public OrsService(OrsApi api, OrsProperties properties) {
+        this.api = api;
+        this.properties = properties;
+        }
+
+        private static final List<String> VALID_TRANSPORT_MODES = List.of("driving-car", "cycling-regular", "foot-walking");
+        
+        public List<OrsLocation> findPlaces(String query) {
+            requireConfigured();
+            try{
+                OrsApi.SearchResponse response = api.findPlaces(query);
+                return response.features().stream()
+                        .map(feature -> new OrsLocation(feature.properties().label(),
+                                feature.geometry().coordinates().get(1),
+                                feature.geometry().coordinates().get(0)))
+                        .toList();
+            }catch(OrsException e){
+                throw ApiException.invalidField("location",e.getMessage());}
+        }
+
+        public double gettravelTime(String transportMode, double startLat, double startLon, double endLat, double endLon) {
+            requireConfigured();
+            if(!VALID_TRANSPORT_MODES.contains(transportMode)){
+                throw ApiException.invalidField("transportMode","Ungültiges Verkehrsmittel: "+transportMode);}
+            try{
+                OrsApi.RouteResponse response = api.gettravelTime(transportMode, startLat, startLon, endLat, endLon);
+                return response.features().get(0).properties().summary().duration();
+            }catch(OrsException e){
+                throw ApiException.invalidField("travelTime",e.getMessage());}
+        }
+
+        private void requireConfigured() {
+        if (!properties.isConfigured()) {
+            throw ApiException.unavailable("Die Fahrzeitberechnung ist nicht eingerichtet: Es fehlt der OpenRouteService-API-Schlüssel "
+                    + "(familyhub.ors.api-key in local.properties, siehe README).");
+        }
+    }
+}

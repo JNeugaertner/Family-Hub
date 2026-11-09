@@ -9,4 +9,6 @@ public interface FamilyMemberRepository extends MongoRepository<FamilyMember, St
     Optional<FamilyMember> findByUsername(String username);
 
     boolean existsByUsername(String username);
+
+    Optional<FamilyMember> findByPhone(String phone);
 }

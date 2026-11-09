@@ -104,8 +104,12 @@ public class CalendarAccess {
         }
     }
 
+    public boolean mayDecide(FamilyMember viewer) {
+        return can(viewer, FREIGEBEN, Scope.FAMILIE);
+    }
+
     public void requireDecision(FamilyMember viewer) {
-        if (!can(viewer, FREIGEBEN, Scope.FAMILIE)) {
+        if (!mayDecide(viewer)) {
             throw ApiException.forbidden("Nur Administratoren dürfen Vorschläge freigeben oder ablehnen.");
         }
     }
