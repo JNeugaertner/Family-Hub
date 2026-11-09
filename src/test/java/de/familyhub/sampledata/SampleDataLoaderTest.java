@@ -39,7 +39,9 @@ import de.familyhub.rewards.RewardRepository;
 import de.familyhub.shopping.ShoppingItem;
 import de.familyhub.shopping.ShoppingItemRepository;
 import de.familyhub.settings.FamilySettingsRepository;
+import de.familyhub.task.RepeatUnit;
 import de.familyhub.task.Task;
+import de.familyhub.task.TaskRepeat;
 import de.familyhub.task.TaskRepository;
 import de.familyhub.task.TaskStatus;
 import jakarta.validation.Validation;
@@ -195,6 +197,13 @@ class SampleDataLoaderTest {
         assertThat(taskRepository.findAll()).filteredOn(t -> t.title().equals("Müll rausbringen"))
                 .singleElement()
                 .satisfies(t -> assertThat(t.dueDate()).isEqualTo(LocalDate.of(2026, 10, 7)));
+        // Beispiel für eine Aufgabe, die sich nach Erledigung wiederholt
+        assertThat(taskRepository.findAll()).filteredOn(t -> t.repeat() != null)
+                .singleElement()
+                .satisfies(t -> {
+                    assertThat(t.title()).isEqualTo("Blumen gießen");
+                    assertThat(t.repeat()).isEqualTo(new TaskRepeat(3, RepeatUnit.DAYS, true));
+                });
     }
 
     @Test
