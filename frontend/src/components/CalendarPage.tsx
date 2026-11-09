@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import {
-  CalendarEvent, type GarbagePickup,
+  CalendarEvent, type GarbagePickup, type Birthday
 } from './data';
 import {
   ChevronLeftIcon, ChevronRightIcon, PlusIcon,
@@ -21,6 +21,7 @@ import { PLACEHOLDER } from '../placeholders';
 import { getWasteCollection } from '../waste/api';
 import { useAutoRefresh } from '../api/useAutoRefresh';
 import { readable } from '../family/colors';
+import {getMember} from '../family/api';
 
 type SelectEvent = (event: CalendarEvent) => void;
 type SelectDay = (date: Date) => void;
@@ -65,6 +66,11 @@ const wasteStyle = (type: string) => WASTE_STYLES[type] ?? {
   ...WASTE_STYLES['Restmüll'],
   label: type,
 };
+
+const BDAY_STYLES: Record<string, {dot: string; label: string; bg: string }> = {
+  'birthday': { dot: '#F472B6', label: '🎂 Geburtstag', bg: '#FDF2F8' },
+};
+
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -177,7 +183,7 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
 // ─── month view ───────────────────────────────────────────────────────────────
 
 // Klick auf einen Tag (auch auf "+2 weitere") öffnet ihn in der Tagesansicht
-function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, onSelectDay }: { year: number; month: number; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; onSelect: SelectEvent; onSelectDay: SelectDay }) {
+function MonthView({ year, month, events: allEvents, garbagePickups, birthdays, onSelect, onSelectDay }: { year: number; month: number; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; birthdays: Birthday[]; onSelect: SelectEvent; onSelectDay: SelectDay }) {
   // Leere Tage vor dem Ersten: die Woche beginnt am Montag
   const firstDay    = weekdayIndex(new Date(year, month, 1));
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -186,6 +192,9 @@ function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, o
 
   const garbageByDate: Record<string, GarbagePickup[]> = {};
   garbagePickups.forEach(g => { (garbageByDate[g.date] ??= []).push(g); });
+
+  const birthdayByDate: Record<string, Birthday[]> = {};
+  birthdays.forEach(b => { const birthdayKey = b.date.slice(5); (birthdayByDate[birthdayKey] ??= []).push(b); });
 
   const cells: { day: number; type: 'prev' | 'curr' | 'next' }[] = [];
   for (let i = firstDay - 1; i >= 0; i--) cells.push({ day: daysInPrev - i, type: 'prev' });
@@ -213,6 +222,8 @@ function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, o
           const isWeekEnd   = i % 7 >= 5;
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`;
           const garbage = cell.type === 'curr' ? garbageByDate[dateStr] ?? [] : [];
+          const birthdayKey = dateStr.slice(5);
+          const birthdays = cell.type === 'curr' ? birthdayByDate[birthdayKey] ?? [] : [];
           // Tage des Vor- und Folgemonats liegen davor bzw. danach
           const cellDate = new Date(year, month, i - firstDay + 1);
           const openDay = (e: MouseEvent) => { e.stopPropagation(); onSelectDay(cellDate); };
@@ -243,6 +254,15 @@ function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, o
                 </div>
               ))}
 
+              {/* Birthday badge */}
+              {birthdays.map(b => (
+                <div key={b.id} title={`Geburtstag: ${b.name}`}
+                  className="text-[8px] font-bold mx-1 mt-1 px-1 py-0.5 rounded truncate"
+                  style={{ backgroundColor: BDAY_STYLES.birthday.bg, color: BDAY_STYLES.birthday.dot, borderColor: `${BDAY_STYLES.birthday.dot}40` }}>
+                  🎂 {b.name}
+                </div>
+              ))}
+
               <div className="space-y-0.5">
                 {events.slice(0, 3).map(ev => <EventPill key={ev.id} event={ev} compact onSelect={onSelect} />)}
                 {events.length > 3 && (
@@ -261,7 +281,7 @@ function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, o
 
 // ─── week view (enhanced) ─────────────────────────────────────────────────────
 
-function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset: number; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; onSelect: SelectEvent }) {
+function WeekView({ weekOffset, events, garbagePickups, birthdays, onSelect }: { weekOffset: number; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; birthdays: Birthday[]; onSelect: SelectEvent }) {
   const { memberById } = useCalendarData();
   const todayKey = toDateKey(startOfToday());
   const startOfWeek = mondayOf(addDays(startOfToday(), weekOffset * 7));
@@ -282,6 +302,9 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
 
   const garbageByDate: Record<string, GarbagePickup[]> = {};
   garbagePickups.forEach(g => { (garbageByDate[g.date] ??= []).push(g); });
+
+  const birthdayByDate: Record<string, Birthday[]> = {};
+  birthdays.forEach(b => { const birthdayKey = b.date.slice(5); (birthdayByDate[birthdayKey] ??= []).push(b); });
 
   const getEventsForDay = (date: Date) => {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -306,6 +329,8 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
           const dateStr    = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           const events     = getEventsForDay(d);
           const garbage    = garbageByDate[dateStr] ?? [];
+          const birthdayKey = dateStr.slice(5);
+          const birthdays = birthdayByDate[birthdayKey] ?? [];
           const hasConflict = events.some(e => e.conflict || e.travelConflict);
 
           return (
@@ -335,6 +360,16 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
                   🗑 {g.type}
                 </div>
               ))}
+
+              {/* Birthday badge */}
+              {birthdays.map(b => (
+                <div key={b.id} title={`Geburtstag: ${b.name}`}
+                  className="text-[8px] font-bold mx-1 mt-1 px-1 py-0.5 rounded truncate"
+                  style={{ backgroundColor: BDAY_STYLES.birthday.bg, color: BDAY_STYLES.birthday.dot, borderColor: `${BDAY_STYLES.birthday.dot}40` }}>
+                  🎂 {b.name}
+                </div>
+              ))}
+
               {allDayFor(dateStr).map(ev => (
                 <button
                   key={ev.id}
@@ -457,13 +492,14 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
 
 // ─── day view ─────────────────────────────────────────────────────────────────
 
-function DayView({ day, events, garbagePickups, onSelect }: { day: Date; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; onSelect: SelectEvent }) {
+function DayView({ day, events, garbagePickups, birthdays, onSelect }: { day: Date; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; birthdays: Birthday[]; onSelect: SelectEvent }) {
   const dayKey = toDateKey(day);
   const isToday = dayKey === toDateKey(startOfToday());
   const dayEvents = events
     .filter(e => occursOn(e, dayKey))
     .sort((a, b) => a.time.localeCompare(b.time));
   const dayPickups = garbagePickups.filter(pickup => pickup.date === dayKey);
+  const dayBirthdays = birthdays.filter(b => b.date.slice(5) === dayKey.slice(5));
 
   return (
     <div className="space-y-3">
@@ -473,6 +509,14 @@ function DayView({ day, events, garbagePickups, onSelect }: { day: Date; events:
           🗑 Müllabfuhr: {pickup.type}
         </div>
       ))}
+
+      {dayBirthdays.map(b => (
+        <div key={b.id} className="rounded-xl border px-4 py-3 text-sm font-semibold"
+          style={{ backgroundColor: BDAY_STYLES.birthday.bg, color: BDAY_STYLES.birthday.dot, borderColor: `${BDAY_STYLES.birthday.dot}40` }}>
+          🎂 {b.name}
+        </div>
+      ))}
+
       {dayEvents.length === 0 ? (
         dayPickups.length === 0 && <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-500">
           {isToday ? 'Heute keine Termine 🎉' : 'An diesem Tag keine Termine'}
@@ -539,6 +583,8 @@ export default function CalendarPage({ onNavigate }: Props) {
   const visibleEvents = selectedMember ? events.filter(e => e.memberIds.includes(selectedMember)) : events;
   const proposals = events.filter(e => e.status === 'proposed');
   const openEditor = (event?: CalendarEvent) => setEditor({ event });
+
+  const birthdays = members.filter(m=> m.birthDate).map(m=> ({id: m.id, name: m.name, date: m.birthDate!}))
 
   const decide = async (action: (id: string) => Promise<void>, id: string) => {
     setDecisionError(null);
@@ -759,9 +805,9 @@ export default function CalendarPage({ onNavigate }: Props) {
       )}
 
       {/* Views */}
-      {view === 'month' && <MonthView year={year} month={month} events={visibleEvents} garbagePickups={garbagePickups} onSelect={openEditor} onSelectDay={showDay} />}
-      {view === 'week'  && <WeekView weekOffset={weekOffset} events={visibleEvents} garbagePickups={garbagePickups} onSelect={openEditor} />}
-      {view === 'day'   && <DayView day={shownDay} events={visibleEvents} garbagePickups={garbagePickups} onSelect={openEditor} />}
+      {view === 'month' && <MonthView year={year} month={month} events={visibleEvents} garbagePickups={garbagePickups} birthdays={birthdays} onSelect={openEditor} onSelectDay={showDay} />}
+      {view === 'week'  && <WeekView weekOffset={weekOffset} events={visibleEvents} garbagePickups={garbagePickups} birthdays={birthdays} onSelect={openEditor} />}
+      {view === 'day'   && <DayView day={shownDay} events={visibleEvents} garbagePickups={garbagePickups} birthdays={birthdays} onSelect={openEditor} />}
 
       {/* Upcoming events (day view only) */}
       {view === 'day' && (

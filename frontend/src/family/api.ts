@@ -67,3 +67,5 @@ export const getSettings = () => request<Settings>('/api/settings');
 
 export const updateSettings = (settings: Pick<Settings, 'guestCategories'>) =>
   request<Settings>('/api/settings', { method: 'PUT', body: json(settings) });
+
+export const getMember = (id:string) => request<ApiMember>(`/api/members/${id}`, { method: 'GET' });

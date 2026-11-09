@@ -50,6 +50,12 @@ export interface GarbagePickup {
   date: string;
 }
 
+export interface Birthday {
+  id: string;
+  name: string;
+  date: string;
+}
+
 export const NOTIFICATIONS = [
   { id: 1, type: 'conflict', message: 'Terminkonflikt: Turnen und Elterngespräch überschneiden sich', time: 'vor 2 Min.', read: false },
   { id: 2, type: 'task', message: 'Lucas hat die Mathe-Hausaufgaben erledigt – 25 Punkte verdient! 🎉', time: 'vor 45 Min.', read: false },
