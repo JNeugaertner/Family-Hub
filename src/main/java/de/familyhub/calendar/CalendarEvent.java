@@ -3,6 +3,7 @@ package de.familyhub.calendar;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -179,6 +180,13 @@ public record CalendarEvent(
         return new CalendarEvent(null, title, departure, from, from.plus(Duration.between(start, end)), memberIds,
                 category, location, lat, lon, transportMode, travelTime, description, privateEvent, status, createdBy,
                 external, recurrence, new SeriesRef(seriesId, date, false));
+    }
+
+    // Ganztägig: von 00:00 bis 00:00 eines späteren Tages (wie Google; das Ende ist exklusiv)
+    @JsonIgnore
+    public boolean isAllDay() {
+        return start != null && end != null && start.toLocalTime().equals(LocalTime.MIDNIGHT)
+                && end.toLocalTime().equals(LocalTime.MIDNIGHT) && end.isAfter(start);
     }
 
     @JsonIgnore

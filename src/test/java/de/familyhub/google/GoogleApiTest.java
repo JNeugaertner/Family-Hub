@@ -260,6 +260,26 @@ class GoogleApiTest {
     }
 
     @Test
+    void allDayEntriesAreSentWithDateOnly() {
+        server.expect(requestTo(FAMILYHUB_URL + "/events"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(jsonPath("$.start.date").value("2026-10-26"))
+                .andExpect(jsonPath("$.end.date").value("2026-10-31"))
+                // Google lehnt date zusammen mit dateTime ab
+                .andExpect(jsonPath("$.start.dateTime").doesNotExist())
+                .andExpect(jsonPath("$.start.timeZone").doesNotExist())
+                .andRespond(withSuccess("{\"id\": \"g2\"}", MediaType.APPLICATION_JSON));
+
+        GoogleEventInput ferien = new GoogleEventInput("Herbstferien", null, null, "default",
+                GoogleEventInput.Time.allDay(java.time.LocalDate.of(2026, 10, 26)),
+                GoogleEventInput.Time.allDay(java.time.LocalDate.of(2026, 10, 31)),
+                new GoogleEventInput.ExtendedProperties(Map.of("familyhubId", "ferien")));
+
+        assertThat(api.insertEvent("access-1", FAMILYHUB, ferien).id()).isEqualTo("g2");
+        server.verify();
+    }
+
+    @Test
     void deletingWhatIsAlreadyGoneAtGoogleIsFine() {
         server.expect(requestTo(FAMILYHUB_URL + "/events/g1"))
                 .andExpect(method(HttpMethod.DELETE))
