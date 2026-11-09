@@ -27,7 +27,8 @@ public record MemberRequest(
         String username,
 
         @Schema(description = "Pflicht beim Anlegen; beim Ändern leer lassen, um das Passwort zu behalten")
-        @Size(min = MemberRules.PASSWORD_MIN_LENGTH, max = 100, message = MemberRules.PASSWORD_MESSAGE)
+        @Size(min = MemberRules.PASSWORD_MIN_LENGTH, max = MemberRules.PASSWORD_MAX_LENGTH,
+                message = MemberRules.PASSWORD_MESSAGE)
         String password,
 
         @NotNull(message = "Rolle ist Pflicht")

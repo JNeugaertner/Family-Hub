@@ -12,7 +12,8 @@ public final class MemberRules {
             "Benutzername: 3 bis 30 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Unterstrich oder Bindestrich";
 
     public static final int PASSWORD_MIN_LENGTH = 8;
-    public static final String PASSWORD_MESSAGE = "Passwort muss mindestens 8 Zeichen lang sein";
+    public static final int PASSWORD_MAX_LENGTH = 100;
+    public static final String PASSWORD_MESSAGE = "Passwort muss 8 bis 100 Zeichen lang sein";
 
     public static final String PHONE_MESSAGE = "Handynummer mit Ländervorwahl angeben, z. B. +49 170 1234567";
     // Ohne Ländervorwahl (führende 0) gilt die Nummer als deutsche
