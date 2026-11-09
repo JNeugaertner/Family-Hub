@@ -6,7 +6,7 @@ FamilyHub AI bündelt Kalender, Aufgaben, Einkauf, Essensplanung, Nachrichten,
 Wetter und Müllabfuhr in einer gemeinsamen Oberfläche für die ganze Familie.
 Leitprinzip: **Der Agent informiert und bereitet vor, die Eltern entscheiden.**
 
-**Status:** Proof of Concept, Version 0.6.0 vom 20.10.2026. Was sich in welcher
+**Status:** Proof of Concept, Version 0.7.0 vom 09.11.2026. Was sich in welcher
 Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 
 ## Funktionen
@@ -24,13 +24,15 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | WhatsApp (in Arbeit) | Nachrichten an die WhatsApp-Nummer der Familie empfangen; jede Person sieht die von ihrer eigenen Handynummer |
 | Telegram (in Arbeit) | Bot der Familie: Nachrichten an den Bot landen in FamilyHub; Benachrichtigungen zu dringenden Aufgaben, kurzfristigen Terminen, offenen Bestätigungen und Chat-Nachrichten |
 | Müllabfuhr | Abfuhrkalender der Gemeinde (ICS-Datei) importieren; Termine im Kalender und eine Aufgabe für den Vorabend |
+| Fahrzeit | Ort eines Termins aus der Ortssuche, Fahrzeit vom Wohnort mit Auto, Fahrrad oder zu Fuß und Abfahrtszeit (OpenRouteService) |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
 | Sonstiges | Änderungen anderer erscheinen ohne Neuladen; als App installierbar; Konto-Sperre nach fünf falschen Passwörtern |
 
 Noch nicht umgesetzt sind der KI-Assistent, die Glocke mit Benachrichtigungen
 in der App (Benachrichtigungen kommen bisher nur über Telegram), die
-Sprachsteuerung sowie Fahrzeiten und Terminkonflikte. Die Oberfläche
+Sprachsteuerung sowie Warnungen, wenn sich Fahrzeit und andere Termine
+überschneiden. Die Oberfläche
 kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 (`frontend/src/placeholders.ts`).
 
@@ -378,17 +380,29 @@ zählt ab dem Moment, in dem FamilyHub den offenen Punkt bemerkt (alle
 einen Tag später. Ist Telegram nicht erreichbar, steht das im Log; nachgeholt
 wird die Nachricht nicht.
 
-## OpenRouteService einrichten 
+## Fahrzeit einrichten (optional)
 
-Für die Ortssuche und später auch Fahrzeitberechnung.
+Ortssuche und Fahrzeit nutzen [openrouteservice](https://openrouteservice.org)
+(HeiGIT, Kartendaten von OpenStreetMap). Ohne Schlüssel startet FamilyHub
+trotzdem; Termine bekommen dann nur frei eingetippte Orte ohne Fahrzeit.
 
-1. Bei OpenRouteService Api-Key generieren lassen.
+1. Unter [openrouteservice.org](https://openrouteservice.org/dev/#/signup) ein
+   kostenloses Konto anlegen und einen API-Schlüssel erzeugen.
 2. In `local.properties` im Projektordner eintragen (steht in `.gitignore`,
    **nie einchecken**):
 
    ```properties
    familyhub.ors.api-key=<API-Schlüssel>
    ```
+3. Backend neu starten. Als Administrator unter „Familie“ in der Karte
+   **Adresse** den Wohnort suchen und übernehmen.
+
+Im Termin-Formular sucht „Adresse suchen“ den Ort; mit „individuellen Ort
+eingeben“ geht auch ein Ort ohne Fahrzeit. Aus Wohnort, Ort und Verkehrsmittel
+berechnet FamilyHub die Fahrzeit und die Abfahrt (Beginn minus Fahrzeit minus
+15 Minuten Puffer). Wochen- und Tagesansicht zeigen die Abfahrt am Termin.
+Die Quellenangabe unter der Fahrzeit verlangen die Nutzungsbedingungen von
+openrouteservice; sie darf nicht entfernt werden.
 
 ## Als App installieren
 

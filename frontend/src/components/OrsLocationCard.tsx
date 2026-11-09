@@ -99,7 +99,7 @@ export default function OrslocationCard(){
       )}
 
       {formError && <p role="alert" className="text-sm text-[#DC2626] mt-2">{formError}</p>}
-      {message && <p role="status" className="text-xs text-[#16A34A] mt-2">{message}</p>}
+      {message && <p role="status" className="text-xs text-[#15803D] mt-2">{message}</p>}
       <OrsAttribution className="mt-3" />
     </section>
   );

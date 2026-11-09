@@ -404,10 +404,11 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
                     {WEEKDAYS.map(d => {
                       const on = effectiveWeekdays.includes(d.value);
                       return (
-                        <button key={d.value} type="button" aria-pressed={on} aria-label={d.long} title={d.long}
+                        <button key={d.value} type="button" aria-pressed={on} title={d.long}
                           disabled={busy} onClick={() => toggleWeekday(d.value)}
                           className={`w-9 h-9 rounded-lg text-xs font-semibold border transition-colors ${on ? 'bg-[#2563EB] text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
-                          {d.short}
+                          {/* Sichtbar die Abkürzung, vorgelesen der ganze Name (ohne aria-label, sonst passt der Name nicht zum Text) */}
+                          <span aria-hidden="true">{d.short}</span><span className="sr-only">{d.long}</span>
                         </button>
                       );
                     })}
