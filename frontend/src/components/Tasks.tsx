@@ -13,9 +13,9 @@ import { useTaskPermissions } from '../tasks/permissions';
 interface Props { onNavigate: (p: any) => void; }
 
 const PRIORITY_COLORS = {
-  low: { bg: '#F0FDF4', text: '#16A34A', dot: '#22C55E' },
+  low: { bg: '#F0FDF4', text: '#15803D', dot: '#22C55E' },
   medium: { bg: '#FFF7ED', text: '#C2410C', dot: '#F97316' },
-  high: { bg: '#FEF2F2', text: '#DC2626', dot: '#EF4444' },
+  high: { bg: '#FEF2F2', text: '#B91C1C', dot: '#EF4444' },
 };
 
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
@@ -98,18 +98,18 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
           >
             {PRIORITY_LABELS[task.priority]}
           </span>
-          <span className="text-xs text-slate-400">{categoryLabel(task.category)}</span>
+          <span className="text-xs text-slate-500">{categoryLabel(task.category)}</span>
           {task.bonus && <BonusBadge repeatable={task.repeatable} />}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {task.points > 0 && !isAdult(member) && (
-            <span className="text-[10px] font-bold text-[#F59E0B] flex items-center gap-0.5">
+            <span className="text-[10px] font-bold text-[#B45309] flex items-center gap-0.5">
               ⭐ {task.points}
             </span>
           )}
           {onEdit && (
             <button onClick={only(onEdit)}
-              className="p-1 -m-1 rounded-md text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
+              className="p-1 -m-1 rounded-md text-slate-500 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
               aria-label={`${task.title} ${mayEdit ? 'bearbeiten' : 'ansehen'}`}
               title={mayEdit ? 'Bearbeiten' : 'Ansehen'}>
               <PencilIcon size={14} />
@@ -129,7 +129,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
         </div>
       )}
       {task.status === 'confirmed' && (
-        <div className="mt-2 text-[11px] font-semibold text-[#16A34A] bg-[#F0FDF4] rounded-lg px-2 py-1">
+        <div className="mt-2 text-[11px] font-semibold text-[#15803D] bg-[#F0FDF4] rounded-lg px-2 py-1">
           {isAdult(member) ? '✅ Bestätigt' : `✅ Bestätigt · +${task.points} Punkte`}
         </div>
       )}
@@ -139,7 +139,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
           <AvatarButton member={member} size={24} />
           <span className="text-xs text-slate-500">{member?.name}</span>
         </div>
-        <div className={`flex items-center gap-1 text-xs font-medium ${overdue ? 'text-[#EF4444]' : 'text-slate-400'}`}>
+        <div className={`flex items-center gap-1 text-xs font-medium ${overdue ? 'text-[#DC2626]' : 'text-slate-500'}`}>
           <ClockIcon size={10} />
           {overdue ? 'Überfällig' : dueLabel(task.dueDate)}
         </div>
@@ -153,7 +153,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
             Zurückgeben
           </button>
           <button onClick={only(onConfirm)}
-            className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold bg-[#22C55E] text-white hover:bg-[#16A34A]">
+            className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold bg-[#15803D] text-white hover:bg-[#166534]">
             {isAdult(member) ? 'Bestätigen' : `Bestätigen +${task.points} ⭐`}
           </button>
         </div>
@@ -176,10 +176,10 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
               aria-pressed={task.status === s}
               className={`flex-1 py-1 rounded-lg text-[10px] font-semibold transition-colors ${
                 task.status === s
-                  ? s === 'done' ? 'bg-[#22C55E] text-white'
+                  ? s === 'done' ? 'bg-[#15803D] text-white'
                   : s === 'inprogress' ? 'bg-[#2563EB] text-white'
                   : 'bg-slate-200 text-slate-700'
-                  : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
               }`}
             >
               {STATUS_LABELS[s]}
@@ -218,18 +218,18 @@ function BonusCard({ task, todayKey, onClaim, onEdit, busy }: {
           <h3 className="font-semibold text-slate-800 text-sm leading-snug">{task.title}</h3>
           {task.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{task.description}</p>}
         </div>
-        <span className="text-lg font-bold text-[#D97706] flex-shrink-0">⭐ {task.points}</span>
+        <span className="text-lg font-bold text-[#B45309] flex-shrink-0">⭐ {task.points}</span>
       </div>
-      <div className="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+      <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
         <span>{categoryLabel(task.category)}</span>
         {task.repeatable && <span title="Nach der Bestätigung wieder offen">↻ wiederkehrend</span>}
-        <span className={`flex items-center gap-1 ml-auto ${overdue ? 'text-[#EF4444]' : ''}`}>
+        <span className={`flex items-center gap-1 ml-auto ${overdue ? 'text-[#DC2626]' : ''}`}>
           <ClockIcon size={10} />{dueLabel(task.dueDate)}
         </span>
       </div>
       {onClaim && (
         <button type="button" disabled={busy} onClick={e => { e.stopPropagation(); onClaim(); }}
-          className="py-1.5 rounded-lg text-xs font-semibold bg-[#F59E0B] text-white hover:bg-[#D97706] disabled:opacity-50">
+          className="py-1.5 rounded-lg text-xs font-semibold bg-[#B45309] text-white hover:bg-[#92400E] disabled:opacity-50">
           Übernehmen
         </button>
       )}
@@ -332,7 +332,7 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
         <h2 id="task-form-title" className="font-bold text-slate-800 text-lg mb-5">
           {readOnly ? 'Aufgabe' : task ? (bonus ? 'Bonus-Aufgabe bearbeiten' : 'Aufgabe bearbeiten') : bonus ? 'Neue Bonus-Aufgabe' : 'Neue Aufgabe'}
         </h2>
-        {formError && <div role="alert" className="mb-4 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{formError}</div>}
+        {formError && <div role="alert" className="mb-4 bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{formError}</div>}
         {readOnly && task?.status === 'confirmed' && (
           <p className="mb-4 text-xs text-slate-500">Bestätigt und abgeschlossen. Die Punkte bleiben auch nach dem Löschen in der Historie.</p>
         )}
@@ -407,7 +407,7 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
                 onChange={e => setRepeatable(e.target.checked)} />
               <span>
                 ↻ Wiederkehrend
-                <span className="block text-xs text-slate-400">Nach der Bestätigung ist sie automatisch wieder offen (ohne Frist).</span>
+                <span className="block text-xs text-slate-500">Nach der Bestätigung ist sie automatisch wieder offen (ohne Frist).</span>
               </span>
             </label>
           )}
@@ -415,7 +415,7 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
         <div className="flex flex-wrap gap-3 mt-6">
           {task && mayDelete && (
             <button type="button" onClick={remove} disabled={busy}
-              className={`py-2.5 px-4 rounded-xl text-sm font-semibold disabled:opacity-50 ${confirmDelete ? 'bg-[#EF4444] text-white' : 'border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]'}`}>
+              className={`py-2.5 px-4 rounded-xl text-sm font-semibold disabled:opacity-50 ${confirmDelete ? 'bg-[#DC2626] text-white' : 'border border-[#FECACA] text-[#B91C1C] hover:bg-[#FEF2F2]'}`}>
               {confirmDelete ? 'Wirklich löschen?' : 'Löschen'}
             </button>
           )}
@@ -507,7 +507,7 @@ export default function Tasks({ onNavigate }: Props) {
   const columns: { id: BoardStatus; label: string; color: string; bg: string }[] = [
     { id: 'todo', label: STATUS_LABELS.todo, color: '#64748B', bg: '#F8FAFC' },
     { id: 'inprogress', label: STATUS_LABELS.inprogress, color: '#2563EB', bg: '#EFF6FF' },
-    { id: 'done', label: STATUS_LABELS.done, color: '#22C55E', bg: '#F0FDF4' },
+    { id: 'done', label: STATUS_LABELS.done, color: '#15803D', bg: '#F0FDF4' },
   ];
 
   const stats = {
@@ -536,8 +536,8 @@ export default function Tasks({ onNavigate }: Props) {
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
           { label: 'Aufgaben', value: stats.total, color: '#2563EB', bg: '#EFF6FF' },
-          { label: 'Erledigt', value: stats.done, color: '#22C55E', bg: '#F0FDF4' },
-          { label: 'Überfällig', value: stats.overdue, color: '#EF4444', bg: '#FEF2F2' },
+          { label: 'Erledigt', value: stats.done, color: '#15803D', bg: '#F0FDF4' },
+          { label: 'Überfällig', value: stats.overdue, color: '#B91C1C', bg: '#FEF2F2' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl border border-slate-100 px-4 py-3 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold" style={{ backgroundColor: s.bg, color: s.color }}>
@@ -559,7 +559,7 @@ export default function Tasks({ onNavigate }: Props) {
         </div>
       )}
       {actionError && (
-        <div role="alert" className="mb-5 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{actionError}</div>
+        <div role="alert" className="mb-5 bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{actionError}</div>
       )}
       {clearedMessage && (
         <div role="status" className="mb-5 bg-[#F0FDF4] border border-[#BBF7D0] text-[#15803D] text-sm rounded-xl p-3">{clearedMessage}</div>
@@ -600,9 +600,9 @@ export default function Tasks({ onNavigate }: Props) {
               onClick={() => setFilterPriority(p)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-colors ${
                 filterPriority === p
-                  ? p === 'high' ? 'bg-[#EF4444] text-white'
-                  : p === 'medium' ? 'bg-[#F97316] text-white'
-                  : p === 'low' ? 'bg-[#22C55E] text-white'
+                  ? p === 'high' ? 'bg-[#DC2626] text-white'
+                  : p === 'medium' ? 'bg-[#C2410C] text-white'
+                  : p === 'low' ? 'bg-[#15803D] text-white'
                   : 'bg-slate-800 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
@@ -672,7 +672,7 @@ export default function Tasks({ onNavigate }: Props) {
               {col.id === 'done' && perms.mayDeleteCompleted && completed.length > 0 && (
                 <div className="flex items-center gap-2 mb-2 px-1">
                   <button type="button" onClick={clearCompleted}
-                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${confirmClear ? 'bg-[#EF4444] text-white hover:bg-[#DC2626]' : 'border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]'}`}>
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${confirmClear ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]' : 'border border-[#FECACA] text-[#B91C1C] hover:bg-[#FEF2F2]'}`}>
                     {confirmClear ? `Wirklich ${completed.length} löschen?` : `🗑 Erledigte löschen (${completed.length})`}
                   </button>
                   {confirmClear && (
@@ -703,7 +703,7 @@ export default function Tasks({ onNavigate }: Props) {
                   />
                 ))}
                 {colTasks.length === 0 && (
-                  <div className="text-center py-8 text-slate-300 text-sm">
+                  <div className="text-center py-8 text-slate-600 text-sm">
                     <div className="text-2xl mb-2">{col.id === 'done' ? '✅' : '📋'}</div>
                     <div>Keine Aufgaben</div>
                   </div>
@@ -711,7 +711,7 @@ export default function Tasks({ onNavigate }: Props) {
                 {perms.canAdd && (
                   <button
                     onClick={() => setEditor({})}
-                    className="w-full py-2 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs font-medium hover:border-[#2563EB] hover:text-[#2563EB] transition-colors flex items-center justify-center gap-1.5"
+                    className="w-full py-2 border-2 border-dashed border-slate-200 rounded-xl text-slate-600 text-xs font-medium hover:border-[#2563EB] hover:text-[#2563EB] transition-colors flex items-center justify-center gap-1.5"
                   >
                     <PlusIcon size={13} /> Aufgabe hinzufügen
                   </button>

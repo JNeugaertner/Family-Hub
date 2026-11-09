@@ -10,6 +10,7 @@ import { formatAgo, usePointHolders, type PointHolder } from '../points/usePoint
 import type { Redemption, Reward, RewardCategory, RewardInput } from '../rewards/api';
 import { useRewardData } from '../rewards/RewardDataContext';
 import { useTaskData } from '../tasks/TaskDataContext';
+import { readable } from '../family/colors';
 
 interface Props { onNavigate: (p: any) => void; }
 
@@ -42,9 +43,9 @@ function ProgressRing({ value, max, color, size = 72 }: { value: number; max: nu
 
 function StatusBadge({ redemption }: { redemption: Redemption }) {
   const styles = {
-    pending: 'bg-[#FFFBEB] text-[#D97706]',
-    approved: 'bg-[#F0FDF4] text-[#16A34A]',
-    rejected: 'bg-[#FEF2F2] text-[#DC2626]',
+    pending: 'bg-[#FFFBEB] text-[#B45309]',
+    approved: 'bg-[#F0FDF4] text-[#15803D]',
+    rejected: 'bg-[#FEF2F2] text-[#B91C1C]',
   };
   const labels = { pending: '⏳ Ausstehend', approved: '✅ Genehmigt', rejected: '✕ Abgelehnt' };
   return (
@@ -83,10 +84,10 @@ function OverviewTab({ rewards, kids: children, history, confirmedTasks, redeeme
       {/* Stat tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Punkte gesamt', value: totalPoints, icon: '⭐', color: '#F59E0B', bg: '#FFFBEB' },
-          { label: 'Beste(r)',      value: topKid.name, icon: '🥇', color: '#F97316', bg: '#FFF7ED' },
-          { label: 'Aufgaben bestätigt', value: confirmedTasks, icon: '✅', color: '#22C55E', bg: '#F0FDF4' },
-          { label: 'Eingelöst',    value: redeemedCount, icon: '🎁', color: '#8B5CF6', bg: '#F5F3FF' },
+          { label: 'Punkte gesamt', value: totalPoints, icon: '⭐', color: '#B45309', bg: '#FFFBEB' },
+          { label: 'Beste(r)',      value: topKid.name, icon: '🥇', color: '#C2410C', bg: '#FFF7ED' },
+          { label: 'Aufgaben bestätigt', value: confirmedTasks, icon: '✅', color: '#15803D', bg: '#F0FDF4' },
+          { label: 'Eingelöst',    value: redeemedCount, icon: '🎁', color: '#7C3AED', bg: '#F5F3FF' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl border border-slate-100 px-4 py-4">
             <div className="flex items-center gap-2 mb-2">
@@ -111,11 +112,11 @@ function OverviewTab({ rewards, kids: children, history, confirmedTasks, redeeme
             return (
               <div key={c.id} className="flex items-center gap-3">
                 <span className="text-xl w-7 text-center flex-shrink-0">{medals[i] || `${i+1}`}</span>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ backgroundColor: c.color }}>{c.initials[0]}</div>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ backgroundColor: readable(c.color) }}>{c.initials[0]}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-semibold text-slate-800">{c.name}</span>
-                    <span className="text-sm font-bold" style={{ color: c.color }}>{c.points} Pkt.</span>
+                    <span className="text-sm font-bold" style={{ color: readable(c.color) }}>{c.points} Pkt.</span>
                   </div>
                   <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-full rounded-full relative overflow-hidden transition-all duration-1000" style={{ width: `${(Math.max(0, c.points) / maxPoints) * 100}%`, backgroundColor: c.color }}>
@@ -123,7 +124,7 @@ function OverviewTab({ rewards, kids: children, history, confirmedTasks, redeeme
                     </div>
                   </div>
                   {nextReward && (
-                    <div className="text-[10px] text-slate-400 mt-0.5">
+                    <div className="text-[10px] text-slate-500 mt-0.5">
                       Noch {nextReward.cost - c.points} Pkt. für {nextReward.emoji} {nextReward.name}
                     </div>
                   )}
@@ -152,29 +153,29 @@ function OverviewTab({ rewards, kids: children, history, confirmedTasks, redeeme
                   <div className="relative flex-shrink-0">
                     <ProgressRing value={Math.max(0, c.points - prevLevel)} max={nextLevel - prevLevel} color={c.color} />
                     <div className="absolute inset-0 flex items-center justify-center" style={{ width: 72, height: 72 }}>
-                      <span className="text-xl font-bold" style={{ color: c.color }}>{c.initials[0]}</span>
+                      <span className="text-xl font-bold" style={{ color: readable(c.color) }}>{c.initials[0]}</span>
                     </div>
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-800 text-base">{c.name}</h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span>{levelIcon}</span>
-                      <span className="text-sm font-semibold" style={{ color: c.color }}>{levelName}</span>
+                      <span className="text-sm font-semibold" style={{ color: readable(c.color) }}>{levelName}</span>
                     </div>
                     <div className="flex items-center gap-1.5 mt-1">
                       <StarIcon size={13} className="text-[#F59E0B]" />
                       <span className="text-xl font-bold text-slate-800">{c.points}</span>
-                      <span className="text-xs text-slate-400">Punkte</span>
+                      <span className="text-xs text-slate-500">Punkte</span>
                     </div>
-                    <div className="text-[10px] text-[#22C55E] font-semibold mt-0.5">
+                    <div className="text-[10px] text-[#15803D] font-semibold mt-0.5">
                       🎁 {canAfford} Belohnungen verfügbar
                     </div>
                   </div>
                 </div>
                 <div className="mt-3">
-                  <div className="flex justify-between text-xs text-slate-400 mb-1">
+                  <div className="flex justify-between text-xs text-slate-500 mb-1">
                     <span>Nächste Stufe</span>
-                    <span style={{ color: c.color }}>{c.points}/{nextLevel}</span>
+                    <span style={{ color: readable(c.color) }}>{c.points}/{nextLevel}</span>
                   </div>
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-full rounded-full relative overflow-hidden" style={{ width: `${(Math.max(0, c.points - prevLevel)/(nextLevel - prevLevel))*100}%`, backgroundColor: c.color }}>
@@ -186,13 +187,13 @@ function OverviewTab({ rewards, kids: children, history, confirmedTasks, redeeme
               {/* recent (Punkte-Historie, Einlösungen als Abzug) */}
               <div className="px-4 pb-4 pt-2">
                 <div className="text-xs font-semibold text-slate-500 mb-2">Letzte Aktivitäten</div>
-                {recent.length === 0 && <div className="text-xs text-slate-400 py-1">Noch keine Punkte</div>}
+                {recent.length === 0 && <div className="text-xs text-slate-500 py-1">Noch keine Punkte</div>}
                 {recent.map(a => (
                   <div key={a.id} className="flex items-center justify-between gap-2 text-xs py-1">
                     <span className="text-slate-600 truncate">{a.reason}</span>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`font-bold ${a.amount < 0 ? 'text-[#DC2626]' : 'text-[#22C55E]'}`}>{a.amount > 0 ? '+' : ''}{a.amount}</span>
-                      <span className="text-slate-400">{formatAgo(a.createdAt)}</span>
+                      <span className={`font-bold ${a.amount < 0 ? 'text-[#DC2626]' : 'text-[#15803D]'}`}>{a.amount > 0 ? '+' : ''}{a.amount}</span>
+                      <span className="text-slate-500">{formatAgo(a.createdAt)}</span>
                     </div>
                   </div>
                 ))}
@@ -248,7 +249,7 @@ function ShopTab({ rewards, redemptions, child, busy, onRedeem, onWithdraw }: {
       </div>
 
       {active.length === 0 && (
-        <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400 text-sm">Noch keine Belohnungen im Shop.</div>
+        <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-500 text-sm">Noch keine Belohnungen im Shop.</div>
       )}
 
       {/* Rewards grid by category */}
@@ -284,17 +285,17 @@ function ShopTab({ rewards, redemptions, child, busy, onRedeem, onWithdraw }: {
                     </div>
 
                     <div className="p-3 flex flex-col flex-1">
-                      <div className={`text-sm font-bold leading-tight mb-1 ${!canAfford ? 'text-slate-400' : 'text-slate-800'}`}>{r.name}</div>
-                      <div className="text-[10px] text-slate-400 leading-snug mb-2 flex-1">
+                      <div className={`text-sm font-bold leading-tight mb-1 ${!canAfford ? 'text-slate-500' : 'text-slate-800'}`}>{r.name}</div>
+                      <div className="text-[10px] text-slate-500 leading-snug mb-2 flex-1">
                         {r.description}{!r.repeatable && <span className="block mt-0.5">Nur einmal einlösbar</span>}
                       </div>
 
                       <div className="flex items-center justify-between mb-2">
-                        <div className={`flex items-center gap-1 text-sm font-bold ${canAfford ? 'text-[#F59E0B]' : 'text-slate-400'}`}>
+                        <div className={`flex items-center gap-1 text-sm font-bold ${canAfford ? 'text-[#B45309]' : 'text-slate-500'}`}>
                           <span>⭐</span>{r.cost}
                         </div>
                         {!canAfford && (
-                          <span className="text-[10px] text-slate-400">noch {r.cost - child.points}</span>
+                          <span className="text-[10px] text-slate-500">noch {r.cost - child.points}</span>
                         )}
                       </div>
 
@@ -305,12 +306,12 @@ function ShopTab({ rewards, redemptions, child, busy, onRedeem, onWithdraw }: {
                       )}
 
                       {claimed ? (
-                        <div className="w-full py-2 rounded-xl bg-[#F0FDF4] text-[#16A34A] text-xs font-bold text-center flex items-center justify-center gap-1">
+                        <div className="w-full py-2 rounded-xl bg-[#F0FDF4] text-[#15803D] text-xs font-bold text-center flex items-center justify-center gap-1">
                           <CheckIcon size={12} strokeWidth={3} /> Eingelöst
                         </div>
                       ) : pending ? (
                         <div className="space-y-1">
-                          <div className="w-full py-2 rounded-xl bg-[#FFFBEB] text-[#D97706] text-xs font-bold text-center">
+                          <div className="w-full py-2 rounded-xl bg-[#FFFBEB] text-[#B45309] text-xs font-bold text-center">
                             ⏳ Wartet auf Eltern
                           </div>
                           <button type="button" disabled={busy} onClick={() => onWithdraw(pending)}
@@ -351,7 +352,7 @@ function ShopTab({ rewards, redemptions, child, busy, onRedeem, onWithdraw }: {
                 <span className="text-xl flex-shrink-0">{red.rewardEmoji}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-slate-800">{red.rewardName}</div>
-                  <div className="text-xs text-slate-400">{formatDate(red.requestedAt)} · ⭐ {red.cost} Punkte
+                  <div className="text-xs text-slate-500">{formatDate(red.requestedAt)} · ⭐ {red.cost} Punkte
                     {red.status === 'rejected' && ' · Punkte zurückgebucht'}</div>
                   {red.rejectReason && <div className="text-xs text-[#DC2626] mt-0.5">Grund: {red.rejectReason}</div>}
                 </div>
@@ -385,8 +386,8 @@ function AchievementsTab({ kids: children, mayManage, refreshKey }: {
 
   return (
     <div className="space-y-6">
-      {error && <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{error}</div>}
-      {!progress && !error && <div className="text-sm text-slate-400">Erfolge werden geladen…</div>}
+      {error && <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{error}</div>}
+      {!progress && !error && <div className="text-sm text-slate-500">Erfolge werden geladen…</div>}
       {progress && children.map(c => {
         const items = progress.find(p => p.memberId === c.id)?.items ?? [];
         const earned = items.filter(i => i.earnedAt).length;
@@ -396,7 +397,7 @@ function AchievementsTab({ kids: children, mayManage, refreshKey }: {
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: c.color }}>{c.initials[0]}</div>
               <div>
                 <div className="font-bold text-slate-800">{c.name}</div>
-                <div className="text-xs text-slate-400">{earned}/{items.length} Erfolge erreicht</div>
+                <div className="text-xs text-slate-500">{earned}/{items.length} Erfolge erreicht</div>
               </div>
               <div className="ml-auto font-bold text-lg" style={{ color: c.color }}>{c.points} Pkt.</div>
             </div>
@@ -413,9 +414,9 @@ function AchievementsTab({ kids: children, mayManage, refreshKey }: {
                   >
                     <span className={`text-3xl mb-1.5 ${done ? '' : 'opacity-40 grayscale'}`}>{a.icon}</span>
                     <span className="text-[11px] font-semibold text-slate-700 leading-tight">{a.name}</span>
-                    <span className="text-[10px] text-slate-400 mt-0.5 leading-tight">{a.description}</span>
+                    <span className="text-[10px] text-slate-500 mt-0.5 leading-tight">{a.description}</span>
                     {done ? (
-                      <span className="text-[10px] text-[#F59E0B] font-bold mt-1.5">
+                      <span className="text-[10px] text-[#B45309] font-bold mt-1.5">
                         ✓ {formatDate(a.earnedAt!)}{a.bonus > 0 && ` · +${a.bonus} Pkt.`}
                       </span>
                     ) : (
@@ -423,7 +424,7 @@ function AchievementsTab({ kids: children, mayManage, refreshKey }: {
                         <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${(a.current / a.target) * 100}%`, backgroundColor: c.color }} />
                         </div>
-                        <div className="text-[10px] text-slate-400 mt-1">{a.current}/{a.target}{a.bonus > 0 && ` · +${a.bonus} Pkt.`}</div>
+                        <div className="text-[10px] text-slate-500 mt-1">{a.current}/{a.target}{a.bonus > 0 && ` · +${a.bonus} Pkt.`}</div>
                       </div>
                     )}
                   </div>
@@ -433,7 +434,7 @@ function AchievementsTab({ kids: children, mayManage, refreshKey }: {
           </div>
         );
       })}
-      <p className="text-xs text-slate-400">Erfolge zählen bestätigte Aufgaben seit Einführung der Erfolge, nicht rückwirkend.</p>
+      <p className="text-xs text-slate-500">Erfolge zählen bestätigte Aufgaben seit Einführung der Erfolge, nicht rückwirkend.</p>
       {mayManage && <AchievementSettings onChanged={() => listAchievementProgress().then(setProgress).catch(() => {})} />}
     </div>
   );
@@ -474,7 +475,7 @@ function AchievementSettings({ onChanged }: { onChanged: () => void }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5" aria-labelledby="achievement-settings-title">
       <h3 id="achievement-settings-title" className="font-bold text-slate-800 text-base mb-1">⚙️ Erfolge anpassen</h3>
-      <p className="text-xs text-slate-400 mb-3">Wer ein gesenktes Ziel schon erreicht, bekommt den Erfolg sofort samt Bonus.</p>
+      <p className="text-xs text-slate-500 mb-3">Wer ein gesenktes Ziel schon erreicht, bekommt den Erfolg sofort samt Bonus.</p>
       {message && <p role={message.ok ? 'status' : 'alert'} className={`text-sm mb-2 ${message.ok ? 'text-[#15803D]' : 'text-[#DC2626]'}`}>{message.text}</p>}
       <div className="divide-y divide-slate-50">
         {catalog.map(a => {
@@ -486,7 +487,7 @@ function AchievementSettings({ onChanged }: { onChanged: () => void }) {
               <span className="text-2xl w-8 text-center">{a.icon}</span>
               <div className="flex-1 min-w-[160px]">
                 <div className="text-sm font-semibold text-slate-800">{a.name}</div>
-                <div className="text-xs text-slate-400">{a.description}</div>
+                <div className="text-xs text-slate-500">{a.description}</div>
               </div>
               <label className="flex items-center gap-1.5 text-xs text-slate-600">
                 <input type="checkbox" className="w-4 h-4 accent-[#22C55E]" checked={d.active} onChange={e => set({ active: e.target.checked })} />
@@ -531,8 +532,8 @@ function PendingApprovals({ pending, busy, onApprove, onReject }: {
   return (
     <div className="bg-white rounded-2xl border border-[#FDE68A] shadow-sm p-5" aria-labelledby="pending-title">
       <h3 id="pending-title" className="font-bold text-slate-800 text-base mb-1">⏳ Wartet auf Genehmigung</h3>
-      <p className="text-xs text-slate-400 mb-3">Die Punkte sind schon abgezogen. Beim Ablehnen werden sie zurückgebucht.</p>
-      {pending.length === 0 && <p className="text-sm text-slate-400 py-2">Keine offenen Einlösungen.</p>}
+      <p className="text-xs text-slate-500 mb-3">Die Punkte sind schon abgezogen. Beim Ablehnen werden sie zurückgebucht.</p>
+      {pending.length === 0 && <p className="text-sm text-slate-500 py-2">Keine offenen Einlösungen.</p>}
       <div className="space-y-2">
         {pending.map(r => {
           const member = memberById(r.memberId);
@@ -553,7 +554,7 @@ function PendingApprovals({ pending, busy, onApprove, onReject }: {
                       Ablehnen
                     </button>
                     <button type="button" disabled={busy} onClick={() => onApprove(r)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#22C55E] text-white hover:bg-[#16A34A] disabled:opacity-50">
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#15803D] text-white hover:bg-[#166534] disabled:opacity-50">
                       Genehmigen
                     </button>
                   </div>
@@ -566,7 +567,7 @@ function PendingApprovals({ pending, busy, onApprove, onReject }: {
                     className="flex-1 min-w-[200px] border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[#2563EB]" />
                   <button type="button" onClick={() => setRejecting(null)} className="text-xs text-slate-500 hover:underline">Abbrechen</button>
                   <button type="button" disabled={busy} onClick={() => { onReject(r, reason.trim() || null); setRejecting(null); }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#EF4444] text-white hover:bg-[#DC2626] disabled:opacity-50">
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#DC2626] text-white hover:bg-[#B91C1C] disabled:opacity-50">
                     Ablehnen und Punkte zurückbuchen
                   </button>
                 </div>
@@ -617,11 +618,11 @@ function ManageTab({ rewards, busy, onSave, onDelete }: {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-3 flex-1 flex-wrap">
           <div className="bg-white rounded-xl border border-slate-100 px-4 py-2.5 flex items-center gap-2">
-            <span className="text-[#22C55E] font-bold text-sm">{activeCount}</span>
+            <span className="text-[#15803D] font-bold text-sm">{activeCount}</span>
             <span className="text-xs text-slate-500">Aktiv</span>
           </div>
           <div className="bg-white rounded-xl border border-slate-100 px-4 py-2.5 flex items-center gap-2">
-            <span className="text-slate-400 font-bold text-sm">{inactiveCount}</span>
+            <span className="text-slate-500 font-bold text-sm">{inactiveCount}</span>
             <span className="text-xs text-slate-500">Deaktiviert</span>
           </div>
         </div>
@@ -642,15 +643,15 @@ function ManageTab({ rewards, busy, onSave, onDelete }: {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`font-semibold text-sm ${r.active ? 'text-slate-800' : 'text-slate-400'}`}>{r.name}</span>
-                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{CATEGORY_LABELS[r.category].label}</span>
-                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{r.repeatable ? 'mehrfach' : 'einmalig'}</span>
-                {!r.active && <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">Deaktiviert</span>}
+                <span className={`font-semibold text-sm ${r.active ? 'text-slate-800' : 'text-slate-500'}`}>{r.name}</span>
+                <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{CATEGORY_LABELS[r.category].label}</span>
+                <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{r.repeatable ? 'mehrfach' : 'einmalig'}</span>
+                {!r.active && <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">Deaktiviert</span>}
               </div>
-              <div className="text-xs text-slate-400 mt-0.5 truncate">{r.description}</div>
+              <div className="text-xs text-slate-500 mt-0.5 truncate">{r.description}</div>
             </div>
 
-            <div className={`flex items-center gap-1 font-bold text-sm flex-shrink-0 ${r.active ? 'text-[#F59E0B]' : 'text-slate-300'}`}>
+            <div className={`flex items-center gap-1 font-bold text-sm flex-shrink-0 ${r.active ? 'text-[#B45309]' : 'text-slate-500'}`}>
               ⭐ {r.cost}
             </div>
 
@@ -658,20 +659,20 @@ function ManageTab({ rewards, busy, onSave, onDelete }: {
               <button
                 onClick={() => toggle(r)}
                 disabled={busy}
-                className={`text-xs px-2.5 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50 ${r.active ? 'bg-[#F0FDF4] text-[#16A34A] hover:bg-[#DCFCE7]' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                className={`text-xs px-2.5 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50 ${r.active ? 'bg-[#F0FDF4] text-[#15803D] hover:bg-[#DCFCE7]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                 title={r.active ? 'Deaktivieren' : 'Aktivieren'}
               >
                 {r.active ? '✓ Aktiv' : 'Inaktiv'}
               </button>
               <button
                 onClick={() => openEdit(r)}
-                className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors text-sm"
+                className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors text-sm"
                 title="Bearbeiten"
                 aria-label={`${r.name} bearbeiten`}
               >✏️</button>
               {confirmDelete === r.id ? (
                 <button onClick={() => { setConfirmDelete(null); onDelete(r.id); }} disabled={busy}
-                  className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-[#EF4444] text-white hover:bg-[#DC2626] disabled:opacity-50">
+                  className="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-[#DC2626] text-white hover:bg-[#B91C1C] disabled:opacity-50">
                   Wirklich löschen?
                 </button>
               ) : (
@@ -689,7 +690,7 @@ function ManageTab({ rewards, busy, onSave, onDelete }: {
         ))}
 
         {rewards.length === 0 && (
-          <div className="py-16 text-center text-slate-300">
+          <div className="py-16 text-center text-slate-500">
             <div className="text-4xl mb-3">🎁</div>
             <div className="text-sm font-medium">Noch keine Belohnungen erstellt</div>
           </div>
@@ -799,7 +800,7 @@ function ManageTab({ rewards, busy, onSave, onDelete }: {
                     onChange={e => setForm(f => ({...f, active: e.target.checked}))} />
                   <div>
                     <div className="text-sm font-semibold text-slate-800">Belohnung aktiv</div>
-                    <div className="text-xs text-slate-400">Kinder können diese Belohnung sehen und einlösen</div>
+                    <div className="text-xs text-slate-500">Kinder können diese Belohnung sehen und einlösen</div>
                   </div>
                 </label>
 
@@ -808,7 +809,7 @@ function ManageTab({ rewards, busy, onSave, onDelete }: {
                     onChange={e => setForm(f => ({...f, repeatable: e.target.checked}))} />
                   <div>
                     <div className="text-sm font-semibold text-slate-800">Mehrfach einlösbar</div>
-                    <div className="text-xs text-slate-400">Sonst kann jedes Kind sie nur einmal bekommen</div>
+                    <div className="text-xs text-slate-500">Sonst kann jedes Kind sie nur einmal bekommen</div>
                   </div>
                 </label>
               </div>
@@ -877,7 +878,7 @@ export default function Rewards({ onNavigate }: Props) {
   if (!mayViewPoints || children.length === 0) {
     return (
       <div className="p-4 lg:p-6 max-w-[1400px] mx-auto">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-slate-400">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-slate-500">
           <div className="text-4xl mb-3">⭐</div>
           {mayViewPoints ? 'Noch keine Punktestände vorhanden.' : 'Punkte und Belohnungen sind für dich nicht freigegeben.'}
         </div>
@@ -903,7 +904,7 @@ export default function Rewards({ onNavigate }: Props) {
             <span>{t.emoji}</span>
             <span className="hidden sm:inline">{t.label}</span>
             {t.id === 'manage' && pendingCount > 0 && (
-              <span className={`text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${tab === t.id ? 'bg-white/30 text-white' : 'bg-[#EF4444] text-white'}`}>
+              <span className={`text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${tab === t.id ? 'bg-white/30 text-white' : 'bg-[#DC2626] text-white'}`}>
                 {pendingCount}<span className="sr-only"> warten auf Genehmigung</span>
               </span>
             )}
@@ -912,11 +913,11 @@ export default function Rewards({ onNavigate }: Props) {
       </div>
 
       {loadError && (
-        <div role="alert" className="mb-5 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{loadError}</div>
+        <div role="alert" className="mb-5 bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{loadError}</div>
       )}
       {message && (
         <div role={message.ok ? 'status' : 'alert'}
-          className={`mb-5 text-sm rounded-xl p-3 border ${message.ok ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D]' : 'bg-[#FEF2F2] border-[#FECACA] text-[#DC2626]'}`}>
+          className={`mb-5 text-sm rounded-xl p-3 border ${message.ok ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D]' : 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'}`}>
           {message.text}
         </div>
       )}
@@ -928,7 +929,7 @@ export default function Rewards({ onNavigate }: Props) {
           <span className="text-sm font-semibold text-[#92400E] flex-1">
             {pendingCount} Einlösung{pendingCount > 1 ? 'en warten' : ' wartet'} auf Genehmigung
           </span>
-          <button onClick={() => setTab('manage')} className="text-xs font-semibold text-[#D97706] hover:underline flex-shrink-0">
+          <button onClick={() => setTab('manage')} className="text-xs font-semibold text-[#B45309] hover:underline flex-shrink-0">
             Verwalten →
           </button>
         </div>

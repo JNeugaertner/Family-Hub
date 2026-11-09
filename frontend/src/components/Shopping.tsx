@@ -48,7 +48,7 @@ function EditRow({ item, onSave, onCancel }: {
       </label>
       <button type="button" onClick={onCancel} className="text-xs text-slate-500 hover:underline">Abbrechen</button>
       <button type="button" disabled={!name.trim()} onClick={() => onSave({ name: name.trim(), quantity: quantity.trim() || null, category, urgent })}
-        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#22C55E] text-white hover:bg-[#16A34A] disabled:opacity-50">
+        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#15803D] text-white hover:bg-[#166534] disabled:opacity-50">
         Speichern
       </button>
     </div>
@@ -86,7 +86,7 @@ function ItemRow({ item, busy, onToggle, onEdit, onRemove }: {
         </span>
       )}
 
-      <span className={`flex-1 text-sm font-medium ${item.checked ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+      <span className={`flex-1 text-sm font-medium ${item.checked ? 'line-through text-slate-500' : 'text-slate-800'}`}>
         {item.name}
       </span>
 
@@ -94,9 +94,9 @@ function ItemRow({ item, busy, onToggle, onEdit, onRemove }: {
         <span className="text-[10px] bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">⏳ Vorschlag</span>
       )}
       {item.urgent && !item.checked && (
-        <span className="text-[10px] bg-[#FEF2F2] text-[#EF4444] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">Dringend</span>
+        <span className="text-[10px] bg-[#FEF2F2] text-[#B91C1C] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">Dringend</span>
       )}
-      {item.quantity && <span className="text-xs text-slate-400 flex-shrink-0">{item.quantity}</span>}
+      {item.quantity && <span className="text-xs text-slate-500 flex-shrink-0">{item.quantity}</span>}
 
       <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: member?.color || '#94A3B8' }}
         title={`Hinzugefügt von ${member?.name ?? 'unbekannt'}`} />
@@ -181,7 +181,7 @@ export default function Shopping({ onNavigate }: Props) {
   if (!perms.mayView) {
     return (
       <div className="p-4 lg:p-6 max-w-[900px] mx-auto">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-slate-400">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-slate-500">
           <div className="text-4xl mb-3">🛒</div>
           Die Einkaufsliste ist für dich nicht freigegeben.
         </div>
@@ -196,14 +196,14 @@ export default function Shopping({ onNavigate }: Props) {
         <div className="flex items-center gap-2 bg-white rounded-xl border border-slate-100 px-4 py-2.5 shadow-sm">
           <ShoppingCartIcon size={16} className="text-[#22C55E]" />
           <span className="text-sm font-semibold text-slate-800">{approved.length - checkedCount} offen</span>
-          <span className="text-slate-300">/</span>
-          <span className="text-xs text-slate-400">{approved.length} gesamt</span>
+          <span className="text-slate-500">/</span>
+          <span className="text-xs text-slate-500">{approved.length} gesamt</span>
         </div>
 
         {urgentItems.length > 0 && (
           <div className="flex items-center gap-2 bg-[#FEF2F2] rounded-xl px-4 py-2.5">
             <AlertTriangleIcon size={14} className="text-[#EF4444]" />
-            <span className="text-sm font-semibold text-[#DC2626]">{urgentItems.length} dringend</span>
+            <span className="text-sm font-semibold text-[#B91C1C]">{urgentItems.length} dringend</span>
           </div>
         )}
 
@@ -218,7 +218,7 @@ export default function Shopping({ onNavigate }: Props) {
           confirmClear ? (
             <span className="flex items-center gap-2">
               <button onClick={() => { setConfirmClear(false); run(removeChecked, `${checkedCount} abgehakte Artikel entfernt.`); }}
-                className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[#EF4444] text-white hover:bg-[#DC2626]">
+                className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[#DC2626] text-white hover:bg-[#B91C1C]">
                 Wirklich {checkedCount} entfernen?
               </button>
               <button onClick={() => setConfirmClear(false)} className="text-xs text-slate-500 hover:underline">Abbrechen</button>
@@ -239,7 +239,7 @@ export default function Shopping({ onNavigate }: Props) {
       )}
       {message && (
         <div role={message.ok ? 'status' : 'alert'}
-          className={`mb-5 text-sm rounded-xl p-3 border ${message.ok ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D]' : 'bg-[#FEF2F2] border-[#FECACA] text-[#DC2626]'}`}>
+          className={`mb-5 text-sm rounded-xl p-3 border ${message.ok ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D]' : 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'}`}>
           {message.text}
         </div>
       )}
@@ -253,15 +253,15 @@ export default function Shopping({ onNavigate }: Props) {
               <div key={p.id} data-proposal={p.name} className="flex flex-wrap items-center gap-3 bg-white rounded-xl px-3 py-2">
                 <span className="text-lg">{SHOPPING_CATEGORIES[p.category].icon}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-slate-800">{p.name}{p.quantity && <span className="text-slate-400 font-normal"> · {p.quantity}</span>}</div>
-                  <div className="text-xs text-slate-400">von {memberById(p.createdBy)?.name ?? 'unbekannt'}</div>
+                  <div className="text-sm font-semibold text-slate-800">{p.name}{p.quantity && <span className="text-slate-500 font-normal"> · {p.quantity}</span>}</div>
+                  <div className="text-xs text-slate-500">von {memberById(p.createdBy)?.name ?? 'unbekannt'}</div>
                 </div>
                 <button disabled={busy} onClick={() => run(() => reject(p.id), `„${p.name}“ abgelehnt.`)}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50">
                   Ablehnen
                 </button>
                 <button disabled={busy} onClick={() => run(() => approve(p.id), `„${p.name}“ steht jetzt auf der Liste.`)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#22C55E] text-white hover:bg-[#16A34A] disabled:opacity-50">
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#15803D] text-white hover:bg-[#166534] disabled:opacity-50">
                   Übernehmen
                 </button>
               </div>
@@ -295,20 +295,20 @@ export default function Shopping({ onNavigate }: Props) {
             <button
               onClick={addItem}
               disabled={busy || !newItem.trim()}
-              className="h-11 px-4 flex-shrink-0 bg-[#22C55E] text-white rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold hover:bg-[#16A34A] transition-colors shadow-sm disabled:opacity-50"
+              className="h-11 px-4 flex-shrink-0 bg-[#15803D] text-white rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold hover:bg-[#166534] transition-colors shadow-sm disabled:opacity-50"
             >
               <PlusIcon size={16} /> {onlyProposes ? 'Vorschlagen' : 'Hinzufügen'}
             </button>
           </div>
           {onlyProposes && (
-            <p className="text-xs text-slate-400 mt-1.5">Deine Vorschläge sehen die Eltern und übernehmen sie auf die Liste.</p>
+            <p className="text-xs text-slate-500 mt-1.5">Deine Vorschläge sehen die Eltern und übernehmen sie auf die Liste.</p>
           )}
         </div>
       )}
 
-      {status === 'loading' && <div className="text-sm text-slate-400 mb-4">Einkaufsliste wird geladen…</div>}
+      {status === 'loading' && <div className="text-sm text-slate-500 mb-4">Einkaufsliste wird geladen…</div>}
       {status === 'ready' && listed.length === 0 && (
-        <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400 text-sm">Die Einkaufsliste ist leer. 🎉</div>
+        <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-500 text-sm">Die Einkaufsliste ist leer. 🎉</div>
       )}
 
       <div className="space-y-3">
@@ -316,13 +316,13 @@ export default function Shopping({ onNavigate }: Props) {
           <div className="bg-[#FEF2F2] rounded-2xl border border-[#FECACA] overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-4">
               <AlertTriangleIcon size={18} className="text-[#EF4444]" />
-              <span className="font-semibold text-[#DC2626] text-sm">Dringend</span>
+              <span className="font-semibold text-[#B91C1C] text-sm">Dringend</span>
             </div>
             <div className="px-5 pb-4 space-y-1">
               {urgentItems.map(item => (
                 <div key={item.id} className="flex items-center gap-3 py-1.5 px-3 text-sm">
-                  <span className="flex-1 font-semibold text-[#DC2626]">{item.name}</span>
-                  <span className="text-xs text-[#DC2626]/60">{item.quantity}</span>
+                  <span className="flex-1 font-semibold text-[#B91C1C]">{item.name}</span>
+                  <span className="text-xs text-[#B91C1C]">{item.quantity}</span>
                 </div>
               ))}
             </div>
@@ -337,7 +337,7 @@ export default function Shopping({ onNavigate }: Props) {
               <div className="w-full flex items-center gap-3 px-5 py-4">
                 <span className="text-xl">{SHOPPING_CATEGORIES[cat].icon}</span>
                 <span className="font-semibold text-slate-800 text-sm flex-1 text-left">{SHOPPING_CATEGORIES[cat].label}</span>
-                <span className="text-xs text-slate-400">{done}/{catItems.length}</span>
+                <span className="text-xs text-slate-500">{done}/{catItems.length}</span>
                 {done === catItems.length && (
                   <span className="w-5 h-5 rounded-full bg-[#22C55E] flex items-center justify-center">
                     <CheckIcon size={11} className="text-white" strokeWidth={3} />

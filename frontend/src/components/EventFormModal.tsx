@@ -7,6 +7,7 @@ import { CATEGORY_OPTIONS } from '../calendar/categories';
 import GoogleBadge from '../google/GoogleBadge';
 import { eventColor, memberColors } from '../calendar/eventStyle';
 import {findPlaces, OrsLocation, getTravelTime, getSettings} from './OrsApi';
+import { readable } from '../family/colors';
 
 // Das Backend meldet "Ende nach Beginn" unter endAfterStart; im Formular gehört es zum Feld "Ende".
 const FIELD_ALIASES: Record<string, string> = { endAfterStart: 'end' };
@@ -80,8 +81,9 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     return () => window.removeEventListener('keydown', onKey);
   }, [busy, onClose]);
 
-  const color = memberIds.length ? eventColor(memberColors(memberIds, memberById)) : '#2563EB';
-  const headerBackground = `linear-gradient(135deg, ${color}, ${color}BB)`;
+  // Weiße Schrift im Kopf: abgedunkelt, damit sie auch am blasseren Ende des Verlaufs lesbar bleibt
+  const color = readable(memberIds.length ? eventColor(memberColors(memberIds, memberById)) : '#2563EB', 6);
+  const headerBackground = `linear-gradient(135deg, ${color}, ${color}DD)`;
   const willBeProposal = !readOnly && (isProposal || (!isEdit && permissions.becomesProposal(memberIds)));
 
   // "Ganze Familie" = alle, die ich eintragen darf, außer Gästen
@@ -264,7 +266,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             <p className="text-xs text-slate-500">Du kannst diesen Termin ansehen, aber nicht ändern.</p>
           )}
           {formError && (
-            <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{formError}</div>
+            <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{formError}</div>
           )}
 
           <Field id="event-title" label="Titel" error={fieldErrors.title}>
@@ -292,9 +294,9 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
                 return (
                   <button key={m.id} type="button" aria-pressed={on} disabled={readOnly || busy} onClick={() => toggle(m.id)}
                     className={`flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full text-xs font-semibold border transition-colors disabled:cursor-default ${on ? 'text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
-                    style={on ? { backgroundColor: m.color } : undefined}>
+                    style={on ? { backgroundColor: readable(m.color) } : undefined}>
                     <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] text-white"
-                      style={{ backgroundColor: on ? 'rgba(255,255,255,0.3)' : m.color }}>
+                      style={{ backgroundColor: on ? 'rgba(255,255,255,0.3)' : readable(m.color) }}>
                       {on ? '✓' : m.initials[0]}
                     </span>
                     {m.name}{m.id === me.id ? ' (ich)' : ''}
@@ -336,7 +338,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             </div>
             {results && (
             <div className="mt-2 space-y-1" aria-label="Suchergebnisse">
-              {results.length === 0 && <p className="text-xs text-slate-400 px-1">Kein Ort gefunden.</p>}
+              {results.length === 0 && <p className="text-xs text-slate-500 px-1">Kein Ort gefunden.</p>}
               {results.map(p => (
               <button key={`${p.lat},${p.lon}`} type="button" disabled={busy} onClick={() => choose(p)}
                 className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-sm text-slate-700 disabled:opacity-50">
@@ -383,7 +385,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             />
             <span>
               🔒 Privat
-              <span className="block text-xs text-slate-400">Nur für die Beteiligten, wer den Termin anlegt, und Administratoren sichtbar.</span>
+              <span className="block text-xs text-slate-500">Nur für die Beteiligten, wer den Termin anlegt, und Administratoren sichtbar.</span>
             </span>
           </label>
 
@@ -393,7 +395,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
                 type="button"
                 onClick={remove}
                 disabled={busy}
-                className={`py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${confirmDelete ? 'bg-[#EF4444] text-white hover:bg-[#DC2626]' : 'border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]'}`}
+                className={`py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${confirmDelete ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]' : 'border border-[#FECACA] text-[#B91C1C] hover:bg-[#FEF2F2]'}`}
               >
                 {confirmDelete ? 'Wirklich löschen?' : isProposal && event.createdBy === me.id ? 'Zurückziehen' : 'Löschen'}
               </button>
@@ -405,7 +407,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
                   Ablehnen
                 </button>
                 <button type="button" disabled={busy} onClick={() => run(() => approveEvent(event.id))}
-                  className="py-2.5 px-4 rounded-xl text-sm font-semibold bg-[#22C55E] text-white hover:bg-[#16A34A] disabled:opacity-50">
+                  className="py-2.5 px-4 rounded-xl text-sm font-semibold bg-[#15803D] text-white hover:bg-[#166534] disabled:opacity-50">
                   Freigeben
                 </button>
               </>

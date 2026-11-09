@@ -69,7 +69,7 @@ export default function TelegramCard() {
       {error && <p role="alert" className="text-sm text-[#DC2626]">{error}</p>}
 
       {!status ? (
-        !error && <p className="text-sm text-slate-400">Lädt…</p>
+        !error && <p className="text-sm text-slate-500">Lädt…</p>
       ) : !status.configured ? (
         <p className="text-sm text-slate-500">
           Telegram ist auf dem Server noch nicht eingerichtet: Es fehlt der Bot-Token von @BotFather (siehe README,
@@ -91,11 +91,11 @@ export default function TelegramCard() {
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button type="button" onClick={test} disabled={busy}
-              className={`${BUTTON} bg-[#229ED9] text-white hover:bg-[#1C8BC0]`}>
+              className={`${BUTTON} bg-[#1C70A8] text-white hover:bg-[#175E8D]`}>
               {testSent ? '✓ Gesendet' : 'Testnachricht senden'}
             </button>
             <button type="button" onClick={unlink} disabled={busy}
-              className={`${BUTTON} ${confirmUnlink ? 'bg-[#EF4444] text-white hover:bg-[#DC2626]' : 'border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]'}`}>
+              className={`${BUTTON} ${confirmUnlink ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]' : 'border border-[#FECACA] text-[#B91C1C] hover:bg-[#FEF2F2]'}`}>
               {confirmUnlink ? 'Wirklich trennen?' : 'Trennen'}
             </button>
           </div>
@@ -110,16 +110,16 @@ export default function TelegramCard() {
           {linkUrl ? (
             <div className="space-y-2">
               <a href={linkUrl} target="_blank" rel="noreferrer"
-                className={`${BUTTON} inline-block bg-[#229ED9] text-white hover:bg-[#1C8BC0]`}>
+                className={`${BUTTON} inline-block bg-[#1C70A8] text-white hover:bg-[#175E8D]`}>
                 In Telegram öffnen
               </a>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Tippe dort auf „Starten“. Diese Karte zeigt danach von selbst „Verbunden“. Der Link gilt zehn Minuten.
               </p>
             </div>
           ) : (
             <button type="button" onClick={connect} disabled={busy}
-              className={`${BUTTON} bg-[#229ED9] text-white hover:bg-[#1C8BC0]`}>
+              className={`${BUTTON} bg-[#1C70A8] text-white hover:bg-[#175E8D]`}>
               Mit Telegram verbinden
             </button>
           )}

@@ -4,6 +4,7 @@ import { useCalendarData } from '../calendar/CalendarDataContext';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { listAchievementProgress, type AchievementItem } from '../achievements/api';
 import { ROLE_NAMES } from '../roles';
+import { readable } from '../family/colors';
 
 // Kleines Profil einer Person (Entscheidung vom 29.09.2026): Rolle, Farbe, Alter, Punkte und Erfolge. Öffnet sich
 // an der angeklickten Stelle; jede Person sieht nur, was sie laut Rechten sehen darf (Punkte und Erfolge liefert das
@@ -106,7 +107,7 @@ function ProfileCard({ memberId, anchor, onClose }: { memberId: string; anchor: 
     <div ref={card} role="dialog" aria-label={`Profil von ${member.name}`} tabIndex={-1}
       className="fixed z-[60] bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden outline-none"
       style={{ width: WIDTH, top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}>
-      <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: member.color }}>
+      <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: readable(member.color, 5.5) }}>
         <div className="w-11 h-11 rounded-full bg-white/25 flex items-center justify-center text-white font-bold text-lg">
           {member.initials[0]}
         </div>
@@ -119,13 +120,13 @@ function ProfileCard({ memberId, anchor, onClose }: { memberId: string; anchor: 
 
       <div className="p-4 space-y-3 text-sm">
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-          <dt className="text-slate-400">Farbe</dt>
+          <dt className="text-slate-500">Farbe</dt>
           <dd className="flex items-center gap-1.5 text-slate-700">
             <span className="w-3 h-3 rounded-full" style={{ backgroundColor: member.color }} />{member.color}
           </dd>
           {member.birthDate && (
             <>
-              <dt className="text-slate-400">Alter</dt>
+              <dt className="text-slate-500">Alter</dt>
               <dd className="text-slate-700">{ageOf(member.birthDate)} Jahre · Geburtstag am {birthdayLabel(member.birthDate)}</dd>
             </>
           )}
@@ -133,12 +134,12 @@ function ProfileCard({ memberId, anchor, onClose }: { memberId: string; anchor: 
 
         {collects && points !== undefined && (
           <div className="flex items-baseline gap-2 border-t border-slate-100 pt-3">
-            <span className="text-2xl font-bold text-[#D97706]">⭐ {points}</span>
+            <span className="text-2xl font-bold text-[#B45309]">⭐ {points}</span>
             <span className="text-xs text-slate-500">Punkte</span>
           </div>
         )}
 
-        {mayViewPoints && achievements === null && <p className="text-xs text-slate-400">Erfolge werden geladen…</p>}
+        {mayViewPoints && achievements === null && <p className="text-xs text-slate-500">Erfolge werden geladen…</p>}
         {Array.isArray(achievements) && (
           <div className="border-t border-slate-100 pt-3">
             <div className="text-xs font-semibold text-slate-600 mb-1.5">
@@ -154,7 +155,7 @@ function ProfileCard({ memberId, anchor, onClose }: { memberId: string; anchor: 
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400">Noch kein Erfolg erreicht.</p>
+              <p className="text-xs text-slate-500">Noch kein Erfolg erreicht.</p>
             )}
             {next && (
               <div className="mt-2.5">

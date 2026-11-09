@@ -43,7 +43,7 @@ export default function NotificationToggles() {
       <legend className="text-sm font-semibold text-slate-700 pb-1">Benachrichtigungen</legend>
       {error && <p role="alert" className="text-sm text-[#DC2626]">{error}</p>}
       {!settings ? (
-        !error && <p className="text-sm text-slate-400">Lädt…</p>
+        !error && <p className="text-sm text-slate-500">Lädt…</p>
       ) : (
         KINDS.filter(kind => kind.key !== 'confirmations' || mayConfirm).map(kind => (
           <label key={kind.key} className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
@@ -51,7 +51,7 @@ export default function NotificationToggles() {
               onChange={() => void toggle(kind.key)} />
             <span>
               {kind.label}
-              <span className="block text-xs text-slate-400">{kind.hint}</span>
+              <span className="block text-xs text-slate-500">{kind.hint}</span>
             </span>
           </label>
         ))

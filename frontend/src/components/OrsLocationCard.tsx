@@ -56,8 +56,8 @@ export default function OrslocationCard(){
     };
 
   return (
-    <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5" aria-labelledby="weather-location-title">
-      <h3 id="weather-location-title" className="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
+    <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5" aria-labelledby="home-location-title">
+      <h3 id="home-location-title" className="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
           Adresse
       </h3>
       <p className="text-xs text-slate-500 mb-3">Eingabe der genauen Wohnadresse zur Fahrzeitberechnung.</p>
@@ -87,7 +87,7 @@ export default function OrslocationCard(){
 
       {results && (
         <div className="mt-2 space-y-1" aria-label="Suchergebnisse">
-          {results.length === 0 && <p className="text-xs text-slate-400 px-1">Kein Ort gefunden.</p>}
+          {results.length === 0 && <p className="text-xs text-slate-500 px-1">Kein Ort gefunden.</p>}
           {results.map(p => (
             <button key={`${p.lat},${p.lon}`} type="button" disabled={busy} onClick={() => choose(p)}
               className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-sm text-slate-700 disabled:opacity-50">
