@@ -8,6 +8,7 @@ import GoogleBadge from '../google/GoogleBadge';
 import { eventColor, memberColors } from '../calendar/eventStyle';
 import {findPlaces, OrsLocation, getTravelTime, getSettings} from './OrsApi';
 import { readable } from '../family/colors';
+import OrsAttribution from './OrsAttribution';
 import {
   FREQUENCY_OPTIONS, WEEKDAYS, describeRecurrence, sameRecurrence, weekdayOf,
   type Frequency, type Recurrence, type SeriesScope, type Weekday,
@@ -541,6 +542,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
         <Field id="event-travel-time" label="Fahrzeit" error={fieldErrors.travelTime}>
           {getTimeLayout( travelTime ?? 0)}
         </Field>
+        <OrsAttribution className="-mt-2" />
 
           <Field id="event-description" label="Beschreibung (optional)" error={fieldErrors.description}>
             <textarea rows={3} {...fieldProps('description')} value={description} onChange={e => setDescription(e.target.value)} />

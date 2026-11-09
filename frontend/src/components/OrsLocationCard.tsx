@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {findPlaces, getSettings, OrsLocation, setHomeLocation, removeHomeLocation} from './OrsApi';
 import { ApiError } from '@/api/client';
+import OrsAttribution from './OrsAttribution';
 
 const INPUT = 'flex-1 min-w-0 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20';
 
@@ -99,6 +100,7 @@ export default function OrslocationCard(){
 
       {formError && <p role="alert" className="text-sm text-[#DC2626] mt-2">{formError}</p>}
       {message && <p role="status" className="text-xs text-[#16A34A] mt-2">{message}</p>}
+      <OrsAttribution className="mt-3" />
     </section>
   );
 }

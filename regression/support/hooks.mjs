@@ -24,7 +24,7 @@ BeforeAll(async function () {
       await page.goto(baseURL);
       await page.getByLabel('Dein Name', { exact: true }).fill('Regression Admin');
       await page.getByLabel('Benutzername', { exact: true }).fill(username);
-      await page.getByLabel('Passwort (mind. 8 Zeichen)', { exact: true }).fill(password);
+      await page.getByLabel('Passwort (8 bis 100 Zeichen)', { exact: true }).fill(password);
       await page.getByLabel('Passwort wiederholen', { exact: true }).fill(password);
       await page.getByRole('button', { name: 'Familie einrichten', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'Übersicht', exact: true })).toBeVisible();

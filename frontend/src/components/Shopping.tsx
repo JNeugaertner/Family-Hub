@@ -379,7 +379,7 @@ export default function Shopping({ onNavigate }: Props) {
             <button
               onClick={addItem}
               disabled={busy || !newItem.trim() || !isValidDraft(repeat)}
-              className="h-11 px-4 flex-shrink-0 bg-[#22C55E] text-white rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold hover:bg-[#16A34A] transition-colors shadow-sm disabled:opacity-50"
+              className="h-11 px-4 flex-shrink-0 bg-[#15803D] text-white rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold hover:bg-[#166534] transition-colors shadow-sm disabled:opacity-50"
             >
               <PlusIcon size={16} /> {onlyProposes ? 'Vorschlagen' : 'Hinzufügen'}
             </button>
