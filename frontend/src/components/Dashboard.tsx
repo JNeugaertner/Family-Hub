@@ -146,6 +146,11 @@ function TodayAgenda({ onNavigate }: { onNavigate: Navigate }) {
                     <span className="text-sm font-semibold text-slate-800">
                       {ev.source === 'google' && <GoogleBadge className="mr-1" />}{ev.title}
                     </span>
+                    {ev.series && (
+                      <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium" title="Serientermin">
+                        <span aria-hidden="true">↻</span><span className="sr-only">Serientermin</span>
+                      </span>
+                    )}
                     {(ev.conflict || ev.travelConflict) && (
                       <span className="text-[10px] bg-[#FEF2F2] text-[#B91C1C] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
                         <AlertTriangleIcon size={10} /> Konflikt

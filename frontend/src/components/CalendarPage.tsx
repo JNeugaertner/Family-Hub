@@ -14,6 +14,7 @@ import { CATEGORY_LABELS } from '../calendar/categories';
 import { SHARED_COLOR, blockBackground, cardBackground, dotBackground, memberColors, participantLabel, proposalStyle } from '../calendar/eventStyle';
 import GoogleBadge from '../google/GoogleBadge';
 import ParticipantAvatars from '../calendar/ParticipantAvatars';
+import { describeRecurrence } from '../calendar/recurrence';
 import { useFlashFocus, useFocus } from '../navigation/focus';
 import { SoonBadge } from './Placeholder';
 import { PLACEHOLDER } from '../placeholders';
@@ -74,9 +75,13 @@ function departureMins(ev: CalendarEvent): number | null {
 
 // ─── compact event pill (month grid) ─────────────────────────────────────────
 
-// Vorschläge (warten auf Freigabe) und private Termine sollen auf einen Blick erkennbar sein.
+// Vorschläge (warten auf Freigabe), private Termine und Serientermine sollen auf einen Blick erkennbar sein.
 const eventMarker = (event: CalendarEvent) =>
-  `${event.status === 'proposed' ? '⏳ ' : ''}${event.private ? '🔒 ' : ''}`;
+  `${event.status === 'proposed' ? '⏳ ' : ''}${event.private ? '🔒 ' : ''}${event.series ? '↻ ' : ''}`;
+
+// "jeden Dienstag bis 31.07.2027" für Serientermine, sonst leer
+const seriesText = (event: CalendarEvent) =>
+  event.recurrence && event.series ? describeRecurrence(event.recurrence, event.series.date) : '';
 
 const sourceNote = (event: CalendarEvent) => (event.source === 'google' ? ' (Google Kalender)' : '');
 
@@ -123,6 +128,9 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
           )}
           {event.private && (
             <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium">🔒 Privat</span>
+          )}
+          {event.series && (
+            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium">↻ {seriesText(event)}</span>
           )}
           {event.source === 'google' && (
             <span className="text-[10px] bg-white border border-slate-200 text-[#1967D2] px-1.5 py-0.5 rounded-full font-medium">Google</span>
@@ -641,7 +649,7 @@ export default function CalendarPage({ onNavigate }: Props) {
                     {p.title}
                   </button>
                   <span className="text-xs text-slate-500">
-                    {p.date.split('-').reverse().join('.')} {p.time}–{p.endTime} · für {participantLabel(p.memberIds, members)}
+                    {p.date.split('-').reverse().join('.')} {p.time}–{p.endTime}{p.series ? ` · ↻ ${seriesText(p)}` : ''} · für {participantLabel(p.memberIds, members)}
                     {proposer && p.createdBy !== permissions.me.id ? ` · vorgeschlagen von ${proposer}` : ''}
                   </span>
                   {permissions.mayDecide && (

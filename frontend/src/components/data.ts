@@ -1,4 +1,5 @@
 // Gemeinsame Typen für Termine und feste Beispieldaten für das, was noch nicht ans Backend angeschlossen ist.
+import type { Recurrence, SeriesRef } from '../calendar/recurrence';
 
 export type EventCategory = 'school' | 'sports' | 'appointment' | 'family' | 'work' | 'reminder';
 
@@ -34,6 +35,9 @@ export interface CalendarEvent {
   source?: 'google';
   // Von 00:00 bis 00:00 eines späteren Tages (z. B. ganztägige Google-Termine)
   allDay?: boolean;
+  // Nur bei Serienterminen: die Regel der Serie und die Zugehörigkeit
+  recurrence?: Recurrence;
+  series?: SeriesRef;
   conflict?: boolean;
   travelConflict?: boolean; // travel time overlaps with previous/next event
 }
