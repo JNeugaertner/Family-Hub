@@ -18,7 +18,7 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | Aufgaben und Punkte | Eltern vergeben Aufgaben mit Punkten, Kinder haken ab, nach der Bestätigung gibt es Punkte; Bonus-Aufgaben für alle Kinder; Aufgaben, die sich nach Erledigung wiederholen (z. B. Blumen gießen alle 3 Tage); Erwachsene erledigen Aufgaben ohne Punkte |
 | Belohnungen | Shop, in dem Kinder und Jugendliche Punkte einlösen; die Eltern genehmigen oder lehnen ab |
 | Erfolge | Automatische Erfolge (z. B. „7 Tage hintereinander“) mit einmaligen Bonuspunkten |
-| Einkaufsliste | Gemeinsame Liste mit Kategorien und „dringend“; Kinder schlagen Artikel vor, die Eltern übernehmen |
+| Einkaufsliste | Gemeinsame Liste mit Kategorien und „dringend“; Kinder schlagen Artikel vor, die Eltern übernehmen; wiederkehrende Artikel (bei jedem Einkauf oder einige Tage nach dem Kauf) |
 | Essensplan | Wochenplan mit Gerichte-Sammlung, Zutaten und Kochanleitung; Kinder äußern Wünsche; Zutaten per Knopf auf die Einkaufsliste |
 | Nachrichten | Familiengruppe und Einzelchats; aus einer Nachricht wird ein Artikel, ein Termin oder eine Aufgabe |
 | WhatsApp (in Arbeit) | Nachrichten an die WhatsApp-Nummer der Familie empfangen; jede Person sieht die von ihrer eigenen Handynummer |
@@ -142,6 +142,7 @@ sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 | `familyhub.login.max-failures` / `lock-duration` | `5` / `PT5M` | So viele Fehlversuche sperren ein Konto so lange |
 | `server.servlet.session.timeout` | `8h` | Dauer einer Anmeldung |
 | `familyhub.waste.task-sync-cron` | `0 50 7 * * *` | Täglich um 07:50 Uhr Müll-Aufgaben für die nächsten sieben Tage anlegen |
+| `familyhub.shopping.return-cron` | `0 1 0 * * *` | Täglich um 00:01 Uhr fällige wiederkehrende Artikel zurück auf die Einkaufsliste holen |
 | `familyhub.google.sync-interval` | `PT15M` | Takt des Abgleichs mit Google |
 | `familyhub.google.push-delay` | `PT10S` | So schnell kommen geänderte Termine in den Google-Kalender „FamilyHub“ |
 | `familyhub.weather.cache-duration` | `PT10M` | So lange merkt sich das Backend eine Wetterabfrage |
@@ -150,6 +151,27 @@ sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 | `familyhub.notifications.short-notice` | `PT24H` | Termine, die so bald beginnen, gelten als kurzfristig |
 | `familyhub.notifications.pending-after` | `PT24H` | So lange darf eine Bestätigung offen sein, bevor FamilyHub erinnert |
 | `familyhub.cors.allowed-origins` | `http://localhost:5173` | Adresse der Oberfläche |
+
+## Wiederkehrende Einkäufe
+
+Beim Hinzufügen oder Bearbeiten eines Artikels legt die Auswahl neben
+„Dringend“ fest, ob er wiederkommt:
+
+- **Einmalig:** wie bisher, „Abgehakte entfernen“ löscht ihn.
+- **↻ Bei jedem Einkauf:** „Abgehakte entfernen“ löscht ihn nicht, er steht
+  danach gleich wieder offen auf der Liste (Beispiel: Bio-Milch).
+- **↻ Nach Abstand:** Er kommt einige Tage, Wochen oder Monate nach dem Kauf
+  (dem Tag des Abhakens) offen zurück. Nach „Abgehakte entfernen“ steht er bis
+  dahin unten unter „Kommt wieder“ (Beispiel: Klopapier alle 2 Wochen). Kurz
+  nach Mitternacht holt FamilyHub fällige Artikel zurück, auch wenn sie noch
+  abgehakt auf der Liste stehen.
+
+Unter „Kommt wieder“ holt „Jetzt auf die Liste“ einen Artikel früher zurück,
+✕ nimmt ihn ganz von der Liste. Ein geänderter Abstand zählt ab dem letzten
+Kauf. „Dringend“ gilt nur bis zum nächsten Einkauf. Wiederkehrende Artikel legt
+an, wer direkt auf die Liste schreibt (Eltern und Jugendliche); Kinder schlagen
+nur einzelne Artikel vor. Zutaten aus dem Essensplan wiederholen sich nicht,
+die setzt der Essensplan selbst wieder auf die Liste.
 
 ## Google Kalender einrichten (optional)
 

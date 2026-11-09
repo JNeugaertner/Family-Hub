@@ -249,6 +249,7 @@ public class SampleDataLoader implements ApplicationRunner {
                 .filter(m -> m.username() != null)
                 .collect(Collectors.toMap(FamilyMember::username, FamilyMember::id));
         LocalDateTime now = LocalDateTime.now(clock);
+        LocalDate today = now.toLocalDate();
         List<ShoppingItem> items = new ArrayList<>();
         for (int i = 0; i < SampleShopping.ITEMS.size(); i++) {
             SampleShopping.SampleItem s = SampleShopping.ITEMS.get(i);
@@ -256,9 +257,13 @@ public class SampleDataLoader implements ApplicationRunner {
             if (creator == null) {
                 continue;
             }
+            LocalDate checkedOn = !s.checked() ? null
+                    : s.boughtDaysAgo() == null ? today : today.minusDays(s.boughtDaysAgo());
+            LocalDate returnsOn = s.boughtDaysAgo() == null ? null : s.repeat().nextDue(checkedOn);
             items.add(new ShoppingItem(null, s.name(), s.quantity(), s.category(), s.urgent(), s.checked(),
                     s.proposal() ? ShoppingItemStatus.PROPOSED : ShoppingItemStatus.APPROVED, creator,
-                    now.minusMinutes(SampleShopping.ITEMS.size() - i), s.checked() ? creator : null));
+                    now.minusMinutes(SampleShopping.ITEMS.size() - i), s.checked() ? creator : null, s.repeat(),
+                    checkedOn, returnsOn));
         }
         shoppingRepository.saveAll(items);
         if (!items.isEmpty()) {

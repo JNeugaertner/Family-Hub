@@ -13,7 +13,7 @@ interface ShoppingData {
   update: (id: string, input: api.ShoppingInput) => Promise<void>;
   setChecked: (id: string, checked: boolean) => Promise<void>;
   remove: (id: string) => Promise<void>;
-  removeChecked: () => Promise<{ deleted: number }>;
+  removeChecked: () => Promise<api.RemovedChecked>;
   approve: (id: string) => Promise<void>;
   reject: (id: string) => Promise<void>;
 }

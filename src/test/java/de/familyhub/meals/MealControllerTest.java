@@ -336,7 +336,7 @@ class MealControllerTest {
                 .andExpect(status().isOk());
         ShoppingItem milk = shoppingItems.findAll().stream().filter(i -> i.name().equals("Milch"))
                 .findFirst().orElseThrow();
-        shoppingItems.save(milk.withChecked(true, sarah.id()));
+        shoppingItems.save(milk.withChecked(true, sarah.id(), LocalDate.now()));
 
         // Die Milch ist gekauft; der Plan braucht sie weiter, also kommt sie neu auf die Liste
         mvc.perform(post("/api/meals/shopping").with(as(emma)).contentType(APPLICATION_JSON).content(week))
