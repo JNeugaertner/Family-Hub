@@ -158,7 +158,74 @@ jede Einstellung aus der Tabelle unten setzen. Uhrzeiten gelten in der Zeitzone
 Europe/Berlin.
 
 So eingerichtet ist FamilyHub nur vom eigenen Rechner aus erreichbar. Für Handys
-und andere Geräte braucht es eine Adresse mit HTTPS; das ist der nächste Schritt.
+und andere Geräte braucht es eine Adresse mit HTTPS, siehe unten.
+
+### Sichern und Wiederherstellen
+
+`deploy/backup.sh` sichert die Datenbank, während FamilyHub läuft, als eine
+Datei nach `deploy/backups/` und löscht Sicherungen, die älter als 14 Tage sind
+(`BACKUP_KEEP_DAYS`). Läuft unter Linux und macOS; auf einem Server täglich per
+cron, z. B. um 03:30 Uhr:
+
+```bash
+30 3 * * * /pfad/zu/deploy/backup.sh >> /pfad/zu/deploy/backups/backup.log 2>&1
+```
+
+Eine Sicherung auf demselben Rechner hilft nicht bei einem Plattenschaden oder
+einem verlorenen Server: die Dateien regelmäßig woandershin kopieren.
+
+Zurückspielen (ersetzt alle Daten in FamilyHub durch den Stand der Sicherung):
+
+```bash
+cd deploy
+docker compose stop familyhub
+docker compose exec -T mongodb mongorestore --archive --gzip --drop \
+  --username familyhub --password '<MONGO_PASSWORD>' --authenticationDatabase admin \
+  < backups/familyhub-<Datum>.archive.gz
+docker compose start familyhub
+```
+
+`.env` gehört mit zur Sicherung: Ohne `MONGO_PASSWORD` kommt man nicht an die
+Daten, ohne `FAMILYHUB_GOOGLE_TOKENKEY` sind die gespeicherten Google-Zugänge
+nicht mehr lesbar. Sie enthält aber alle Zugangsdaten, also getrennt und sicher
+aufbewahren.
+
+### Auf einem Server mit HTTPS betreiben
+
+Damit Handys und andere Geräte FamilyHub erreichen (und die App sich dort
+installieren lässt), läuft es auf einem Server mit eigener Domain. Vor FamilyHub
+steht dann [Caddy](https://caddyserver.com): Caddy holt das HTTPS-Zertifikat
+selbst bei Let's Encrypt, erneuert es und leitet http auf https um.
+
+**Voraussetzungen:** ein Linux-Server mit Docker Engine und Compose (z. B. ein
+kleiner vServer in der EU), eine Domain oder Subdomain, deren DNS-Eintrag
+(A bzw. AAAA) auf den Server zeigt, und von außen offene Ports 80 und 443.
+
+1. Auf dem Server einen Ordner mit `compose.yaml`, `compose.server.yaml`,
+   `Caddyfile`, `backup.sh` und `.env.example` aus `deploy/` anlegen,
+   `.env.example` nach `.env` kopieren und ausfüllen. Zusätzlich zu oben:
+
+   ```properties
+   FAMILYHUB_DOMAIN=familyhub.example.de
+   FAMILYHUB_URL=https://familyhub.example.de
+   ```
+2. Starten:
+
+   ```bash
+   docker compose -f compose.yaml -f compose.server.yaml up -d
+   ```
+
+   Beim ersten Start holt Caddy das Zertifikat (einige Sekunden, Protokoll mit
+   `docker compose -f compose.yaml -f compose.server.yaml logs -f caddy`).
+   Danach https://familyhub.example.de öffnen und die Familie einrichten.
+3. Sicherung per cron einrichten (siehe oben).
+
+Hinter Caddy setzt FamilyHub Anmelde-Cookies nur noch für https
+(`SERVER_SERVLET_SESSION_COOKIE_SECURE`), deshalb klappt die Anmeldung dort nur
+über die Domain, nicht direkt über Port 8080. Für Google Kalender in der Google
+Cloud Console `https://<Domain>/api/google/callback` als Weiterleitungs-URI
+eintragen. Für WhatsApp ist dieselbe Adresse mit `/api/whatsapp` die Callback
+URL; ein Tunnel wie ngrok ist dann nicht mehr nötig.
 
 ## Wiederkehrende Aufgaben
 

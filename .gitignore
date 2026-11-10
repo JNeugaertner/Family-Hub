@@ -46,3 +46,6 @@ local.properties
 
 ### Claude
 install-claude.ps1
+
+### Datenbank-Sicherungen (deploy/backup.sh) ###
+/deploy/backups/

@@ -1,0 +1,10 @@
+# Caddy vor FamilyHub (nur für den Betrieb auf einem Server, siehe compose.server.yaml und README).
+# Caddy holt das HTTPS-Zertifikat für die Domain selbst bei Let's Encrypt und erneuert es; dafür muss die Domain
+# auf den Server zeigen und Port 80 und 443 von außen erreichbar sein. Aufrufe über http leitet Caddy auf https um.
+{$FAMILYHUB_DOMAIN} {
+	encode zstd gzip
+	# Browser sollen FamilyHub ab dem ersten Besuch nur noch über https öffnen
+	header Strict-Transport-Security "max-age=31536000"
+	# Caddy teilt FamilyHub über X-Forwarded-Proto mit, dass die Verbindung verschlüsselt war
+	reverse_proxy familyhub:8080
+}
