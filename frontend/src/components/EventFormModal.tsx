@@ -9,6 +9,7 @@ import { eventColor, memberColors } from '../calendar/eventStyle';
 import {findPlaces, OrsLocation, getTravelTime, getSettings} from './OrsApi';
 import { readable } from '../family/colors';
 import OrsAttribution from './OrsAttribution';
+import { addDays, fromDateKey, toDateKey } from '../calendar/dates';
 import {
   FREQUENCY_OPTIONS, WEEKDAYS, describeRecurrence, sameRecurrence, weekdayOf,
   type Frequency, type Recurrence, type SeriesScope, type Weekday,
@@ -31,6 +32,8 @@ type EndMode = 'never' | 'until' | 'count';
 
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 const formatDate = (dateKey: string) => dateKey.split('-').reverse().join('.');
+// Tag davor/danach als "JJJJ-MM-TT"
+const shiftDay = (dateKey: string, days: number) => toDateKey(addDays(fromDateKey(dateKey), days));
 
 const INPUT = 'w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-600';
 const inputClass = (hasError: boolean) =>
@@ -76,6 +79,8 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   const [departure, setDeparture] = useState(event?.departure ?? null);
   const [start, setStart] = useState(event?.start.slice(0, 16) ?? `${defaultDate}T09:00`);
   const [end, setEnd] = useState(event?.end.slice(0, 16) ?? `${defaultDate}T10:00`);
+  // Ganztägig: gespeichert wie bei Google von 00:00 bis 00:00 des Tages nach dem letzten Tag
+  const [allDay, setAllDay] = useState(event?.allDay ?? false);
   const [memberIds, setMemberIds] = useState<string[]>(initialMembers);
   const [category, setCategory] = useState<EventCategory>(event?.category ?? 'family');
   const [location, setLocation] = useState(event?.location ?? '');
@@ -158,6 +163,27 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   };
 
   const startDay = start.slice(0, 10);
+  // Letzter Tag eines ganztägigen Termins (das gespeicherte Ende ist der Folgetag 00:00)
+  const lastDay = end.slice(0, 10) ? shiftDay(end.slice(0, 10), -1) : '';
+
+  const toggleAllDay = (on: boolean) => {
+    setAllDay(on);
+    if (!startDay) return;
+    if (on) {
+      const endDay = end.slice(0, 10);
+      setStart(`${startDay}T00:00`);
+      setEnd(`${shiftDay(endDay && endDay > startDay ? endDay : startDay, 1)}T00:00`);
+    } else {
+      setStart(`${startDay}T09:00`);
+      setEnd(`${startDay}T10:00`);
+    }
+  };
+  const changeFirstDay = (day: string) => {
+    setStart(day ? `${day}T00:00` : '');
+    // Rutscht der erste Tag hinter den letzten, wird es ein eintägiger Termin
+    if (day && (!lastDay || lastDay < day)) setEnd(`${shiftDay(day, 1)}T00:00`);
+  };
+  const changeLastDay = (day: string) => setEnd(day ? `${shiftDay(day, 1)}T00:00` : '');
   const isSeries = !!event?.series;
   // Vorschläge betreffen immer die ganze Serie, dort fragt das Formular nicht nach
   const asksScope = isSeries && !isProposal;
@@ -183,7 +209,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
 
   const save = (scope?: SeriesScope) => run(() => saveEvent({
     title,
-    departure: departure || null,
+    departure: allDay ? null : departure || null,
     start: start || null,
     end: end || null,
     memberIds,
@@ -192,7 +218,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     lat,
     lon,
     transportMode,
-    travelTime,
+    travelTime: allDay ? null : travelTime,
     description: description.trim() || null,
     private: privateEvent,
     recurrence,
@@ -201,6 +227,10 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (readOnly) return;
+    if (allDay && startDay && lastDay && lastDay < startDay) {
+      setFieldErrors({ end: 'Der letzte Tag darf nicht vor dem ersten liegen' });
+      return;
+    }
     if (frequency !== 'none' && endMode === 'until' && !until) {
       setFieldErrors({ recurrenceEnd: 'Bitte den letzten Tag der Wiederholung wählen' });
       return;
@@ -357,17 +387,39 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             <input {...fieldProps('title')} value={title} onChange={e => setTitle(e.target.value)} autoFocus={!readOnly} />
           </Field>
 
+        {!allDay && (
         <Field id="event-departure" label="Abfahrt" error={fieldErrors.departure}>
           {getDeparture}
         </Field>
+        )}
+
+          <label className="flex items-center gap-2.5 text-sm text-slate-700">
+            <input type="checkbox" className="w-4 h-4 accent-[#2563EB]" checked={allDay}
+              disabled={readOnly || busy} onChange={e => toggleAllDay(e.target.checked)} />
+            Ganztägig
+          </label>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field id="event-start" label="Beginn" error={fieldErrors.start}>
-              <input type="datetime-local" {...fieldProps('start')} value={start} onChange={e => setStart(e.target.value)} />
-            </Field>
-            <Field id="event-end" label="Ende" error={fieldErrors.end}>
-              <input type="datetime-local" {...fieldProps('end')} value={end} onChange={e => setEnd(e.target.value)} />
-            </Field>
+            {allDay ? (
+              <>
+                <Field id="event-start" label="Erster Tag" error={fieldErrors.start}>
+                  <input type="date" {...fieldProps('start')} value={startDay} onChange={e => changeFirstDay(e.target.value)} />
+                </Field>
+                <Field id="event-end" label="Letzter Tag" error={fieldErrors.end}>
+                  <input type="date" {...fieldProps('end')} min={startDay || undefined} value={lastDay}
+                    onChange={e => changeLastDay(e.target.value)} />
+                </Field>
+              </>
+            ) : (
+              <>
+                <Field id="event-start" label="Beginn" error={fieldErrors.start}>
+                  <input type="datetime-local" {...fieldProps('start')} value={start} onChange={e => setStart(e.target.value)} />
+                </Field>
+                <Field id="event-end" label="Ende" error={fieldErrors.end}>
+                  <input type="datetime-local" {...fieldProps('end')} value={end} onChange={e => setEnd(e.target.value)} />
+                </Field>
+              </>
+            )}
           </div>
 
           {!readOnly && (
@@ -531,6 +583,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             </div>
           </Field>
                     
+          {!allDay && (<>
           <Field id="event-transportMode" label="Verkehrsmittel" error={fieldErrors.transportMode}>
             <select {...fieldProps('transportMode')} value={transportMode} onChange={e => {setTransportMode(e.target.value as TransportMode);
                 gettravelTime(e.target.value as TransportMode, { label: location, lat: lat ?? 0, lon: lon ?? 0 })}}>
@@ -543,6 +596,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
         <Field id="event-travel-time" label="Fahrzeit" error={fieldErrors.travelTime}>
           {getTimeLayout( travelTime ?? 0)}
         </Field>
+          </>)}
         <OrsAttribution className="-mt-2" />
 
           <Field id="event-description" label="Beschreibung (optional)" error={fieldErrors.description}>

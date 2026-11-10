@@ -1,6 +1,6 @@
 package de.familyhub.notifications;
 
-import static de.familyhub.notifications.NotificationTexts.dayAndTime;
+import static de.familyhub.notifications.NotificationTexts.when;
 import static de.familyhub.notifications.NotificationTexts.quoted;
 
 import java.time.Clock;
@@ -54,8 +54,8 @@ public class EventNotifications {
         } else if (!after.start().equals(before.start())) {
             if (isSoon(after, now) || isSoon(before, now)) {
                 send(after.memberIds(), "📅 Termin verschoben: " + quoted(after.title()) + " ist jetzt "
-                        + dayAndTime(after.start(), now.toLocalDate()) + " statt "
-                        + dayAndTime(before.start(), now.toLocalDate()) + location(after), after, actor);
+                        + when(after, now.toLocalDate()) + " statt "
+                        + when(before, now.toLocalDate()) + location(after), after, actor);
             }
         } else if (isSoon(after, now)) {
             List<String> added = after.memberIds().stream().filter(id -> !before.involves(id)).toList();
@@ -88,10 +88,10 @@ public class EventNotifications {
     private static String newEvent(CalendarEvent event, LocalDateTime now) {
         if (event.recurrence() != null) {
             LocalDate first = event.isSeries() ? event.series().date() : event.start().toLocalDate();
-            return "📅 Neuer Serientermin " + dayAndTime(event.start(), now.toLocalDate()) + ": "
+            return "📅 Neuer Serientermin " + when(event, now.toLocalDate()) + ": "
                     + quoted(event.title()) + ", " + event.recurrence().describe(first) + location(event);
         }
-        return "📅 Neuer Termin " + dayAndTime(event.start(), now.toLocalDate()) + ": " + quoted(event.title())
+        return "📅 Neuer Termin " + when(event, now.toLocalDate()) + ": " + quoted(event.title())
                 + location(event);
     }
 

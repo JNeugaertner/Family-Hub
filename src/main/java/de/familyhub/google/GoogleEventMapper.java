@@ -56,20 +56,26 @@ public class GoogleEventMapper {
 
     // Eintrag für den Google-Kalender „FamilyHub“. Private Termine sind auch in Google privat; die Id des
     // FamilyHub-Termins steht als private Eigenschaft daran, so erkennt der Abgleich ihn wieder.
+    // Ganztägige Termine (00:00 bis 00:00) werden auch in Google ganztägig.
     public GoogleEventInput toGoogle(CalendarEvent event) {
+        boolean allDay = event.isAllDay();
         return new GoogleEventInput(event.title(), blankToNull(event.description()), blankToNull(event.location()),
-                event.privateEvent() ? "private" : "default", toGoogleTime(event.start()), toGoogleTime(event.end()),
+                event.privateEvent() ? "private" : "default", toGoogleTime(event.start(), allDay),
+                toGoogleTime(event.end(), allDay),
                 new GoogleEventInput.ExtendedProperties(Map.of(GoogleEvent.FAMILYHUB_ID, event.id())));
     }
 
     // Stimmt der Eintrag in Google noch mit dem FamilyHub-Termin überein? Sonst wird er überschrieben, auch wenn ihn
     // jemand in Google geändert hat: FamilyHub bleibt führend (Entscheidung vom 19.10.2026).
     public boolean isUpToDate(GoogleEvent google, CalendarEvent event) {
-        if (google.start() == null || google.end() == null
-                || google.start().dateTime() == null || google.end().dateTime() == null) {
+        if (google.start() == null || google.end() == null || toLocal(google.start()) == null
+                || toLocal(google.end()) == null) {
             return false;
         }
-        return Objects.equals(google.summary(), event.title())
+        // Ein Eintrag von 00:00 bis 00:00 mit Uhrzeit ist nicht dasselbe wie ein ganztägiger (so wurden sie früher eingetragen)
+        boolean googleAllDay = google.start().dateTime() == null;
+        return googleAllDay == event.isAllDay()
+                && Objects.equals(google.summary(), event.title())
                 && Objects.equals(blankToNull(google.description()), blankToNull(event.description()))
                 && Objects.equals(blankToNull(google.location()), blankToNull(event.location()))
                 && "private".equals(google.visibility()) == event.privateEvent()
@@ -86,7 +92,10 @@ public class GoogleEventMapper {
         return time.date() == null ? null : time.date().atStartOfDay();
     }
 
-    private GoogleEventInput.Time toGoogleTime(LocalDateTime time) {
+    private GoogleEventInput.Time toGoogleTime(LocalDateTime time, boolean allDay) {
+        if (allDay) {
+            return GoogleEventInput.Time.allDay(time.toLocalDate());
+        }
         return new GoogleEventInput.Time(time.atZone(zone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), zone.getId());
     }
 
