@@ -23,7 +23,7 @@ public class MemberResponses {
         this.permissions = permissions;
     }
 
-    // Benutzername, Geburtsdatum und Handynummer sieht, wer Mitglieder verwalten darf, oder die Person selbst.
+    // Benutzername und Handynummer sieht, wer Mitglieder verwalten darf, oder die Person selbst.
     // Einzelrechte sieht nur, wer Rollen und Rechte verwalten darf.
     public MemberResponse of(FamilyMember member, FamilyMember viewer) {
         boolean manager = permissions.can(viewer, Module.FAMILIE, Action.VERWALTEN, Scope.FAMILIE);
@@ -32,7 +32,7 @@ public class MemberResponses {
         return new MemberResponse(member.id(), member.name(), member.color(),
                 details ? member.username() : null,
                 member.role(), roleResolver.effectiveRole(member),
-                details ? member.birthDate() : null,
+                member.birthDate(),
                 member.roleFixed(),
                 rights ? sorted(member.extraPermissions()) : null,
                 rights ? sorted(member.revokedPermissions()) : null,
