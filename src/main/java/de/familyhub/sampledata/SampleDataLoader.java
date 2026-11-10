@@ -249,6 +249,7 @@ public class SampleDataLoader implements ApplicationRunner {
                 .filter(m -> m.username() != null)
                 .collect(Collectors.toMap(FamilyMember::username, FamilyMember::id));
         LocalDateTime now = LocalDateTime.now(clock);
+        LocalDate today = now.toLocalDate();
         List<ShoppingItem> items = new ArrayList<>();
         for (int i = 0; i < SampleShopping.ITEMS.size(); i++) {
             SampleShopping.SampleItem s = SampleShopping.ITEMS.get(i);
@@ -256,9 +257,13 @@ public class SampleDataLoader implements ApplicationRunner {
             if (creator == null) {
                 continue;
             }
+            LocalDate checkedOn = !s.checked() ? null
+                    : s.boughtDaysAgo() == null ? today : today.minusDays(s.boughtDaysAgo());
+            LocalDate returnsOn = s.boughtDaysAgo() == null ? null : s.repeat().nextDue(checkedOn);
             items.add(new ShoppingItem(null, s.name(), s.quantity(), s.category(), s.urgent(), s.checked(),
                     s.proposal() ? ShoppingItemStatus.PROPOSED : ShoppingItemStatus.APPROVED, creator,
-                    now.minusMinutes(SampleShopping.ITEMS.size() - i), s.checked() ? creator : null));
+                    now.minusMinutes(SampleShopping.ITEMS.size() - i), s.checked() ? creator : null, s.repeat(),
+                    checkedOn, returnsOn));
         }
         shoppingRepository.saveAll(items);
         if (!items.isEmpty()) {
@@ -293,7 +298,7 @@ public class SampleDataLoader implements ApplicationRunner {
                 .map(t -> new Task(null, t.title(), t.description(), idByUsername.get(t.username()),
                         now.toLocalDate().plusDays(t.day()), t.priority(), t.category(), t.points(), t.status(),
                         creator, t.status() == TaskStatus.CONFIRMED ? now.minusHours(3) : null,
-                        t.status() == TaskStatus.CONFIRMED ? creator : null))
+                        t.status() == TaskStatus.CONFIRMED ? creator : null, false, false, t.repeat(), null))
                 .toList());
 
         List<PointEntry> points = new ArrayList<>();
@@ -322,7 +327,7 @@ public class SampleDataLoader implements ApplicationRunner {
                 : date.atTime(LocalTime.parse(e.endTime()));
         boolean proposal = e.proposedBy() != null;
         List<String> memberIds = Arrays.stream(e.members().split(",\\s*")).map(idByName::get).toList();
-        return new CalendarEvent(null, e.title(), start, end, memberIds, e.category(), e.location(), null,
+        return new CalendarEvent(null, e.title(),null, start, end, memberIds, e.category(), e.location(), null, null, null,null, null,
                 e.privateEvent(), proposal ? EventStatus.PROPOSED : EventStatus.APPROVED,
                 idByName.get(proposal ? e.proposedBy() : "Sarah"), null);
     }

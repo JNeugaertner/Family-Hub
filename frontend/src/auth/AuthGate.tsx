@@ -8,7 +8,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const { status, me } = useAuth();
 
   if (status === 'loading') {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-slate-400">FamilyHub wird geladen…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">FamilyHub wird geladen…</div>;
   }
   if (status !== 'authenticated' || !me) {
     return <LoginPage />;

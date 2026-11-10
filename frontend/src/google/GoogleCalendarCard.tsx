@@ -98,7 +98,7 @@ export default function GoogleCalendarCard() {
       {error && <p role="alert" className="text-sm text-[#DC2626]">{error}</p>}
 
       {!status ? (
-        !error && <p className="text-sm text-slate-400">Lädt…</p>
+        !error && <p className="text-sm text-slate-500">Lädt…</p>
       ) : !status.configured ? (
         <p className="text-sm text-slate-500">
           Die Google-Anbindung ist auf dem Server noch nicht eingerichtet (Zugangsdaten fehlen, siehe README).
@@ -118,7 +118,7 @@ export default function GoogleCalendarCard() {
         <>
           <p className="text-sm text-slate-600">
             Verbunden mit <span className="font-semibold">{status.email ?? 'Google-Konto'}</span>
-            {status.lastSyncAt && <span className="block text-xs text-slate-400">Zuletzt abgeglichen: {formatTime(status.lastSyncAt)}</span>}
+            {status.lastSyncAt && <span className="block text-xs text-slate-500">Zuletzt abgeglichen: {formatTime(status.lastSyncAt)}</span>}
           </p>
           {status.needsReconnect ? (
             <div role="alert" className="bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] text-sm rounded-xl p-3 space-y-2">
@@ -139,7 +139,7 @@ export default function GoogleCalendarCard() {
                 <label className="flex items-center gap-2 text-sm text-slate-700 flex-1 min-w-0">
                   <input type="checkbox" className="w-4 h-4 accent-[#2563EB]" checked={c.enabled}
                     onChange={e => change(c, { enabled: e.target.checked })} />
-                  <span className="truncate">{c.name}{c.primary && <span className="text-slate-400"> (Hauptkalender)</span>}</span>
+                  <span className="truncate">{c.name}{c.primary && <span className="text-slate-500"> (Hauptkalender)</span>}</span>
                 </label>
                 <select aria-label={`Kategorie für ${c.name}`} value={c.category}
                   onChange={e => change(c, { category: e.target.value as EventCategory })}
@@ -171,7 +171,7 @@ export default function GoogleCalendarCard() {
               {busy ? 'Bitte warten…' : 'Jetzt synchronisieren'}
             </button>
             <button type="button" onClick={disconnect} disabled={busy}
-              className={`py-2 px-4 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${confirmDisconnect ? 'bg-[#EF4444] text-white hover:bg-[#DC2626]' : 'border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]'}`}>
+              className={`py-2 px-4 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${confirmDisconnect ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]' : 'border border-[#FECACA] text-[#B91C1C] hover:bg-[#FEF2F2]'}`}>
               {!confirmDisconnect ? 'Verbindung trennen'
                 : status.exportEnabled ? 'Wirklich trennen? Google-Termine und der Kalender „FamilyHub“ werden entfernt'
                   : 'Wirklich trennen? Google-Termine werden entfernt'}

@@ -10,7 +10,7 @@ export function SoonBadge({ label = 'Demnächst', onDark = false, className = ''
 }) {
   return (
     <span title="Demnächst verfügbar" className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap ${
-      onDark ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500 border border-slate-200'} ${className}`}>
+      onDark ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'} ${className}`}>
       <span aria-hidden="true">🚧</span> {label}
     </span>
   );

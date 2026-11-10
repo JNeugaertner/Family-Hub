@@ -300,6 +300,18 @@ class NotificationsTest {
         verify(api, never()).sendMessage(eq(SARAH_CHAT), anyString());
     }
 
+    // Eine Serie meldet sich einmal, mit Rhythmus, nicht für jeden ihrer Termine
+    @Test
+    void seriesStartingSoonSendsOneMessageNamingTheRhythm() throws Exception {
+        String daily = eventJson("Training", inHours(2), sarah, lucas)
+                .replace("\"location\"", "\"recurrence\": {\"frequency\": \"daily\"}, \"location\"");
+        createEvent(sarah, daily);
+
+        verify(api).sendMessage(eq(LUCAS_CHAT), contains("📅 Neuer Serientermin "));
+        verify(api).sendMessage(eq(LUCAS_CHAT), contains("„Training“, täglich (Praxis Dr. Weber)"));
+        verify(api, times(1)).sendMessage(anyLong(), anyString());
+    }
+
     // ─── Chat ─────────────────────────────────────────────────────────────────
 
     private void sendChat(FamilyMember by, String conversation, String text) throws Exception {
@@ -375,9 +387,9 @@ class NotificationsTest {
         LocalDateTime now = LocalDateTime.now();
         Task done = tasks.save(new Task(null, "Zimmer aufräumen", null, lucas.id(), LocalDate.now(),
                 TaskPriority.LOW, TaskCategory.CHORES, 10, TaskStatus.DONE, sarah.id(), null, null));
-        events.save(new CalendarEvent(null, "Kino", now.plusDays(2), now.plusDays(2).plusHours(2),
-                List.of(emma.id(), lucas.id()), EventCategory.FAMILY, null, null, false, EventStatus.PROPOSED,
-                emma.id(), null));
+        events.save(new CalendarEvent(null, "Kino", null, now.plusDays(2), now.plusDays(2).plusHours(2),
+                List.of(emma.id(), lucas.id()), EventCategory.FAMILY, null, null, null, null, null, null, false,
+                EventStatus.PROPOSED, emma.id(), null));
         shopping.save(new ShoppingItem(null, "Chips", null, ShoppingCategory.SNACKS, false, false,
                 ShoppingItemStatus.PROPOSED, lucas.id(), now, null));
         meals.save(new MealEntry(null, LocalDate.now().plusDays(1), MealType.ABENDESSEN, null, "Pizza",

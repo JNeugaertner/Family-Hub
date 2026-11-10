@@ -13,12 +13,22 @@ import static de.familyhub.shopping.ShoppingCategory.VORRAT;
 import java.util.List;
 
 import de.familyhub.shopping.ShoppingCategory;
+import de.familyhub.shopping.ShoppingRepeat;
+import de.familyhub.shopping.ShoppingRepeatUnit;
 
-// Einkaufsliste aus dem Figma-UI (data.ts), auf Deutsch; dazu ein offener Vorschlag von Lucas zum Ausprobieren.
+// Einkaufsliste aus dem Figma-UI (data.ts), auf Deutsch; dazu ein offener Vorschlag von Lucas zum Ausprobieren und
+// wiederkehrende Artikel: Milch bei jedem Einkauf, Spülmittel alle 3 Wochen, Klopapier vor 4 Tagen gekauft und
+// alle 2 Wochen (steht unter "Kommt wieder").
 final class SampleShopping {
 
+    // boughtDaysAgo: gekauft und schon von der Liste genommen, wartet auf die nächste Runde
     record SampleItem(String name, String quantity, ShoppingCategory category, boolean urgent, boolean checked,
-            String username, boolean proposal) {
+            String username, boolean proposal, ShoppingRepeat repeat, Integer boughtDaysAgo) {
+
+        SampleItem(String name, String quantity, ShoppingCategory category, boolean urgent, boolean checked,
+                String username, boolean proposal) {
+            this(name, quantity, category, urgent, checked, username, proposal, null, null);
+        }
 
         SampleItem(String name, String quantity, ShoppingCategory category, String username) {
             this(name, quantity, category, false, false, username, false);
@@ -26,7 +36,8 @@ final class SampleShopping {
     }
 
     static final List<SampleItem> ITEMS = List.of(
-            new SampleItem("Bio-Milch", "2 × 1 l", MILCHPRODUKTE, true, false, "sarah", false),
+            new SampleItem("Bio-Milch", "2 × 1 l", MILCHPRODUKTE, true, false, "sarah", false,
+                    new ShoppingRepeat(null, ShoppingRepeatUnit.TRIP), null),
             new SampleItem("Vollkornbrot", "1 Laib", BACKWAREN, "sarah"),
             new SampleItem("Hähnchenbrust", "1 kg", FLEISCH, "mike"),
             new SampleItem("Brokkoli", "1 Stück", GEMUESE, false, true, "sarah", false),
@@ -37,7 +48,10 @@ final class SampleShopping {
             new SampleItem("Bananen", "1 Staude", OBST, "sarah"),
             new SampleItem("Käse", "200 g", MILCHPRODUKTE, "sarah"),
             new SampleItem("Freiland-Eier", "10 Stück", MILCHPRODUKTE, true, false, "sarah", false),
-            new SampleItem("Spülmittel", "1 Flasche", HAUSHALT, "mike"),
+            new SampleItem("Spülmittel", "1 Flasche", HAUSHALT, false, false, "mike", false,
+                    new ShoppingRepeat(3, ShoppingRepeatUnit.WEEKS), null),
+            new SampleItem("Klopapier", "1 Packung", HAUSHALT, false, true, "mike", false,
+                    new ShoppingRepeat(2, ShoppingRepeatUnit.WEEKS), 4),
             new SampleItem("Schokolade", "1 Tafel", SNACKS, false, false, "lucas", true));
 
     private SampleShopping() {

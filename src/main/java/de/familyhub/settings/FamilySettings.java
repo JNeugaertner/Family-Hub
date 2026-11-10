@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import de.familyhub.calendar.EventCategory;
 import de.familyhub.weather.WeatherLocation;
+import de.familyhub.ors.OrsLocation;
 
 // Einstellungen der Familie, als ein einziges Dokument gespeichert.
 @Document("settings")
@@ -16,7 +17,9 @@ public record FamilySettings(
         // Kategorien, deren (nicht private, freigegebene) Termine Gäste sehen (Entscheidung vom 22.09.2026)
         Set<EventCategory> guestCategories,
         // Wohnort für das Wetter; null, solange ihn kein Administrator eingestellt hat
-        WeatherLocation weatherLocation) {
+        WeatherLocation weatherLocation,
+        // Wohnort für die Routenberechnung; null, solange ihn kein Administrator eingestellt hat
+        OrsLocation homeLocation) {
 
     public static final String ID = "family";
 
@@ -26,7 +29,7 @@ public record FamilySettings(
     }
 
     public FamilySettings(String id, Set<EventCategory> guestCategories) {
-        this(id, guestCategories, null);
+        this(id, guestCategories, null, null);
     }
 
     public static FamilySettings defaults() {
@@ -34,10 +37,14 @@ public record FamilySettings(
     }
 
     public FamilySettings withGuestCategories(Set<EventCategory> categories) {
-        return new FamilySettings(ID, categories, weatherLocation);
+        return new FamilySettings(ID, categories, weatherLocation, homeLocation);
     }
 
     public FamilySettings withWeatherLocation(WeatherLocation location) {
-        return new FamilySettings(ID, guestCategories, location);
+        return new FamilySettings(ID, guestCategories, location, homeLocation);
+    }
+
+    public FamilySettings withHomeLocation(OrsLocation homeLocation) {
+        return new FamilySettings(ID, guestCategories, weatherLocation, homeLocation);
     }
 }

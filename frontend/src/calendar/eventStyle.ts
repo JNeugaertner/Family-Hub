@@ -1,4 +1,5 @@
 import type { CalendarMember } from './CalendarDataContext';
+import { readable } from '../family/colors';
 
 // Farben von Terminen (Entscheidung vom 29.09.2026): Termine einer Person tragen ihre Farbe, Termine mit mehreren
 // Beteiligten eine eigene Farbe, die bei keinem Familienmitglied vorkommt (siehe family/colors.ts).
@@ -14,8 +15,8 @@ export function memberColors(memberIds: string[], memberById: (id: string) => Ca
 // Die eine Farbe eines Termins: bei einer Person ihre, bei mehreren die Farbe für gemeinsame Termine
 export const eventColor = (colors: string[]) => (colors.length === 1 ? colors[0] : SHARED_COLOR);
 
-// Hintergrund eines farbigen Terminblocks (weiße Schrift)
-export const blockBackground = (colors: string[]) => eventColor(colors);
+// Hintergrund eines farbigen Terminblocks (weiße Schrift), abgedunkelt für genug Kontrast
+export const blockBackground = (colors: string[]) => readable(eventColor(colors));
 
 // Heller Hintergrund einer Terminkarte mit Farbkante links
 export function cardBackground(colors: string[]): string {
@@ -23,10 +24,10 @@ export function cardBackground(colors: string[]): string {
   return `linear-gradient(${color}, ${color}) left / 3px 100% no-repeat, ${color}10`;
 }
 
-// Vorschläge: gestrichelt und blass
+// Vorschläge: gestrichelt und blass; die Schrift abgedunkelt, damit sie auf der blassen Fläche lesbar bleibt
 export function proposalStyle(colors: string[]) {
   const color = eventColor(colors);
-  return { background: `${color}33`, color, border: `1px dashed ${color}` };
+  return { background: `${color}33`, color: readable(color, 6), border: `1px dashed ${color}` };
 }
 
 // Punkt in der Monats- und Wochenübersicht

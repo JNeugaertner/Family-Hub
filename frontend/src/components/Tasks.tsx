@@ -6,16 +6,17 @@ import { ApiError } from '../api/client';
 import { useCalendarData, type CalendarMember } from '../calendar/CalendarDataContext';
 import { formatDayMonth, startOfToday, toDateKey } from '../calendar/dates';
 import PointsToast from '../points/PointsToast';
-import type { ApiTask, TaskCategory, TaskPriority, TaskStatus } from '../tasks/api';
+import type { ApiTask, RepeatUnit, TaskCategory, TaskPriority, TaskRepeat, TaskStatus } from '../tasks/api';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { useTaskPermissions } from '../tasks/permissions';
+import { describeRepeat, isOpenRound, nextRoundIn, REPEAT_UNIT_OPTIONS, repeatsForAll } from '../tasks/repeat';
 
 interface Props { onNavigate: (p: any) => void; }
 
 const PRIORITY_COLORS = {
-  low: { bg: '#F0FDF4', text: '#16A34A', dot: '#22C55E' },
+  low: { bg: '#F0FDF4', text: '#15803D', dot: '#22C55E' },
   medium: { bg: '#FFF7ED', text: '#C2410C', dot: '#F97316' },
-  high: { bg: '#FEF2F2', text: '#DC2626', dot: '#EF4444' },
+  high: { bg: '#FEF2F2', text: '#B91C1C', dot: '#EF4444' },
 };
 
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
@@ -62,6 +63,8 @@ const awaitsConfirmation = (task: ApiTask) => task.status === 'done' && task.poi
 // bleibt ihnen erspart, damit nicht so aussieht, als hätten sie ein Punktekonto.
 const isAdult = (m?: CalendarMember) => !!m && m.effectiveRole !== 'kind' && m.effectiveRole !== 'jugendlicher';
 
+const memberName = (members: CalendarMember[], id: string) => members.find(m => m.id === id)?.name ?? 'jemand';
+
 function errorText(err: unknown) {
   return err instanceof Error ? err.message : String(err);
 }
@@ -69,19 +72,24 @@ function errorText(err: unknown) {
 // ─── Karte ───────────────────────────────────────────────────────────────────
 
 // onEdit öffnet das Formular; mayEdit = false heißt nur ansehen (z. B. bestätigte Aufgaben, Löschen bleibt möglich).
-function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, onReopen, onRelease }: {
+// lastDoneBy: bei wiederkehrenden Aufgaben, wer die Runde davor abgehakt hat; onClaim: offene Runde übernehmen.
+function TaskCard({ task, member, lastDoneBy, todayKey, mayEdit, busy = false, onTick, onEdit, onConfirm, onReopen, onRelease, onClaim }: {
   task: ApiTask;
   member?: CalendarMember;
+  lastDoneBy?: CalendarMember;
   todayKey: string;
   mayEdit: boolean;
+  busy?: boolean;
   onTick?: (status: BoardStatus) => void;
   onEdit?: () => void;
   onConfirm?: () => void;
   onReopen?: () => void;
   onRelease?: () => void;
+  onClaim?: () => void;
 }) {
   const pri = PRIORITY_COLORS[task.priority];
   const overdue = isOverdue(task, todayKey);
+  const openRound = isOpenRound(task);
   // Knöpfe in der Karte sollen nicht zusätzlich das Formular öffnen
   const only = (action: () => void) => (e: MouseEvent) => { e.stopPropagation(); action(); };
 
@@ -98,18 +106,19 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
           >
             {PRIORITY_LABELS[task.priority]}
           </span>
-          <span className="text-xs text-slate-400">{categoryLabel(task.category)}</span>
+          <span className="text-xs text-slate-500">{categoryLabel(task.category)}</span>
           {task.bonus && <BonusBadge repeatable={task.repeatable} />}
+          {task.repeat && <RepeatBadge repeat={task.repeat} />}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {task.points > 0 && !isAdult(member) && (
-            <span className="text-[10px] font-bold text-[#F59E0B] flex items-center gap-0.5">
+            <span className="text-[10px] font-bold text-[#B45309] flex items-center gap-0.5">
               ⭐ {task.points}
             </span>
           )}
           {onEdit && (
             <button onClick={only(onEdit)}
-              className="p-1 -m-1 rounded-md text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
+              className="p-1 -m-1 rounded-md text-slate-500 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
               aria-label={`${task.title} ${mayEdit ? 'bearbeiten' : 'ansehen'}`}
               title={mayEdit ? 'Bearbeiten' : 'Ansehen'}>
               <PencilIcon size={14} />
@@ -122,6 +131,11 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
       {task.description && (
         <p className="text-xs text-slate-500 mb-2 leading-relaxed line-clamp-2">{task.description}</p>
       )}
+      {task.previousRound && (
+        <p className="text-[11px] text-slate-500">
+          Zuletzt erledigt am {formatDayMonth(task.previousRound.doneOn)}{lastDoneBy ? ` von ${lastDoneBy.name}` : ''}
+        </p>
+      )}
 
       {awaitsConfirmation(task) && !isAdult(member) && (
         <div className="mt-2 text-[11px] font-semibold text-[#92400E] bg-[#FFFBEB] border border-[#FDE68A] rounded-lg px-2 py-1">
@@ -129,17 +143,24 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
         </div>
       )}
       {task.status === 'confirmed' && (
-        <div className="mt-2 text-[11px] font-semibold text-[#16A34A] bg-[#F0FDF4] rounded-lg px-2 py-1">
+        <div className="mt-2 text-[11px] font-semibold text-[#15803D] bg-[#F0FDF4] rounded-lg px-2 py-1">
           {isAdult(member) ? '✅ Bestätigt' : `✅ Bestätigt · +${task.points} Punkte`}
         </div>
       )}
 
       <div className="flex items-center justify-between mt-3">
-        <div className="flex items-center gap-1.5">
-          <AvatarButton member={member} size={24} />
-          <span className="text-xs text-slate-500">{member?.name}</span>
-        </div>
-        <div className={`flex items-center gap-1 text-xs font-medium ${overdue ? 'text-[#EF4444]' : 'text-slate-400'}`}>
+        {openRound ? (
+          <div className="flex items-center gap-1.5">
+            <span className="w-6 h-6 rounded-full border-2 border-dashed border-slate-300 flex-shrink-0" aria-hidden="true" />
+            <span className="text-xs text-slate-500">Wer zuerst kommt</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <AvatarButton member={member} size={24} />
+            <span className="text-xs text-slate-500">{member?.name}</span>
+          </div>
+        )}
+        <div className={`flex items-center gap-1 text-xs font-medium ${overdue ? 'text-[#DC2626]' : 'text-slate-500'}`}>
           <ClockIcon size={10} />
           {overdue ? 'Überfällig' : dueLabel(task.dueDate)}
         </div>
@@ -153,7 +174,7 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
             Zurückgeben
           </button>
           <button onClick={only(onConfirm)}
-            className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold bg-[#22C55E] text-white hover:bg-[#16A34A]">
+            className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold bg-[#15803D] text-white hover:bg-[#166534]">
             {isAdult(member) ? 'Bestätigen' : `Bestätigen +${task.points} ⭐`}
           </button>
         </div>
@@ -162,7 +183,15 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
       {onRelease && (
         <button onClick={only(onRelease)}
           className="mt-2.5 w-full py-1.5 rounded-lg text-[11px] font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50">
-          Bonus-Aufgabe zurückgeben
+          {task.bonus ? 'Bonus-Aufgabe zurückgeben' : 'Wieder für alle freigeben'}
+        </button>
+      )}
+
+      {/* Offene Runde: übernehmen, oder unten direkt abhaken */}
+      {onClaim && (
+        <button type="button" disabled={busy} onClick={only(onClaim)}
+          className="mt-2.5 w-full py-1.5 rounded-lg text-[11px] font-semibold bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:opacity-50">
+          Ich mach's
         </button>
       )}
 
@@ -176,10 +205,10 @@ function TaskCard({ task, member, todayKey, mayEdit, onTick, onEdit, onConfirm, 
               aria-pressed={task.status === s}
               className={`flex-1 py-1 rounded-lg text-[10px] font-semibold transition-colors ${
                 task.status === s
-                  ? s === 'done' ? 'bg-[#22C55E] text-white'
+                  ? s === 'done' ? 'bg-[#15803D] text-white'
                   : s === 'inprogress' ? 'bg-[#2563EB] text-white'
                   : 'bg-slate-200 text-slate-700'
-                  : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
               }`}
             >
               {STATUS_LABELS[s]}
@@ -196,6 +225,15 @@ function BonusBadge({ repeatable }: { repeatable: boolean }) {
     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]"
       title={repeatable ? 'Bonus-Aufgabe, nach der Bestätigung wieder offen' : 'Bonus-Aufgabe'}>
       ⭐ Bonus{repeatable ? ' ↻' : ''}
+    </span>
+  );
+}
+
+function RepeatBadge({ repeat }: { repeat: TaskRepeat }) {
+  return (
+    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]"
+      title={`Wiederholt sich nach Erledigung: die nächste Runde ist ${describeRepeat(repeat)} nach dem Abhaken fällig, ${repeat.openToAll !== false ? 'für alle offen' : 'wieder für dieselbe Person'}`}>
+      ↻ {describeRepeat(repeat)}
     </span>
   );
 }
@@ -218,18 +256,18 @@ function BonusCard({ task, todayKey, onClaim, onEdit, busy }: {
           <h3 className="font-semibold text-slate-800 text-sm leading-snug">{task.title}</h3>
           {task.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{task.description}</p>}
         </div>
-        <span className="text-lg font-bold text-[#D97706] flex-shrink-0">⭐ {task.points}</span>
+        <span className="text-lg font-bold text-[#B45309] flex-shrink-0">⭐ {task.points}</span>
       </div>
-      <div className="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+      <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
         <span>{categoryLabel(task.category)}</span>
         {task.repeatable && <span title="Nach der Bestätigung wieder offen">↻ wiederkehrend</span>}
-        <span className={`flex items-center gap-1 ml-auto ${overdue ? 'text-[#EF4444]' : ''}`}>
+        <span className={`flex items-center gap-1 ml-auto ${overdue ? 'text-[#DC2626]' : ''}`}>
           <ClockIcon size={10} />{dueLabel(task.dueDate)}
         </span>
       </div>
       {onClaim && (
         <button type="button" disabled={busy} onClick={e => { e.stopPropagation(); onClaim(); }}
-          className="py-1.5 rounded-lg text-xs font-semibold bg-[#F59E0B] text-white hover:bg-[#D97706] disabled:opacity-50">
+          className="py-1.5 rounded-lg text-xs font-semibold bg-[#B45309] text-white hover:bg-[#92400E] disabled:opacity-50">
           Übernehmen
         </button>
       )}
@@ -254,14 +292,19 @@ function Field({ id, label, error, children }: { id: string; label: string; erro
 }
 
 // readOnly: nur ansehen (z. B. bestätigte Aufgaben), Löschen bleibt möglich, wenn erlaubt
-function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, mayAssignPoints, mayDelete, readOnly, todayKey, onClose }: {
+function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, lastDoneBy, mayAssignPoints, mayRepeat, mayRepeatForAll, mayDelete, readOnly, todayKey, onClose }: {
   task?: ApiTask;
   // neue Aufgabe direkt als Bonus-Aufgabe (Knopf im Bereich "Bonus-Aufgaben")
   bonusDefault?: boolean;
   // Vorschlag für den Titel einer neuen Aufgabe (aus einer Nachricht)
   defaultTitle?: string;
   assignable: CalendarMember[];
+  // wiederkehrende Aufgabe: wer die Runde davor abgehakt hat
+  lastDoneBy?: CalendarMember;
   mayAssignPoints: boolean;
+  // Wiederholung einstellen; "Wer zuerst kommt" nur, wer Aufgaben für die ganze Familie anlegt
+  mayRepeat: boolean;
+  mayRepeatForAll: boolean;
   mayDelete: boolean;
   readOnly: boolean;
   todayKey: string;
@@ -270,7 +313,13 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
   const { saveTask, removeTask } = useTaskData();
   const [title, setTitle] = useState(task?.title ?? defaultTitle ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
-  const [assigneeId, setAssigneeId] = useState(task?.assigneeId ?? assignable[0]?.id ?? '');
+  // '' = wer zuerst kommt (nur bei wiederkehrenden Aufgaben). Hat jemand eine Runde für alle übernommen, steht hier
+  // trotzdem '' (die nächsten Runden bleiben offen), takenBy nennt die Person.
+  const [assigneeId, setAssigneeId] = useState(task ? (repeatsForAll(task) ? '' : task.assigneeId ?? '') : assignable[0]?.id ?? '');
+  const takenBy = task && repeatsForAll(task) && task.assigneeId ? task.assigneeId : null;
+  const [repeatOn, setRepeatOn] = useState(!!task?.repeat);
+  const [repeatInterval, setRepeatInterval] = useState(task?.repeat?.interval ?? 3);
+  const [repeatUnit, setRepeatUnit] = useState<RepeatUnit>(task?.repeat?.unit ?? 'days');
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'medium');
   const [category, setCategory] = useState<TaskCategory>(task?.category ?? 'chores');
   // Ob Bonus-Aufgabe, lässt sich nur beim Anlegen wählen
@@ -283,9 +332,21 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Erwachsene sammeln keine Sterne: für eine erwachsene Person gibt es kein Punkte-Feld (0 Punkte).
-  // Bonus-Aufgaben betreffen nur Kinder/Jugendliche und behalten ihr Punkte-Feld.
-  const assigneeIsAdult = !bonus && isAdult(assignable.find(m => m.id === assigneeId));
+  // Bonus-Aufgaben betreffen nur Kinder/Jugendliche und behalten ihr Punkte-Feld, wiederkehrende für alle auch: Die
+  // Punkte gelten für die nächsten Runden, wer sie auch übernimmt.
+  const repeating = !bonus && repeatOn;
+  const forAll = repeating && assigneeId === '';
+  const assigneeIsAdult = !bonus && !forAll && isAdult(assignable.find(m => m.id === assigneeId));
   const showPoints = mayAssignPoints && !assigneeIsAdult;
+  const repeat: TaskRepeat | null = repeating ? { interval: repeatInterval, unit: repeatUnit, openToAll: forAll } : null;
+  const fixedName = assignable.find(m => m.id === assigneeId)?.name;
+
+  const toggleRepeat = (on: boolean) => {
+    setRepeatOn(on);
+    // Neue wiederkehrende Aufgaben der Eltern sind zuerst für alle offen; ohne Wiederholung braucht es eine Person
+    if (on && !task && mayRepeatForAll) setAssigneeId('');
+    if (!on && !assigneeId) setAssigneeId(takenBy ?? assignable[0]?.id ?? '');
+  };
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -309,13 +370,15 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
     run(() => saveTask({
       title,
       description: description.trim() || null,
-      assigneeId: bonus ? null : assigneeId,
+      // Wer eine Runde für alle übernommen hat, behält sie
+      assigneeId: bonus ? null : forAll ? takenBy : assigneeId || null,
       dueDate: dueDate || null,
       priority,
       category,
       points: mayAssignPoints ? (assigneeIsAdult ? 0 : points) : task?.points ?? 0,
       bonus,
       repeatable: bonus && repeatable,
+      repeat: mayRepeat ? repeat : task?.repeat ?? null,
     }, task?.id));
   };
 
@@ -332,7 +395,7 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
         <h2 id="task-form-title" className="font-bold text-slate-800 text-lg mb-5">
           {readOnly ? 'Aufgabe' : task ? (bonus ? 'Bonus-Aufgabe bearbeiten' : 'Aufgabe bearbeiten') : bonus ? 'Neue Bonus-Aufgabe' : 'Neue Aufgabe'}
         </h2>
-        {formError && <div role="alert" className="mb-4 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{formError}</div>}
+        {formError && <div role="alert" className="mb-4 bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{formError}</div>}
         {readOnly && task?.status === 'confirmed' && (
           <p className="mb-4 text-xs text-slate-500">Bestätigt und abgeschlossen. Die Punkte bleiben auch nach dem Löschen in der Historie.</p>
         )}
@@ -368,8 +431,12 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
               <Field id="task-assignee" label="Zuständig" error={errors.assigneeId}>
                 <select id="task-assignee" className={inputClass(!!errors.assigneeId)} value={assigneeId ?? ''}
                   onChange={e => setAssigneeId(e.target.value)}>
+                  {((repeating && mayRepeatForAll) || !assigneeId) && <option value="">Wer zuerst kommt</option>}
                   {assignable.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
+                {forAll && takenBy && (
+                  <p className="text-xs text-slate-500 mt-1">Diese Runde hat {memberName(assignable, takenBy)} übernommen.</p>
+                )}
               </Field>
             )}
             <Field id="task-priority" label="Priorität" error={errors.priority}>
@@ -382,7 +449,7 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field id="task-dueDate" label={bonus ? 'Fällig am (optional)' : 'Fällig am'} error={errors.dueDate}>
+            <Field id="task-dueDate" label={bonus ? 'Fällig am (optional)' : repeating && !task ? 'Erstes Mal fällig am' : 'Fällig am'} error={errors.dueDate}>
               <input id="task-dueDate" type="date" className={inputClass(!!errors.dueDate)} value={dueDate}
                 onChange={e => setDueDate(e.target.value)} />
             </Field>
@@ -395,6 +462,55 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
               </select>
             </Field>
           </div>
+          {!bonus && mayRepeat && (
+            <div className="rounded-xl border border-slate-200 p-3 space-y-2.5">
+              <label className="flex items-start gap-2.5 text-sm text-slate-700">
+                <input type="checkbox" className="mt-0.5 w-4 h-4 accent-[#2563EB]" checked={repeatOn}
+                  onChange={e => toggleRepeat(e.target.checked)} />
+                <span>
+                  ↻ Nach Erledigung wiederholen
+                  <span className="block text-xs text-slate-500">Zum Beispiel Blumen gießen: Wer abhakt, startet die nächste Runde.</span>
+                </span>
+              </label>
+              {repeatOn && (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <span>alle</span>
+                    <label htmlFor="task-repeat-interval" className="sr-only">Abstand</label>
+                    <input id="task-repeat-interval" type="number" min={1} max={365}
+                      className={`${inputClass(!!errors['repeat.interval'])} w-20!`}
+                      value={repeatInterval} onChange={e => setRepeatInterval(Number(e.target.value))} />
+                    <label htmlFor="task-repeat-unit" className="sr-only">Einheit</label>
+                    <select id="task-repeat-unit" className={`${inputClass(!!errors['repeat.unit'])} w-auto!`}
+                      value={repeatUnit} onChange={e => setRepeatUnit(e.target.value as RepeatUnit)}>
+                      {REPEAT_UNIT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    <span>nach dem Abhaken</span>
+                  </div>
+                  {(errors['repeat.interval'] || errors['repeat.unit'] || errors.repeat) && (
+                    <p className="text-xs text-[#DC2626]">{errors['repeat.interval'] ?? errors['repeat.unit'] ?? errors.repeat}</p>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    {forAll
+                      ? <>Beim Abhaken entsteht die nächste Runde, {repeat ? nextRoundIn(repeat) : ''} fällig und für alle
+                        offen: wer zuerst kommt, macht sie. Punkte gibt es nur für Kinder und Jugendliche.</>
+                      : <>Beim Abhaken entsteht die nächste Runde, {repeat ? nextRoundIn(repeat) : ''} fällig,
+                        wieder für {fixedName ?? 'dieselbe Person'}.{mayRepeatForAll && ' Unter „Zuständig“ lässt sie sich auch für alle öffnen (wer zuerst kommt).'}</>}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+          {!bonus && !mayRepeat && task?.repeat && (
+            <p className="text-xs text-slate-500">
+              ↻ Wiederholt sich {describeRepeat(task.repeat)} nach dem Abhaken, die nächste Runde ist {repeatsForAll(task) ? 'für alle offen' : 'wieder für dieselbe Person'}.
+            </p>
+          )}
+          {task?.previousRound && (
+            <p className="text-xs text-slate-500">
+              Zuletzt erledigt am {formatDayMonth(task.previousRound.doneOn)}{lastDoneBy ? ` von ${lastDoneBy.name}` : ''}.
+            </p>
+          )}
           {showPoints && (
             <Field id="task-points" label="Punkte nach Bestätigung ⭐" error={errors.points}>
               <input id="task-points" type="number" min={bonus ? 1 : 0} max={1000} className={inputClass(!!errors.points)}
@@ -407,7 +523,7 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
                 onChange={e => setRepeatable(e.target.checked)} />
               <span>
                 ↻ Wiederkehrend
-                <span className="block text-xs text-slate-400">Nach der Bestätigung ist sie automatisch wieder offen (ohne Frist).</span>
+                <span className="block text-xs text-slate-500">Nach der Bestätigung ist sie automatisch wieder offen (ohne Frist).</span>
               </span>
             </label>
           )}
@@ -415,7 +531,7 @@ function TaskFormModal({ task, bonusDefault = false, defaultTitle, assignable, m
         <div className="flex flex-wrap gap-3 mt-6">
           {task && mayDelete && (
             <button type="button" onClick={remove} disabled={busy}
-              className={`py-2.5 px-4 rounded-xl text-sm font-semibold disabled:opacity-50 ${confirmDelete ? 'bg-[#EF4444] text-white' : 'border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]'}`}>
+              className={`py-2.5 px-4 rounded-xl text-sm font-semibold disabled:opacity-50 ${confirmDelete ? 'bg-[#DC2626] text-white' : 'border border-[#FECACA] text-[#B91C1C] hover:bg-[#FEF2F2]'}`}>
               {confirmDelete ? 'Wirklich löschen?' : 'Löschen'}
             </button>
           )}
@@ -496,6 +612,22 @@ export default function Tasks({ onNavigate }: Props) {
       setClearedMessage(`„${task.title}“ gehört jetzt dir. Viel Erfolg – es gibt ${task.points} Punkte!`);
     }).finally(() => setClaiming(null));
   };
+  // Offene Runde einer wiederkehrenden Aufgabe übernehmen
+  const takeRound = (task: ApiTask) => {
+    setClaiming(task.id);
+    act(async () => {
+      await claimTask(task.id);
+      setClearedMessage(`„${task.title}“ gehört jetzt dir.`);
+    }).finally(() => setClaiming(null));
+  };
+  const tick = (task: ApiTask, s: BoardStatus) => act(async () => {
+    await changeStatus(task.id, s);
+    if (task.repeat && s === 'done' && !isFinished(task)) {
+      const forWhom = repeatsForAll(task) ? 'für alle offen'
+        : `wieder für ${task.assigneeId === perms.me.id ? 'dich' : memberById(task.assigneeId ?? '')?.name ?? 'dieselbe Person'}`;
+      setClearedMessage(`„${task.title}“ erledigt. Die nächste Runde ist ${nextRoundIn(task.repeat)} fällig und ${forWhom}.`);
+    }
+  });
 
   const filtered = tasks.filter(t => {
     if (isOpenBonus(t)) return false;
@@ -507,7 +639,7 @@ export default function Tasks({ onNavigate }: Props) {
   const columns: { id: BoardStatus; label: string; color: string; bg: string }[] = [
     { id: 'todo', label: STATUS_LABELS.todo, color: '#64748B', bg: '#F8FAFC' },
     { id: 'inprogress', label: STATUS_LABELS.inprogress, color: '#2563EB', bg: '#EFF6FF' },
-    { id: 'done', label: STATUS_LABELS.done, color: '#22C55E', bg: '#F0FDF4' },
+    { id: 'done', label: STATUS_LABELS.done, color: '#15803D', bg: '#F0FDF4' },
   ];
 
   const stats = {
@@ -536,8 +668,8 @@ export default function Tasks({ onNavigate }: Props) {
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
           { label: 'Aufgaben', value: stats.total, color: '#2563EB', bg: '#EFF6FF' },
-          { label: 'Erledigt', value: stats.done, color: '#22C55E', bg: '#F0FDF4' },
-          { label: 'Überfällig', value: stats.overdue, color: '#EF4444', bg: '#FEF2F2' },
+          { label: 'Erledigt', value: stats.done, color: '#15803D', bg: '#F0FDF4' },
+          { label: 'Überfällig', value: stats.overdue, color: '#B91C1C', bg: '#FEF2F2' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl border border-slate-100 px-4 py-3 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold" style={{ backgroundColor: s.bg, color: s.color }}>
@@ -559,7 +691,7 @@ export default function Tasks({ onNavigate }: Props) {
         </div>
       )}
       {actionError && (
-        <div role="alert" className="mb-5 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-sm rounded-xl p-3">{actionError}</div>
+        <div role="alert" className="mb-5 bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{actionError}</div>
       )}
       {clearedMessage && (
         <div role="status" className="mb-5 bg-[#F0FDF4] border border-[#BBF7D0] text-[#15803D] text-sm rounded-xl p-3">{clearedMessage}</div>
@@ -600,9 +732,9 @@ export default function Tasks({ onNavigate }: Props) {
               onClick={() => setFilterPriority(p)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-colors ${
                 filterPriority === p
-                  ? p === 'high' ? 'bg-[#EF4444] text-white'
-                  : p === 'medium' ? 'bg-[#F97316] text-white'
-                  : p === 'low' ? 'bg-[#22C55E] text-white'
+                  ? p === 'high' ? 'bg-[#DC2626] text-white'
+                  : p === 'medium' ? 'bg-[#C2410C] text-white'
+                  : p === 'low' ? 'bg-[#15803D] text-white'
                   : 'bg-slate-800 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
@@ -672,7 +804,7 @@ export default function Tasks({ onNavigate }: Props) {
               {col.id === 'done' && perms.mayDeleteCompleted && completed.length > 0 && (
                 <div className="flex items-center gap-2 mb-2 px-1">
                   <button type="button" onClick={clearCompleted}
-                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${confirmClear ? 'bg-[#EF4444] text-white hover:bg-[#DC2626]' : 'border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]'}`}>
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${confirmClear ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]' : 'border border-[#FECACA] text-[#B91C1C] hover:bg-[#FEF2F2]'}`}>
                     {confirmClear ? `Wirklich ${completed.length} löschen?` : `🗑 Erledigte löschen (${completed.length})`}
                   </button>
                   {confirmClear && (
@@ -693,9 +825,12 @@ export default function Tasks({ onNavigate }: Props) {
                     key={task.id}
                     task={task}
                     member={memberById(task.assigneeId ?? '')}
+                    lastDoneBy={task.previousRound ? memberById(task.previousRound.doneBy) : undefined}
                     todayKey={todayKey}
                     mayEdit={perms.canEdit(task)}
-                    onTick={perms.canTick(task) ? s => act(() => changeStatus(task.id, s)) : undefined}
+                    busy={claiming === task.id}
+                    onTick={perms.canTick(task) ? s => tick(task, s) : undefined}
+                    onClaim={isOpenRound(task) && perms.mayTakeRounds ? () => takeRound(task) : undefined}
                     onEdit={perms.canEdit(task) || perms.canDelete(task) ? () => setEditor({ task }) : undefined}
                     onConfirm={perms.mayConfirm ? () => confirm(task) : undefined}
                     onReopen={perms.mayConfirm ? () => act(() => reopenTask(task.id)) : undefined}
@@ -703,7 +838,7 @@ export default function Tasks({ onNavigate }: Props) {
                   />
                 ))}
                 {colTasks.length === 0 && (
-                  <div className="text-center py-8 text-slate-300 text-sm">
+                  <div className="text-center py-8 text-slate-600 text-sm">
                     <div className="text-2xl mb-2">{col.id === 'done' ? '✅' : '📋'}</div>
                     <div>Keine Aufgaben</div>
                   </div>
@@ -711,7 +846,7 @@ export default function Tasks({ onNavigate }: Props) {
                 {perms.canAdd && (
                   <button
                     onClick={() => setEditor({})}
-                    className="w-full py-2 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs font-medium hover:border-[#2563EB] hover:text-[#2563EB] transition-colors flex items-center justify-center gap-1.5"
+                    className="w-full py-2 border-2 border-dashed border-slate-200 rounded-xl text-slate-600 text-xs font-medium hover:border-[#2563EB] hover:text-[#2563EB] transition-colors flex items-center justify-center gap-1.5"
                   >
                     <PlusIcon size={13} /> Aufgabe hinzufügen
                   </button>
@@ -728,7 +863,10 @@ export default function Tasks({ onNavigate }: Props) {
           bonusDefault={editor.bonus}
           defaultTitle={editor.title}
           assignable={assignableFor(editor.task)}
+          lastDoneBy={editor.task?.previousRound ? memberById(editor.task.previousRound.doneBy) : undefined}
           mayAssignPoints={perms.mayConfirm}
+          mayRepeat={perms.mayRepeat}
+          mayRepeatForAll={perms.mayRepeatForAll}
           mayDelete={editor.task ? perms.canDelete(editor.task) : false}
           readOnly={!!editor.task && !perms.canEdit(editor.task)}
           todayKey={todayKey}

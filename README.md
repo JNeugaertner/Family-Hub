@@ -6,31 +6,33 @@ FamilyHub AI bündelt Kalender, Aufgaben, Einkauf, Essensplanung, Nachrichten,
 Wetter und Müllabfuhr in einer gemeinsamen Oberfläche für die ganze Familie.
 Leitprinzip: **Der Agent informiert und bereitet vor, die Eltern entscheiden.**
 
-**Status:** Proof of Concept, Version 0.6.0 vom 20.10.2026. Was sich in welcher
+**Status:** Proof of Concept, Version 0.7.0 vom 09.11.2026. Was sich in welcher
 Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 
 ## Funktionen
 
 | Bereich | Was FamilyHub kann |
 |---|---|
-| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private Termine, Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
+| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private Termine, Serientermine (z. B. jeden Dienstag Training), Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
 | Google Kalender | Termine aus dem eigenen Google Kalender übernehmen (schreibgeschützt); auf Wunsch die eigenen FamilyHub-Termine in einen Google-Kalender „FamilyHub“ eintragen |
-| Aufgaben und Punkte | Eltern vergeben Aufgaben mit Punkten, Kinder haken ab, nach der Bestätigung gibt es Punkte; Bonus-Aufgaben für alle Kinder; Erwachsene erledigen Aufgaben ohne Punkte |
+| Aufgaben und Punkte | Eltern vergeben Aufgaben mit Punkten, Kinder haken ab, nach der Bestätigung gibt es Punkte; Bonus-Aufgaben für alle Kinder; Aufgaben, die sich nach Erledigung wiederholen (z. B. Blumen gießen alle 3 Tage); Erwachsene erledigen Aufgaben ohne Punkte |
 | Belohnungen | Shop, in dem Kinder und Jugendliche Punkte einlösen; die Eltern genehmigen oder lehnen ab |
 | Erfolge | Automatische Erfolge (z. B. „7 Tage hintereinander“) mit einmaligen Bonuspunkten |
-| Einkaufsliste | Gemeinsame Liste mit Kategorien und „dringend“; Kinder schlagen Artikel vor, die Eltern übernehmen |
+| Einkaufsliste | Gemeinsame Liste mit Kategorien und „dringend“; Kinder schlagen Artikel vor, die Eltern übernehmen; wiederkehrende Artikel (bei jedem Einkauf oder einige Tage nach dem Kauf) |
 | Essensplan | Wochenplan mit Gerichte-Sammlung, Zutaten und Kochanleitung; Kinder äußern Wünsche; Zutaten per Knopf auf die Einkaufsliste |
 | Nachrichten | Familiengruppe und Einzelchats; aus einer Nachricht wird ein Artikel, ein Termin oder eine Aufgabe |
 | WhatsApp (in Arbeit) | Nachrichten an die WhatsApp-Nummer der Familie empfangen; jede Person sieht die von ihrer eigenen Handynummer |
 | Telegram (in Arbeit) | Bot der Familie: Nachrichten an den Bot landen in FamilyHub; Benachrichtigungen zu dringenden Aufgaben, kurzfristigen Terminen, offenen Bestätigungen und Chat-Nachrichten |
 | Müllabfuhr | Abfuhrkalender der Gemeinde (ICS-Datei) importieren; Termine im Kalender und eine Aufgabe für den Vorabend |
+| Fahrzeit | Ort eines Termins aus der Ortssuche, Fahrzeit vom Wohnort mit Auto, Fahrrad oder zu Fuß und Abfahrtszeit (OpenRouteService) |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
 | Sonstiges | Änderungen anderer erscheinen ohne Neuladen; als App installierbar; Konto-Sperre nach fünf falschen Passwörtern |
 
 Noch nicht umgesetzt sind der KI-Assistent, die Glocke mit Benachrichtigungen
 in der App (Benachrichtigungen kommen bisher nur über Telegram), die
-Sprachsteuerung sowie Fahrzeiten und Terminkonflikte. Die Oberfläche
+Sprachsteuerung sowie Warnungen, wenn sich Fahrzeit und andere Termine
+überschneiden. Die Oberfläche
 kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 (`frontend/src/placeholders.ts`).
 
@@ -51,11 +53,16 @@ Für die Entwicklung. Wer FamilyHub nur benutzen will, nimmt
 **Voraussetzungen:** JDK 25, MongoDB 8.0 (oder Docker) und für die Oberfläche
 Node.js 24 mit pnpm 10. Maven muss nicht installiert sein, der Maven Wrapper lädt
 es beim ersten Aufruf selbst. Unter Windows lässt sich MongoDB ohne
-Admin-Rechte als ZIP nach `%LOCALAPPDATA%\Programs\mongodb` entpacken.
+Admin-Rechte als ZIP nach `%LOCALAPPDATA%\Programs\mongodb` entpacken, unter
+macOS mit Homebrew installieren: `brew tap mongodb/brew && brew install
+mongodb-community@8.0`.
 
 ```bash
 # 1. MongoDB starten (lauscht nur auf 127.0.0.1:27017, beenden mit Strg+C)
+#    Windows:
 powershell -ExecutionPolicy Bypass -File scripts/start-mongodb.ps1
+#    macOS und Linux:
+scripts/start-mongodb.sh
 #    oder mit Docker (läuft im Hintergrund, beenden mit: docker compose down)
 docker compose up -d
 
@@ -153,6 +160,38 @@ Europe/Berlin.
 So eingerichtet ist FamilyHub nur vom eigenen Rechner aus erreichbar. Für Handys
 und andere Geräte braucht es eine Adresse mit HTTPS; das ist der nächste Schritt.
 
+## Wiederkehrende Aufgaben
+
+Im Aufgaben-Formular wiederholt „↻ Nach Erledigung wiederholen“ eine Aufgabe
+im Abstand von Tagen, Wochen oder Monaten, gezählt ab dem Abhaken (Beispiel in
+den Beispieldaten: „Blumen gießen“ alle 3 Tage). „Zuständig“ legt fest, wer die
+nächsten Runden bekommt:
+
+- **Eine Person:** Jede neue Runde geht wieder an sie. Das darf jeder, der die
+  Aufgabe auch ohne Wiederholung anlegen dürfte, z. B. Jugendliche für sich
+  selbst („Gitarre üben“ jeden Tag).
+- **Wer zuerst kommt:** Jede neue Runde ist für alle offen. Kinder,
+  Jugendliche und Erwachsene sehen sie, übernehmen sie mit „Ich mach's“ oder
+  haken sie direkt ab; mit „Wieder für alle freigeben“ geben sie sie zurück.
+  Gäste sehen sie nicht. Einrichten darf das nur, wer Aufgaben für die ganze
+  Familie anlegt (in den Standardrollen die Administratoren).
+
+Für beide gilt:
+
+- Beim Abhaken entsteht sofort die nächste Runde: fällig am Tag des Abhakens
+  plus Abstand, mit Titel, Punkten und Priorität der alten. Wer früher abhakt,
+  ist früher wieder dran; bleibt eine Runde liegen, kommen keine neuen dazu.
+  Die Karte zeigt, wer zuletzt wann erledigt hat.
+- Ein geänderter Abstand gilt ab der nächsten Runde.
+- Punkte gibt es wie immer nach der Bestätigung und nur für Kinder und
+  Jugendliche. Hakt bei „Wer zuerst kommt“ ein Erwachsener ab, hat nur diese
+  Runde keine Punkte.
+- Wird der Haken zurückgenommen oder die Erledigung zurückgegeben, verschwindet
+  die nächste Runde wieder, solange sie noch niemand übernommen hat.
+- Beenden: im Formular die Wiederholung abschalten oder die offene Runde löschen.
+  Bonus-Aufgaben behalten ihr eigenes „↻ Wiederkehrend“ (nach der Bestätigung
+  wieder offen, ohne Frist).
+
 ## Einstellungen
 
 Die Einstellungen stehen in `src/main/resources/application.properties`.
@@ -167,6 +206,9 @@ sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 | `familyhub.login.max-failures` / `lock-duration` | `5` / `PT5M` | So viele Fehlversuche sperren ein Konto so lange |
 | `server.servlet.session.timeout` | `8h` | Dauer einer Anmeldung |
 | `familyhub.waste.task-sync-cron` | `0 50 7 * * *` | Täglich um 07:50 Uhr Müll-Aufgaben für die nächsten sieben Tage anlegen |
+| `familyhub.shopping.return-cron` | `0 1 0 * * *` | Täglich um 00:01 Uhr fällige wiederkehrende Artikel zurück auf die Einkaufsliste holen |
+| `familyhub.calendar.series-horizon` | `P12M` | So weit im Voraus legt FamilyHub die Termine einer Serie an |
+| `familyhub.calendar.series-extend-cron` | `0 20 3 * * *` | Täglich um 03:20 Uhr die Serien bis zu diesem Vorlauf verlängern |
 | `familyhub.google.sync-interval` | `PT15M` | Takt des Abgleichs mit Google |
 | `familyhub.google.push-delay` | `PT10S` | So schnell kommen geänderte Termine in den Google-Kalender „FamilyHub“ |
 | `familyhub.weather.cache-duration` | `PT10M` | So lange merkt sich das Backend eine Wetterabfrage |
@@ -175,6 +217,48 @@ sondern in eine Datei `local.properties` im Projektordner. Sie steht in
 | `familyhub.notifications.short-notice` | `PT24H` | Termine, die so bald beginnen, gelten als kurzfristig |
 | `familyhub.notifications.pending-after` | `PT24H` | So lange darf eine Bestätigung offen sein, bevor FamilyHub erinnert |
 | `familyhub.cors.allowed-origins` | `http://localhost:5173` | Adresse der Oberfläche |
+
+## Wiederkehrende Einkäufe
+
+Beim Hinzufügen oder Bearbeiten eines Artikels legt die Auswahl neben
+„Dringend“ fest, ob er wiederkommt:
+
+- **Einmalig:** wie bisher, „Abgehakte entfernen“ löscht ihn.
+- **↻ Bei jedem Einkauf:** „Abgehakte entfernen“ löscht ihn nicht, er steht
+  danach gleich wieder offen auf der Liste (Beispiel: Bio-Milch).
+- **↻ Nach Abstand:** Er kommt einige Tage, Wochen oder Monate nach dem Kauf
+  (dem Tag des Abhakens) offen zurück. Nach „Abgehakte entfernen“ steht er bis
+  dahin unten unter „Kommt wieder“ (Beispiel: Klopapier alle 2 Wochen). Kurz
+  nach Mitternacht holt FamilyHub fällige Artikel zurück, auch wenn sie noch
+  abgehakt auf der Liste stehen.
+
+Unter „Kommt wieder“ holt „Jetzt auf die Liste“ einen Artikel früher zurück,
+✕ nimmt ihn ganz von der Liste. Ein geänderter Abstand zählt ab dem letzten
+Kauf. „Dringend“ gilt nur bis zum nächsten Einkauf. Wiederkehrende Artikel legt
+an, wer direkt auf die Liste schreibt (Eltern und Jugendliche); Kinder schlagen
+nur einzelne Artikel vor. Zutaten aus dem Essensplan wiederholen sich nicht,
+die setzt der Essensplan selbst wieder auf die Liste.
+
+## Serientermine
+
+Im Termin-Formular unter „Wiederholen“ wird aus einem Termin eine Serie:
+täglich, wöchentlich (an einem oder mehreren Wochentagen), monatlich am selben
+Tag oder jährlich, jeweils auch „alle 2 Wochen“ usw., ohne Ende, bis zu einem
+Datum oder für eine Anzahl von Terminen. Tage, die es nicht gibt, entfallen wie
+bei Google (monatlich am 31., jährlich am 29. Februar). Serientermine tragen im
+Kalender ein ↻.
+
+- FamilyHub legt die einzelnen Termine zwölf Monate im Voraus an und verlängert
+  die Serie jede Nacht. Für Rechte, Benachrichtigungen und den Google-Export
+  sind es ganz normale Termine.
+- Beim Ändern oder Löschen fragt FamilyHub: **nur diesen Termin** oder **diesen
+  und alle folgenden** (beim ersten Termin: die ganze Serie). Einzeln geänderte
+  Termine bleiben, wenn später die Serie geändert wird; einzeln gelöschte, etwa
+  in den Ferien, kommen nicht wieder.
+- Eine gemeinsame Serie von Jugendlichen ist ein Vorschlag mit nur dem ersten
+  Termin; erst die Freigabe legt die übrigen an.
+- Telegram meldet eine neue Serie einmal mit ihrem Rhythmus, wenn ihr nächster
+  Termin innerhalb von 24 Stunden liegt.
 
 ## Google Kalender einrichten (optional)
 
@@ -357,6 +441,30 @@ zählt ab dem Moment, in dem FamilyHub den offenen Punkt bemerkt (alle
 15 Minuten); was beim ersten Start schon offen ist, meldet FamilyHub also erst
 einen Tag später. Ist Telegram nicht erreichbar, steht das im Log; nachgeholt
 wird die Nachricht nicht.
+
+## Fahrzeit einrichten (optional)
+
+Ortssuche und Fahrzeit nutzen [openrouteservice](https://openrouteservice.org)
+(HeiGIT, Kartendaten von OpenStreetMap). Ohne Schlüssel startet FamilyHub
+trotzdem; Termine bekommen dann nur frei eingetippte Orte ohne Fahrzeit.
+
+1. Unter [openrouteservice.org](https://openrouteservice.org/dev/#/signup) ein
+   kostenloses Konto anlegen und einen API-Schlüssel erzeugen.
+2. In `local.properties` im Projektordner eintragen (steht in `.gitignore`,
+   **nie einchecken**):
+
+   ```properties
+   familyhub.ors.api-key=<API-Schlüssel>
+   ```
+3. Backend neu starten. Als Administrator unter „Familie“ in der Karte
+   **Adresse** den Wohnort suchen und übernehmen.
+
+Im Termin-Formular sucht „Adresse suchen“ den Ort; mit „individuellen Ort
+eingeben“ geht auch ein Ort ohne Fahrzeit. Aus Wohnort, Ort und Verkehrsmittel
+berechnet FamilyHub die Fahrzeit und die Abfahrt (Beginn minus Fahrzeit minus
+15 Minuten Puffer). Wochen- und Tagesansicht zeigen die Abfahrt am Termin.
+Die Quellenangabe unter der Fahrzeit verlangen die Nutzungsbedingungen von
+openrouteservice; sie darf nicht entfernt werden.
 
 ## Als App installieren
 

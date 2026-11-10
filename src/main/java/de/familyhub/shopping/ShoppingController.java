@@ -2,6 +2,7 @@ package de.familyhub.shopping;
 
 import java.net.URI;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Predicate;
@@ -24,6 +25,7 @@ import de.familyhub.family.FamilyMember;
 import de.familyhub.security.CurrentMember;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -49,7 +51,9 @@ public class ShoppingController {
     public record CheckedChange(@NotNull(message = "checked ist Pflicht") Boolean checked) {
     }
 
-    public record Deleted(int deleted) {
+    @Schema(description = "Wiederkehrende Artikel werden nicht gelöscht: bei jedem Einkauf stehen sie sofort "
+            + "wieder offen auf der Liste (backOnList), mit Abstand warten sie unter \"Kommt wieder\" (waiting).")
+    public record Deleted(int deleted, int backOnList, int waiting) {
     }
 
     @GetMapping
@@ -67,21 +71,43 @@ public class ShoppingController {
         FamilyMember viewer = currentMember.get();
         ShoppingItemStatus status = access.statusForNewItem(viewer);
         requireSelectable(item.category(), null);
+        if (item.repeat() != null) {
+            access.requireRepeat(viewer);
+            requireValidRepeat(item.repeat(), item.category());
+        }
         ShoppingItem saved = items.save(new ShoppingItem(null, item.name().strip(),
                 ShoppingItem.blankToNull(item.quantity()), item.category(), item.urgent(), false, status, viewer.id(),
-                LocalDateTime.now(clock), null));
+                LocalDateTime.now(clock), null, item.repeat(), null, null));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(saved);
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Artikel ändern", description = "Name, Menge, Kategorie, dringend.")
+    @Operation(summary = "Artikel ändern", description = "Name, Menge, Kategorie, dringend, Wiederholung. Ein "
+            + "geänderter Abstand gilt ab dem letzten Kauf.")
     public ShoppingItem update(@PathVariable String id, @Valid @RequestBody ShoppingItem item) {
         FamilyMember viewer = currentMember.get();
         ShoppingItem existing = findVisible(id, viewer);
         access.requireEdit(viewer);
         requireSelectable(item.category(), existing.category());
-        return items.save(existing.withContent(item));
+        requireValidRepeat(item.repeat(), item.category());
+        LocalDate today = LocalDate.now(clock);
+        ShoppingItem updated = existing.withContent(item, today);
+        return items.save(updated.isDueBack(today) ? updated.reopened() : updated);
+    }
+
+    // Abstand außer bei "bei jedem Einkauf". Zutaten aus dem Essensplan setzt der Plan selbst wieder auf die Liste.
+    private static void requireValidRepeat(ShoppingRepeat repeat, ShoppingCategory category) {
+        if (repeat == null) {
+            return;
+        }
+        if (category == ShoppingCategory.ZUTATEN_ESSENSPLANUNG) {
+            throw ApiException.invalidField("repeat", "Zutaten aus dem Essensplan wiederholen sich nicht, "
+                    + "der Essensplan setzt sie bei Bedarf wieder auf die Liste.");
+        }
+        if (!repeat.everyTrip() && repeat.interval() == null) {
+            throw ApiException.invalidField("repeat.interval", "Abstand ist Pflicht");
+        }
     }
 
     // „Zutaten Essensplanung“ füllt nur der Essensplan (MealShopping); sein Abgleich würde von Hand eingetragene
@@ -94,7 +120,8 @@ public class ShoppingController {
     }
 
     @PatchMapping("/{id}/checked")
-    @Operation(summary = "Abhaken (gekauft) oder zurücknehmen")
+    @Operation(summary = "Abhaken (gekauft) oder zurücknehmen",
+            description = "Zurücknehmen holt einen wartenden wiederkehrenden Artikel sofort zurück auf die Liste.")
     public ShoppingItem check(@PathVariable String id, @Valid @RequestBody CheckedChange change) {
         FamilyMember viewer = currentMember.get();
         ShoppingItem existing = findVisible(id, viewer);
@@ -102,7 +129,10 @@ public class ShoppingController {
         if (existing.isProposal()) {
             throw ApiException.conflict("Ein Vorschlag muss erst übernommen werden.");
         }
-        return items.save(existing.withChecked(change.checked(), viewer.id()));
+        if (existing.isWaiting() && change.checked()) {
+            return existing;
+        }
+        return items.save(existing.withChecked(change.checked(), viewer.id(), LocalDate.now(clock)));
     }
 
     @DeleteMapping("/{id}")
@@ -116,14 +146,25 @@ public class ShoppingController {
     }
 
     @DeleteMapping("/checked")
-    @Operation(summary = "Abgehakte Artikel entfernen")
+    @Operation(summary = "Abgehakte Artikel entfernen",
+            description = "Wiederkehrende Artikel bleiben: wieder offen oder unter \"Kommt wieder\".")
     public Deleted deleteChecked() {
         FamilyMember viewer = currentMember.get();
         access.requireView(viewer);
         access.requireDeleteChecked(viewer);
-        List<ShoppingItem> checked = items.findByCheckedTrueAndStatus(ShoppingItemStatus.APPROVED);
-        items.deleteAll(checked);
-        return new Deleted(checked.size());
+        LocalDate today = LocalDate.now(clock);
+        List<ShoppingItem> checked = items.findByCheckedTrueAndStatus(ShoppingItemStatus.APPROVED).stream()
+                .filter(item -> !item.isWaiting())
+                .toList();
+        List<ShoppingItem> bought = checked.stream().filter(item -> item.repeat() == null).toList();
+        List<ShoppingItem> repeating = checked.stream()
+                .filter(item -> item.repeat() != null)
+                .map(item -> item.afterShoppingTrip(today))
+                .toList();
+        items.deleteAll(bought);
+        items.saveAll(repeating);
+        int waiting = (int) repeating.stream().filter(ShoppingItem::isWaiting).count();
+        return new Deleted(bought.size(), repeating.size() - waiting, waiting);
     }
 
     @PostMapping("/{id}/approve")

@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -27,7 +28,8 @@ public record Task(
         @Size(max = 1000, message = "Beschreibung darf höchstens 1000 Zeichen lang sein")
         String description,
 
-        @Schema(description = "Zugewiesenes Familienmitglied; leer bei einer offenen Bonus-Aufgabe")
+        @Schema(description = "Zugewiesenes Familienmitglied; leer bei einer offenen Bonus-Aufgabe oder einer offenen "
+                + "Runde einer wiederkehrenden Aufgabe")
         String assigneeId,
 
         @Schema(description = "Fälligkeit; bei Bonus-Aufgaben optional")
@@ -62,7 +64,17 @@ public record Task(
         Boolean bonus,
 
         @Schema(description = "Nur bei Bonus-Aufgaben: nach der Bestätigung automatisch wieder offen")
-        Boolean repeatable) {
+        Boolean repeatable,
+
+        @Valid
+        @Schema(description = "Wiederholen nach Erledigung (nicht bei Bonus-Aufgaben): Beim Abhaken entsteht die nächste "
+                + "Runde, fällig am Tag des Abhakens plus Abstand, für alle offen oder wieder für dieselbe Person. "
+                + "Für alle offene nur mit \"aufgaben/erstellen/familie\".")
+        TaskRepeat repeat,
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY,
+                description = "Bei wiederkehrenden Aufgaben: wer die Runde davor wann abgehakt hat")
+        PreviousRound previousRound) {
 
     @PersistenceCreator
     public Task {
@@ -71,6 +83,15 @@ public record Task(
         bonus = Boolean.TRUE.equals(bonus);
         repeatable = bonus && Boolean.TRUE.equals(repeatable);
         assigneeId = assigneeId == null || assigneeId.isBlank() ? null : assigneeId;
+        repeat = bonus ? null : repeat;
+        previousRound = repeat == null ? null : previousRound;
+    }
+
+    public Task(String id, String title, String description, String assigneeId, LocalDate dueDate,
+            TaskPriority priority, TaskCategory category, Integer points, TaskStatus status, String createdBy,
+            LocalDateTime confirmedAt, String confirmedBy, Boolean bonus, Boolean repeatable) {
+        this(id, title, description, assigneeId, dueDate, priority, category, points, status, createdBy, confirmedAt,
+                confirmedBy, bonus, repeatable, null, null);
     }
 
     public Task(String id, String title, String description, String assigneeId, LocalDate dueDate,
@@ -92,6 +113,18 @@ public record Task(
         return bonus && assigneeId == null;
     }
 
+    // Runde einer wiederkehrenden Aufgabe für alle, die noch niemand übernommen hat (wer zuerst kommt)
+    @JsonIgnore
+    public boolean isOpenRound() {
+        return repeat != null && repeat.nextRoundOpenToAll() && assigneeId == null;
+    }
+
+    // Wiederkehrend und für alle offen (auch wenn die Runde gerade jemand übernommen hat)
+    @JsonIgnore
+    public boolean repeatsForAll() {
+        return repeat != null && repeat.nextRoundOpenToAll();
+    }
+
     // Wartet auf die Bestätigung durch einen Administrator (erledigt und mit Punkten)
     @JsonIgnore
     public boolean isAwaitingConfirmation() {
@@ -106,28 +139,44 @@ public record Task(
 
     public Task withStatus(TaskStatus newStatus) {
         return new Task(id, title, description, assigneeId, dueDate, priority, category, points, newStatus, createdBy,
-                confirmedAt, confirmedBy, bonus, repeatable);
+                confirmedAt, confirmedBy, bonus, repeatable, repeat, previousRound);
     }
 
     // Aufgabe ohne Punkte (Erwachsene sammeln keine Sterne)
     public Task withoutPoints() {
-        return new Task(id, title, description, assigneeId, dueDate, priority, category, 0, status, createdBy,
-                confirmedAt, confirmedBy, bonus, repeatable);
+        return withPoints(0);
+    }
+
+    public Task withPoints(int newPoints) {
+        return new Task(id, title, description, assigneeId, dueDate, priority, category, newPoints, status, createdBy,
+                confirmedAt, confirmedBy, bonus, repeatable, repeat, previousRound);
+    }
+
+    public Task withRepeat(TaskRepeat newRepeat) {
+        return new Task(id, title, description, assigneeId, dueDate, priority, category, points, status, createdBy,
+                confirmedAt, confirmedBy, bonus, repeatable, newRepeat, previousRound);
     }
 
     public Task withAssignee(String newAssigneeId, TaskStatus newStatus) {
         return new Task(id, title, description, newAssigneeId, dueDate, priority, category, points, newStatus,
-                createdBy, confirmedAt, confirmedBy, bonus, repeatable);
+                createdBy, confirmedAt, confirmedBy, bonus, repeatable, repeat, previousRound);
     }
 
     public Task confirmed(LocalDateTime at, String by) {
         return new Task(id, title, description, assigneeId, dueDate, priority, category, points, TaskStatus.CONFIRMED,
-                createdBy, at, by, bonus, repeatable);
+                createdBy, at, by, bonus, repeatable, repeat, previousRound);
     }
 
     // Wiederkehrende Bonus-Aufgabe: nach der Bestätigung eine neue, offene Aufgabe ohne Frist
     public Task nextRound() {
         return new Task(null, title, description, null, null, priority, category, points, TaskStatus.TODO, createdBy,
                 null, null, true, true);
+    }
+
+    // Wiederkehrende Aufgabe: die nächste Runde nach dem Abhaken, für alle offen oder wieder für dieselbe Person
+    public Task followingRound(LocalDate doneOn, String doneBy) {
+        return new Task(null, title, description, repeat.nextRoundOpenToAll() ? null : assigneeId, repeat.nextDue(doneOn),
+                priority, category, points, TaskStatus.TODO, createdBy, null, null, false, false, repeat,
+                new PreviousRound(id, doneOn, doneBy));
     }
 }

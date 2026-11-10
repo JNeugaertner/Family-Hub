@@ -39,7 +39,9 @@ import de.familyhub.rewards.RewardRepository;
 import de.familyhub.shopping.ShoppingItem;
 import de.familyhub.shopping.ShoppingItemRepository;
 import de.familyhub.settings.FamilySettingsRepository;
+import de.familyhub.task.RepeatUnit;
 import de.familyhub.task.Task;
+import de.familyhub.task.TaskRepeat;
 import de.familyhub.task.TaskRepository;
 import de.familyhub.task.TaskStatus;
 import jakarta.validation.Validation;
@@ -151,9 +153,16 @@ class SampleDataLoaderTest {
         loader.load();
         loader.load();
 
-        assertThat(shoppingRepository.findAll()).hasSize(13)
+        assertThat(shoppingRepository.findAll()).hasSize(14)
                 .filteredOn(ShoppingItem::isProposal).extracting(ShoppingItem::name).containsExactly("Schokolade");
-        assertThat(shoppingRepository.findAll()).filteredOn(ShoppingItem::checked).hasSize(2);
+        assertThat(shoppingRepository.findAll()).filteredOn(ShoppingItem::checked).hasSize(3);
+        // Wiederkehrend: Milch bei jedem Einkauf, Spülmittel alle 3 Wochen, Klopapier wartet (vor 4 Tagen gekauft)
+        assertThat(shoppingRepository.findAll()).filteredOn(i -> i.repeat() != null).extracting(ShoppingItem::name)
+                .containsExactlyInAnyOrder("Bio-Milch", "Spülmittel", "Klopapier");
+        ShoppingItem paper = shoppingRepository.findAll().stream().filter(i -> i.name().equals("Klopapier"))
+                .findFirst().orElseThrow();
+        assertThat(paper.checkedOn()).isEqualTo(LocalDate.now(CLOCK).minusDays(4));
+        assertThat(paper.returnsOn()).isEqualTo(LocalDate.now(CLOCK).plusDays(10));
     }
 
     @Test
@@ -195,6 +204,13 @@ class SampleDataLoaderTest {
         assertThat(taskRepository.findAll()).filteredOn(t -> t.title().equals("Müll rausbringen"))
                 .singleElement()
                 .satisfies(t -> assertThat(t.dueDate()).isEqualTo(LocalDate.of(2026, 10, 7)));
+        // Beispiel für eine Aufgabe, die sich nach Erledigung wiederholt
+        assertThat(taskRepository.findAll()).filteredOn(t -> t.repeat() != null)
+                .singleElement()
+                .satisfies(t -> {
+                    assertThat(t.title()).isEqualTo("Blumen gießen");
+                    assertThat(t.repeat()).isEqualTo(new TaskRepeat(3, RepeatUnit.DAYS, true));
+                });
     }
 
     @Test

@@ -3,6 +3,14 @@ import { json, request } from '../api/client';
 export type ShoppingCategory =
   'milchprodukte' | 'backwaren' | 'fleisch' | 'gemuese' | 'obst' | 'getraenke' | 'vorrat' | 'tiefkuehl' | 'snacks' | 'haushalt' | 'zutaten_essensplanung';
 
+// Wiederkehrende Artikel: trip = bei jedem Einkauf, sonst interval Tage/Wochen/Monate nach dem Kauf
+export type ShoppingRepeatUnit = 'trip' | 'days' | 'weeks' | 'months';
+
+export interface ShoppingRepeat {
+  interval?: number | null;
+  unit: ShoppingRepeatUnit;
+}
+
 export interface ShoppingItem {
   id: string;
   name: string;
@@ -15,6 +23,12 @@ export interface ShoppingItem {
   createdBy: string;
   createdAt: string;
   checkedBy: string | null;
+  // Fehlt bei einmaligen Artikeln
+  repeat?: ShoppingRepeat | null;
+  // Tag des Abhakens (gekauft)
+  checkedOn?: string | null;
+  // Gekauft und vorerst von der Liste genommen: kommt an diesem Tag ("JJJJ-MM-TT") offen wieder
+  returnsOn?: string | null;
 }
 
 export interface ShoppingInput {
@@ -22,6 +36,14 @@ export interface ShoppingInput {
   quantity: string | null;
   category: ShoppingCategory;
   urgent: boolean;
+  repeat?: ShoppingRepeat | null;
+}
+
+// "Abgehakte entfernen": wiederkehrende Artikel bleiben, wieder offen (backOnList) oder unter "Kommt wieder" (waiting)
+export interface RemovedChecked {
+  deleted: number;
+  backOnList: number;
+  waiting: number;
 }
 
 export const listShopping = () => request<ShoppingItem[]>('/api/shopping');
@@ -38,7 +60,7 @@ export const checkShoppingItem = (id: string, checked: boolean) =>
 export const deleteShoppingItem = (id: string) => request<void>(`/api/shopping/${id}`, { method: 'DELETE' });
 
 export const deleteCheckedShoppingItems = () =>
-  request<{ deleted: number }>('/api/shopping/checked', { method: 'DELETE' });
+  request<RemovedChecked>('/api/shopping/checked', { method: 'DELETE' });
 
 export const approveShoppingItem = (id: string) =>
   request<ShoppingItem>(`/api/shopping/${id}/approve`, { method: 'POST' });

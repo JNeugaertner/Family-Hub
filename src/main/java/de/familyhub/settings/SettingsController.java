@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import de.familyhub.ors.OrsLocation;
 
 @RestController
 @RequestMapping("/api/settings")
@@ -56,7 +57,7 @@ public class SettingsController {
     }
 
     private SettingsResponse response(FamilySettings current) {
-        return new SettingsResponse(current.guestCategories(), roleResolver.teenAge(), current.weatherLocation());
+        return new SettingsResponse(current.guestCategories(), roleResolver.teenAge(), current.weatherLocation(), current.homeLocation());
     }
 
     public record SettingsRequest(
@@ -72,6 +73,10 @@ public class SettingsController {
             int teenAge,
             @Schema(description = "Wohnort für das Wetter (ändern über /api/weather/location), null wenn nicht "
                     + "eingestellt")
-            WeatherLocation weatherLocation) {
+            WeatherLocation weatherLocation,
+            @Schema(description = "Wohnort für die Routenberechnung (ändern über /api/ors/location), null wenn nicht "
+                    + "eingestellt")
+            OrsLocation homeLocation
+        ) {
     }
 }
