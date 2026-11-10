@@ -45,50 +45,108 @@ kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS 4 (ursprünglich aus Figma Make) |
 | Tests | JUnit 5, MockMvc, eingebettete MongoDB (Flapdoodle) |
 
-## Schnellstart
+## FamilyHub starten
 
-Für die Entwicklung. Wer FamilyHub nur benutzen will, nimmt
-[Docker](#mit-docker-betreiben).
+Es gibt zwei Wege:
 
-**Voraussetzungen:** JDK 25, MongoDB 8.0 (oder Docker) und für die Oberfläche
-Node.js 24 mit pnpm 10. Maven muss nicht installiert sein, der Maven Wrapper lädt
-es beim ersten Aufruf selbst. Unter Windows lässt sich MongoDB ohne
-Admin-Rechte als ZIP nach `%LOCALAPPDATA%\Programs\mongodb` entpacken, unter
-macOS mit Homebrew installieren: `brew tap mongodb/brew && brew install
-mongodb-community@8.0`.
+- **Nur benutzen:** mit Docker, ein Befehl, außer Docker ist nichts zu
+  installieren. Siehe [Mit Docker betreiben](#mit-docker-betreiben).
+- **Entwickeln oder ohne Docker:** wie hier beschrieben. FamilyHub besteht dann
+  aus drei Teilen, die gleichzeitig laufen, jeder in einem **eigenen
+  Terminal-Fenster**:
 
-```bash
-# 1. MongoDB starten (lauscht nur auf 127.0.0.1:27017, beenden mit Strg+C)
-#    Windows:
-powershell -ExecutionPolicy Bypass -File scripts/start-mongodb.ps1
-#    macOS und Linux:
-scripts/start-mongodb.sh
-#    oder mit Docker (läuft im Hintergrund, beenden mit: docker compose -f compose.dev-mongodb.yaml down)
-docker compose -f compose.dev-mongodb.yaml up -d
-
-# 2. Backend starten (Windows-Eingabeaufforderung: mvnw.cmd statt ./mvnw)
-./mvnw spring-boot:run
-# Prüfen: http://localhost:8080/api/health
-# API im Browser ausprobieren: http://localhost:8080/swagger-ui.html
-
-# 3. Oberfläche starten (eigenes Terminal)
-cd frontend
-pnpm install
-pnpm dev
-# Öffnen: http://localhost:5173
-
-# 4. Backend-Tests ausführen (braucht keine laufende MongoDB)
-./mvnw test
+```
+ Browser  →  Oberfläche (Port 5173)  →  Backend (Port 8080)  →  Datenbank MongoDB (Port 27017)
 ```
 
-Backend und Oberfläche beendet man jeweils mit Strg+C im eigenen Terminal.
+Die Anleitung unten gilt für Windows, macOS und Linux. Wo sich die Befehle
+unterscheiden, steht es dabei. Mit „Terminal“ ist unter Windows die
+**PowerShell** gemeint, unter macOS die App **Terminal**.
 
-Beim ersten Start mit leerer Datenbank legt das Backend eine Beispielfamilie an.
-Der erste Testlauf lädt einmalig eine Test-MongoDB herunter (ca. 840 MB, einige
-Minuten).
+### Schritt 1: Programme einmal installieren
 
-**Anmeldung:** Die API ist nur nach Login nutzbar. Beispielkonten (nur für die
-Entwicklung, alle mit dem Passwort `familyhub`):
+| Programm | Wofür | Windows | macOS | Linux |
+|---|---|---|---|---|
+| **JDK 25** (Java) | Backend | [Temurin 25](https://adoptium.net/temurin/releases/?version=25), Installer (.msi) | [Temurin 25](https://adoptium.net/temurin/releases/?version=25) (.pkg) oder `brew install --cask temurin@25` | Paket `temurin-25-jdk` oder Archiv von Adoptium |
+| **Node.js 24** | Oberfläche | [nodejs.org](https://nodejs.org), Installer | [nodejs.org](https://nodejs.org) oder `brew install node@24` | Paketquelle von nodejs.org |
+| **pnpm 10** | Oberfläche | nach Node: `npm install -g pnpm@10` | wie Windows | wie Windows |
+| **MongoDB 8.0** | Datenbank | [ZIP herunterladen](https://www.mongodb.com/try/download/community) und nach `%LOCALAPPDATA%\Programs\mongodb` entpacken (keine Admin-Rechte nötig) | `brew tap mongodb/brew && brew install mongodb-community@8.0` | Paket `mongodb-org` (Anleitung auf mongodb.com) |
+| **Git** | Projekt holen | [git-scm.com](https://git-scm.com) | ist meist schon da (`git --version`) | Paket `git` |
+
+Maven muss nicht installiert werden, das Projekt bringt es mit (Maven Wrapper).
+
+Ohne Homebrew unter macOS: Die Programme lassen sich auch als Archiv in einen
+eigenen Ordner entpacken, z. B. `~/.local/opt/jdk`, `~/.local/opt/node` und
+`~/.local/opt/mongodb`. Dann diese Zeilen ans Ende von `~/.zshrc` schreiben und
+das Terminal neu öffnen:
+
+```bash
+export JAVA_HOME="$HOME/.local/opt/jdk"
+export PATH="$JAVA_HOME/bin:$HOME/.local/opt/node/bin:$HOME/.local/opt/mongodb/bin:$PATH"
+```
+
+**Prüfen** (in einem neuen Terminal), ob alles gefunden wird:
+
+```bash
+java -version      # muss 25 zeigen
+node -v            # muss v24 zeigen
+pnpm -v            # muss 10 zeigen
+mongod --version   # muss 8.0 zeigen (unter Windows mit ZIP: nicht nötig, das Startskript findet es)
+```
+
+### Schritt 2: Projekt holen
+
+```bash
+git clone https://github.com/JNeugaertner/Family-Hub.git
+cd Family-Hub
+```
+
+Unter Windows den Ordner nicht in OneDrive legen (z. B. nicht auf den Desktop,
+wenn der synchronisiert wird), sondern etwa nach `C:\Users\<Name>\Projekte`.
+
+### Schritt 3: Die drei Teile starten
+
+Jedes Mal, wenn du FamilyHub benutzen willst. Alle Befehle im Projektordner
+`Family-Hub`, jeweils in einem eigenen Terminal-Fenster:
+
+**Terminal 1, Datenbank:**
+
+```bash
+# Windows (PowerShell)
+powershell -ExecutionPolicy Bypass -File scripts\start-mongodb.ps1
+# macOS und Linux
+scripts/start-mongodb.sh
+```
+
+Fertig, wenn viele Zeilen durchlaufen und das Fenster offen bleibt. Die Daten
+bleiben zwischen den Starts erhalten.
+
+**Terminal 2, Backend:**
+
+```bash
+# Windows (PowerShell)
+.\mvnw.cmd spring-boot:run
+# macOS und Linux
+./mvnw spring-boot:run
+```
+
+Fertig, wenn `Started Main` erscheint. Beim allerersten Mal lädt Maven einige
+Minuten lang alles Nötige herunter. Zur Kontrolle im Browser
+http://localhost:8080/api/health öffnen: Dort muss `"status":"UP"` stehen.
+
+**Terminal 3, Oberfläche:**
+
+```bash
+cd frontend
+pnpm install      # nur beim ersten Mal und nach Updates nötig
+pnpm dev
+```
+
+Fertig, wenn `Local: http://localhost:5173/` erscheint.
+
+**Öffnen:** http://localhost:5173 im Browser. Beim ersten Start legt FamilyHub
+eine Beispielfamilie an; anmelden mit einem dieser Konten, alle mit dem
+Passwort `familyhub` (nur zum Ausprobieren):
 
 | Benutzername | Rolle |
 |---|---|
@@ -97,9 +155,42 @@ Entwicklung, alle mit dem Passwort `familyhub`):
 | `lucas`, `lily` | Kind |
 | `oma` | Gast |
 
+**Beenden:** in jedem der drei Fenster **Strg+C** drücken (auch unter macOS
+Strg, nicht Cmd). Am besten in umgekehrter Reihenfolge: Oberfläche, Backend,
+Datenbank.
+
+### Wenn etwas nicht klappt
+
+| Meldung | Ursache und Lösung |
+|---|---|
+| `java`, `node`, `pnpm` oder `mongod` „nicht gefunden“ / „command not found“, unter macOS „Unable to locate a Java Runtime“ | Programm fehlt oder steht nicht im Suchpfad. Installation prüfen; ohne Installer die `PATH`-Zeilen von oben eintragen und das Terminal **neu öffnen**. |
+| `permission denied: ./mvnw` (macOS, Linux) | Einmal `chmod +x mvnw scripts/*.sh` ausführen. |
+| PowerShell: „Ausführung von Skripts ist auf diesem System deaktiviert“ | Den Befehl genau wie oben mit `powershell -ExecutionPolicy Bypass -File …` aufrufen. |
+| Datenbank: `address already in use` (Port 27017) | Es läuft schon eine MongoDB, z. B. aus einem früheren Start. Dann ist Schritt „Terminal 1“ schon erledigt. |
+| Backend: `Port 8080 was already in use` | FamilyHub läuft schon in einem anderen Fenster (oder ein anderes Programm nutzt den Port). Das andere Fenster suchen und mit Strg+C beenden. |
+| Backend: Fehler mit `MongoSocketOpenException` / `Connection refused` | Die Datenbank läuft nicht: Terminal 1 starten. |
+| Oberfläche zeigt „Failed to fetch“, „HTTP 500“ oder lädt nichts | Das Backend läuft nicht oder ist noch nicht fertig: Terminal 2 prüfen (`Started Main`). |
+| Anmeldung schlägt mit „HTTP 403“ fehl | Die Oberfläche über **http://localhost:5173** öffnen, nicht über `127.0.0.1` oder eine andere Adresse. |
+| „Zu viele falsche Passwörter für dieses Konto“ | Fünfmal falsches Passwort: so lange warten wie angegeben (höchstens fünf Minuten). |
+
+### Für Entwickler
+
+```bash
+./mvnw test        # Backend-Tests (Windows: .\mvnw.cmd test), braucht keine laufende MongoDB
+```
+
+Der erste Testlauf lädt einmalig eine Test-MongoDB herunter (ca. 840 MB, einige
+Minuten). Die REST-Schnittstelle lässt sich bei laufendem Backend unter
+http://localhost:8080/swagger-ui.html ausprobieren. Statt `scripts/start-mongodb…`
+geht die Datenbank auch per Docker: `docker compose -f compose.dev-mongodb.yaml up -d`
+im Projektordner (beenden mit `docker compose -f compose.dev-mongodb.yaml down`).
+
 Ohne Beispieldaten (`familyhub.sample-data.enabled=false`) legt man beim ersten
 Start in der Oberfläche („Familie einrichten“) oder über `POST /api/auth/setup`
-den ersten Administrator an.
+den ersten Administrator an. Zugangsdaten für Google, Wetter, Fahrzeit, Telegram
+und WhatsApp kommen in eine Datei `local.properties` (siehe „Einstellungen“ und
+die Abschnitte „… einrichten“ weiter unten); ohne sie läuft FamilyHub, die
+jeweilige Funktion meldet dann „nicht eingerichtet“.
 
 ## Mit Docker betreiben
 
@@ -111,6 +202,11 @@ vom Backend selbst, FamilyHub läuft also unter **http://localhost:8080**.
 (Windows braucht dafür WSL 2: einmal `wsl --install` in einer
 Administrator-Eingabeaufforderung, danach neu starten) oder unter Linux Docker
 Engine mit Compose.
+Docker Desktop muss laufen (Wal-Symbol in der Menüleiste bzw. Taskleiste).
+Findet das Terminal unter macOS `docker` nicht („command not found“), liegt es
+in `~/.docker/bin`: einmal
+`echo 'export PATH="$HOME/.docker/bin:$PATH"' >> ~/.zshrc` und das Terminal neu
+öffnen. Prüfen mit `docker version` (zeigt Client und Server).
 
 1. Im Projektordner das Image bauen:
 
