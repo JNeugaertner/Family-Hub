@@ -15,6 +15,9 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?In .env fehlt MONGO_PASSWORD (siehe .env.example)}
     volumes:
       - familyhub-data:/data/db
+      # Das Image legt für /data/configdb sonst bei jedem neuen Container ein leeres anonymes Volume an, das liegen
+      # bleibt (auch nach "down -v"); benannt wird es wiederverwendet
+      - familyhub-config:/data/configdb
     # Kein Port nach außen: Nur FamilyHub erreicht die Datenbank, über das gemeinsame Docker-Netz
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
@@ -45,3 +48,4 @@ services:
 
 volumes:
   familyhub-data:
+  familyhub-config:

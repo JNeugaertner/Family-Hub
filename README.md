@@ -208,6 +208,32 @@ in `~/.docker/bin`: einmal
 `echo 'export PATH="$HOME/.docker/bin:$PATH"' >> ~/.zshrc` und das Terminal neu
 öffnen. Prüfen mit `docker version` (zeigt Client und Server).
 
+**Am einfachsten: per Doppelklick.** Im Ordner `deploy` liegen Startdateien,
+die alles Nötige selbst erledigen:
+
+| System | Starten | Beenden |
+|---|---|---|
+| Windows | `FamilyHub starten.bat` | `FamilyHub beenden.bat` |
+| macOS | `FamilyHub starten.command` | `FamilyHub beenden.command` |
+| Linux (oder im Terminal) | `./familyhub.sh start` | `./familyhub.sh stop` |
+
+Beim Start prüfen sie, ob Docker bzw. Podman läuft (Docker Desktop starten sie
+bei Bedarf selbst). Beim ersten Mal legen sie `deploy/.env` mit einem
+zufälligen Datenbank-Passwort an und bauen das Image. Danach starten sie
+FamilyHub, warten, bis es bereit ist, und öffnen den Browser. Das Fenster
+zeigt, was passiert, und bleibt bei Fehlern mit einer verständlichen Meldung
+offen. Weitere Befehle: `./familyhub.sh update` baut bzw. lädt die neueste
+Version, `./familyhub.sh logs` zeigt das Protokoll (unter Windows
+`familyhub.ps1 update` bzw. `logs` in PowerShell).
+
+macOS fragt beim ersten Doppelklick eventuell nach, ob die Datei geöffnet
+werden darf: dann mit Rechtsklick › „Öffnen“ bestätigen. Die `.env` danach
+gut aufheben, sie gehört zur Sicherung: Ohne das Passwort darin kommt
+FamilyHub nicht mehr an die Daten. Deshalb legen die Startdateien keine neue
+`.env` an, solange es schon Daten gibt.
+
+**Von Hand** geht es so:
+
 1. Im Projektordner das Image bauen. **Der Punkt am Ende gehört zum Befehl**
    (er steht für „dieser Ordner“); fehlt er, meldet Docker „requires 1
    argument“. Mit Podman `podman build -t familyhub:lokal .`:
