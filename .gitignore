@@ -38,6 +38,14 @@ bin/
 
 ### Lokale Zugangsdaten (z. B. Google Kalender) ###
 local.properties
+# Einstellungen für deploy/compose.yaml (Vorlage: deploy/.env.example)
+.env
+
+### Gebaute Oberfläche, falls sie für ein JAR von Hand nach static/ kopiert wird (das Dockerfile macht das selbst) ###
+/src/main/resources/static/
 
 ### Claude
 install-claude.ps1
+
+### Datenbank-Sicherungen (deploy/backup.sh) ###
+/deploy/backups/
