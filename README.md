@@ -58,8 +58,9 @@ Die Anleitung unten gilt für Windows, macOS und Linux. Wo sich die Befehle
 unterscheiden, steht es dabei. Mit „Terminal“ ist unter Windows die
 **PowerShell** gemeint, unter macOS die App **Terminal**.
 
-> Eine einfachere Variante mit Docker (ein Befehl, keine Programme zu
-> installieren außer Docker) ist in Arbeit, Branch `feature/einfacher-start`.
+Es gibt außerdem einen **einfachen Start mit Docker**, der noch in Arbeit ist,
+siehe [Einfachen Start ausprobieren](#einfachen-start-ausprobieren). Dafür muss
+außer Docker nichts installiert sein.
 
 ### Schritt 1: Programme einmal installieren
 
@@ -189,6 +190,57 @@ den ersten Administrator an. Zugangsdaten für Google, Wetter, Fahrzeit, Telegra
 und WhatsApp kommen in eine Datei `local.properties` (siehe „Einstellungen“ und
 die Abschnitte „… einrichten“ weiter unten); ohne sie läuft FamilyHub, die
 jeweilige Funktion meldet dann „nicht eingerichtet“.
+
+## Einfachen Start ausprobieren
+
+Der einfache Start ist noch nicht in `develop`, sondern liegt auf dem Branch
+`feature/einfacher-start`; die vollständige Anleitung steht im README dieses
+Branches unter „Mit Docker betreiben“. Die Idee: Oberfläche, Backend und
+Datenbank laufen zusammen in Docker, ohne Java, Node oder MongoDB zu
+installieren. FamilyHub ist dann unter http://localhost:8080 erreichbar.
+
+**Voraussetzung:** [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+(muss laufen, Wal-Symbol in der Menüleiste bzw. Taskleiste) oder Podman. Unter
+Windows braucht Docker Desktop WSL 2 (`wsl --install` als Administrator, danach
+neu starten). Mit Podman überall `podman` statt `docker` schreiben.
+
+1. Auf den Branch wechseln (im Projektordner `Family-Hub`):
+
+   ```bash
+   git fetch
+   git switch feature/einfacher-start
+   git pull
+   ```
+2. Image bauen, ebenfalls im Projektordner. **Der Punkt am Ende gehört zum
+   Befehl** (er steht für „dieser Ordner“); fehlt er, meldet Docker
+   „requires 1 argument“:
+
+   ```bash
+   docker build -t familyhub:lokal .
+   ```
+3. Einstellungen anlegen und starten, jetzt im Ordner `deploy`:
+
+   ```bash
+   cd deploy
+   cp .env.example .env        # Windows: copy .env.example .env
+   ```
+
+   In `.env` ein langes `MONGO_PASSWORD` aus Buchstaben und Ziffern eintragen
+   und die Zeile `FAMILYHUB_IMAGE=familyhub:lokal` einkommentieren (mit Podman:
+   `FAMILYHUB_IMAGE=localhost/familyhub:lokal`). Dann:
+
+   ```bash
+   docker compose up -d
+   docker compose ps           # beide Container laufen, mongodb "healthy"
+   ```
+4. http://localhost:8080 öffnen und unter „Familie einrichten“ den ersten
+   Administrator anlegen (eine Beispielfamilie gibt es hier nicht).
+
+Beenden mit `docker compose down` im Ordner `deploy`; die Daten bleiben
+erhalten. `docker compose down -v` löscht sie. Zurück zur normalen Entwicklung
+mit `git switch develop`. Port 8080 muss frei sein, also das
+Entwicklungs-Backend vorher beenden; eine laufende Entwicklungs-MongoDB stört
+nicht.
 
 ## Wiederkehrende Aufgaben
 
