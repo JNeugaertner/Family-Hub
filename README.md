@@ -208,7 +208,9 @@ in `~/.docker/bin`: einmal
 `echo 'export PATH="$HOME/.docker/bin:$PATH"' >> ~/.zshrc` und das Terminal neu
 öffnen. Prüfen mit `docker version` (zeigt Client und Server).
 
-1. Im Projektordner das Image bauen:
+1. Im Projektordner das Image bauen. **Der Punkt am Ende gehört zum Befehl**
+   (er steht für „dieser Ordner“); fehlt er, meldet Docker „requires 1
+   argument“. Mit Podman `podman build -t familyhub:lokal .`:
 
    ```bash
    docker build -t familyhub:lokal .
@@ -225,7 +227,9 @@ in `~/.docker/bin`: einmal
    ```
 
    In `.env` mindestens `MONGO_PASSWORD` setzen und für das selbst gebaute
-   Image die Zeile `FAMILYHUB_IMAGE=familyhub:lokal` einkommentieren.
+   Image die Zeile `FAMILYHUB_IMAGE=familyhub:lokal` einkommentieren (mit
+   Podman: `FAMILYHUB_IMAGE=localhost/familyhub:lokal`). Unter Windows statt
+   `cp` den Befehl `copy` verwenden.
 3. Starten:
 
    ```bash
