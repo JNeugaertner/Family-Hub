@@ -114,6 +114,33 @@ public class CalendarAccess {
         }
     }
 
+    // Vorlagen (EventTemplate): nutzen und anlegen darf, wer Termine anlegen oder vorschlagen darf. Private Vorlagen
+    // sieht nur, wer sie angelegt hat. Ändern und löschen darf sie, wer sie angelegt hat, oder wer Familientermine
+    // bearbeiten darf (Administratoren).
+    public boolean mayUseTemplates(FamilyMember viewer) {
+        return can(viewer, ERSTELLEN, Scope.EIGEN) || can(viewer, ERSTELLEN, Scope.FAMILIE)
+                || can(viewer, VORSCHLAGEN, Scope.FAMILIE);
+    }
+
+    public void requireTemplates(FamilyMember viewer) {
+        if (!mayUseTemplates(viewer)) {
+            throw ApiException.forbidden("Vorlagen gibt es nur für alle, die Termine anlegen oder vorschlagen dürfen.");
+        }
+    }
+
+    public boolean canSeeTemplate(FamilyMember viewer, EventTemplate template) {
+        return mayUseTemplates(viewer) && (!template.privateTemplate() || viewer.id().equals(template.createdBy()));
+    }
+
+    public void requireTemplateChange(FamilyMember viewer, EventTemplate template) {
+        requireTemplates(viewer);
+        boolean creator = viewer.id().equals(template.createdBy());
+        if (!creator && (template.privateTemplate() || !can(viewer, BEARBEITEN, Scope.FAMILIE))) {
+            throw ApiException.forbidden("Eine Vorlage darf nur ändern oder löschen, wer sie angelegt hat, "
+                    + "oder ein Administrator.");
+        }
+    }
+
     private ApiException denied(FamilyMember viewer, Action action, Scope scope, String what, String verb) {
         if (scope == Scope.FAMILIE && can(viewer, action, Scope.EIGEN)) {
             return ApiException.forbidden("Du darfst nur deine eigenen Termine " + verb + ".");

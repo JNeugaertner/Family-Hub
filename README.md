@@ -13,7 +13,7 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 
 | Bereich | Was FamilyHub kann |
 |---|---|
-| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private und ganztägige Termine (auch über mehrere Tage), Serientermine (z. B. jeden Dienstag Training), Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
+| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private und ganztägige Termine (auch über mehrere Tage), Serientermine (z. B. jeden Dienstag Training), Vorlagen für Termine mit gleichem Ort und gleicher Uhrzeit (z. B. Zahnarzt), Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
 | Google Kalender | Termine aus dem eigenen Google Kalender übernehmen (schreibgeschützt); auf Wunsch die eigenen FamilyHub-Termine in einen Google-Kalender „FamilyHub“ eintragen |
 | Aufgaben und Punkte | Eltern vergeben Aufgaben mit Punkten, Kinder haken ab, nach der Bestätigung gibt es Punkte; Bonus-Aufgaben für alle Kinder; Aufgaben, die sich nach Erledigung wiederholen (z. B. Blumen gießen alle 3 Tage); Erwachsene erledigen Aufgaben ohne Punkte |
 | Belohnungen | Shop, in dem Kinder und Jugendliche Punkte einlösen; die Eltern genehmigen oder lehnen ab |
@@ -437,6 +437,26 @@ Kauf. „Dringend“ gilt nur bis zum nächsten Einkauf. Wiederkehrende Artikel 
 an, wer direkt auf die Liste schreibt (Eltern und Jugendliche); Kinder schlagen
 nur einzelne Artikel vor. Zutaten aus dem Essensplan wiederholen sich nicht,
 die setzt der Essensplan selbst wieder auf die Liste.
+
+## Vorlagen für Termine
+
+Für Termine, die immer am gleichen Ort und zur gleichen Uhrzeit sind, aber nicht
+regelmäßig (z. B. Zahnarzt, Kinderarzt, Friseur):
+
+- **Anlegen:** einen Termin ausfüllen (neu oder bestehend) und unten auf
+  „☆ Als Vorlage speichern“ klicken. Die Vorlage merkt sich Titel, Uhrzeit,
+  Dauer, Beteiligte, Kategorie, Ort mit Fahrzeit, Beschreibung und „Privat“,
+  nicht das Datum.
+- **Nutzen:** Bei einem neuen Termin oben unter „Vorlage“ auswählen. Das Datum
+  bleibt, alles andere füllt die Vorlage aus und lässt sich vor dem Speichern
+  noch ändern. Beteiligte übernimmt sie nur, soweit man sie eintragen darf.
+- **Verwalten:** Im Kalender „☆ Vorlagen“ zeigt alle Vorlagen; umbenennen und
+  löschen darf, wer eine Vorlage angelegt hat, und Administratoren. Termine aus
+  einer Vorlage bleiben davon unberührt.
+
+Vorlagen haben alle, die Termine anlegen oder vorschlagen dürfen (in den
+Standardrollen Eltern und Jugendliche, nicht Kinder und Gäste). Private
+Vorlagen sieht nur, wer sie angelegt hat. Schnittstelle: `/api/event-templates`.
 
 ## Serientermine
 

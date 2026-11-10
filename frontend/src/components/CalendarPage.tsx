@@ -9,6 +9,7 @@ import {
 import { occursOn, useCalendarData } from '../calendar/CalendarDataContext';
 import { useCalendarPermissions } from '../calendar/permissions';
 import EventFormModal from './EventFormModal';
+import TemplateManager from '../calendar/TemplateManager';
 import { MONTHS, WEEKDAYS_SHORT, addDays, formatLongDate, fromDateKey, mondayOf, startOfToday, toDateKey, weekdayIndex } from '../calendar/dates';
 import { CATEGORY_LABELS } from '../calendar/categories';
 import { SHARED_COLOR, blockBackground, cardBackground, dotBackground, memberColors, participantLabel, proposalStyle } from '../calendar/eventStyle';
@@ -518,6 +519,7 @@ export default function CalendarPage({ onNavigate }: Props) {
   }, [focus, clearFocus]);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [garbagePickups, setGarbagePickups] = useState<GarbagePickup[]>([]);
@@ -612,9 +614,19 @@ export default function CalendarPage({ onNavigate }: Props) {
 
         {permissions.canAdd && (
           <button
+            type="button"
+            onClick={() => setShowTemplates(true)}
+            className="ml-auto flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm"
+          >
+            ☆ Vorlagen
+          </button>
+        )}
+        {permissions.canAdd && (
+          <button
             onClick={() => openEditor()}
             disabled={status !== 'ready'}
-            className="ml-auto flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors shadow-sm disabled:opacity-50"
+            aria-label={permissions.onlyProposals ? 'Termin vorschlagen' : 'Termin hinzufügen'}
+            className="flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors shadow-sm disabled:opacity-50"
           >
             <PlusIcon size={16} />
             <span className="hidden sm:inline">{permissions.onlyProposals ? 'Termin vorschlagen' : 'Termin hinzufügen'}</span>
@@ -782,6 +794,7 @@ export default function CalendarPage({ onNavigate }: Props) {
         <EventFormModal event={editor.event} defaultDate={view === 'day' ? toDateKey(shownDay) : todayKey}
           onClose={() => setEditor(null)} />
       )}
+      {showTemplates && <TemplateManager onClose={() => setShowTemplates(false)} />}
     </div>
   );
 }
