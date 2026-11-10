@@ -63,8 +63,8 @@ mongodb-community@8.0`.
 powershell -ExecutionPolicy Bypass -File scripts/start-mongodb.ps1
 #    macOS und Linux:
 scripts/start-mongodb.sh
-#    oder mit Docker (läuft im Hintergrund, beenden mit: docker compose down)
-docker compose up -d
+#    oder mit Docker (läuft im Hintergrund, beenden mit: docker compose -f compose.dev-mongodb.yaml down)
+docker compose -f compose.dev-mongodb.yaml up -d
 
 # 2. Backend starten (Windows-Eingabeaufforderung: mvnw.cmd statt ./mvnw)
 ./mvnw spring-boot:run
@@ -139,6 +139,12 @@ Engine mit Compose.
    Dann http://localhost:8080 öffnen und unter „Familie einrichten“ den ersten
    Administrator anlegen. Eine Beispielfamilie gibt es hier bewusst nicht
    (`FAMILYHUB_SAMPLEDATA_ENABLED` in `.env`).
+
+   Wichtig: im Ordner `deploy`. Im Projektordner selbst meldet `docker compose`
+   „no configuration file provided“. Die Datenbank des einfachen Starts hat
+   keinen Port nach außen; eine für die Entwicklung gestartete MongoDB auf
+   Port 27017 stört also nicht. Nur Port 8080 muss frei sein, das
+   Entwicklungs-Backend (`./mvnw spring-boot:run`) also vorher beenden.
 
 | Aufgabe | Befehl (im Ordner `deploy`) |
 |---|---|
@@ -554,7 +560,7 @@ Oberfläche nur auf dem eigenen Rechner erreichbar.
 ├── scripts/                      Hilfsskripte (z. B. MongoDB starten)
 ├── deploy/                       FamilyHub komplett per Docker (compose.yaml, Vorlage für .env)
 ├── Dockerfile                    Docker-Image: Oberfläche und Backend in einem
-└── docker-compose.yml            nur MongoDB für die Entwicklung, per Docker
+└── compose.dev-mongodb.yaml      nur MongoDB für die Entwicklung, per Docker
 ```
 
 Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,

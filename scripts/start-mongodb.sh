@@ -27,7 +27,7 @@ if [[ -z "$mongod_bin" ]] && command -v brew >/dev/null 2>&1; then
 fi
 if [[ -z "$mongod_bin" ]]; then
   echo "mongod nicht gefunden. Unter macOS: brew tap mongodb/brew && brew install mongodb-community@8.0" >&2
-  echo "oder MongoDB mit Docker starten: docker compose up -d (siehe README)." >&2
+  echo "oder MongoDB mit Docker starten: docker compose -f compose.dev-mongodb.yaml up -d (siehe README)." >&2
   exit 1
 fi
 
