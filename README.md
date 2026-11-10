@@ -47,8 +47,13 @@ kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 
 ## FamilyHub starten
 
-FamilyHub läuft im Moment auf dem eigenen Computer und besteht aus drei Teilen,
-die gleichzeitig laufen, jeder in einem **eigenen Terminal-Fenster**:
+Es gibt zwei Wege:
+
+- **Nur benutzen:** mit Docker, ein Befehl, außer Docker ist nichts zu
+  installieren. Siehe [Mit Docker betreiben](#mit-docker-betreiben).
+- **Entwickeln oder ohne Docker:** wie hier beschrieben. FamilyHub besteht dann
+  aus drei Teilen, die gleichzeitig laufen, jeder in einem **eigenen
+  Terminal-Fenster**:
 
 ```
  Browser  →  Oberfläche (Port 5173)  →  Backend (Port 8080)  →  Datenbank MongoDB (Port 27017)
@@ -57,10 +62,6 @@ die gleichzeitig laufen, jeder in einem **eigenen Terminal-Fenster**:
 Die Anleitung unten gilt für Windows, macOS und Linux. Wo sich die Befehle
 unterscheiden, steht es dabei. Mit „Terminal“ ist unter Windows die
 **PowerShell** gemeint, unter macOS die App **Terminal**.
-
-Es gibt außerdem einen **einfachen Start mit Docker**, der noch in Arbeit ist,
-siehe [Einfachen Start ausprobieren](#einfachen-start-ausprobieren). Dafür muss
-außer Docker nichts installiert sein.
 
 ### Schritt 1: Programme einmal installieren
 
@@ -181,8 +182,8 @@ Datenbank.
 Der erste Testlauf lädt einmalig eine Test-MongoDB herunter (ca. 840 MB, einige
 Minuten). Die REST-Schnittstelle lässt sich bei laufendem Backend unter
 http://localhost:8080/swagger-ui.html ausprobieren. Statt `scripts/start-mongodb…`
-geht die Datenbank auch per Docker: `docker compose up -d` im Projektordner
-(beenden mit `docker compose down`).
+geht die Datenbank auch per Docker: `docker compose -f compose.dev-mongodb.yaml up -d`
+im Projektordner (beenden mit `docker compose -f compose.dev-mongodb.yaml down`).
 
 Ohne Beispieldaten (`familyhub.sample-data.enabled=false`) legt man beim ersten
 Start in der Oberfläche („Familie einrichten“) oder über `POST /api/auth/setup`
@@ -191,56 +192,172 @@ und WhatsApp kommen in eine Datei `local.properties` (siehe „Einstellungen“ 
 die Abschnitte „… einrichten“ weiter unten); ohne sie läuft FamilyHub, die
 jeweilige Funktion meldet dann „nicht eingerichtet“.
 
-## Einfachen Start ausprobieren
+## Mit Docker betreiben
 
-Der einfache Start ist noch nicht in `develop`, sondern liegt auf dem Branch
-`feature/einfacher-start`; die vollständige Anleitung steht im README dieses
-Branches unter „Mit Docker betreiben“. Die Idee: Oberfläche, Backend und
-Datenbank laufen zusammen in Docker, ohne Java, Node oder MongoDB zu
-installieren. FamilyHub ist dann unter http://localhost:8080 erreichbar.
+Für alle, die FamilyHub nur benutzen wollen: Oberfläche, Backend und MongoDB
+laufen zusammen in Docker, ohne JDK, Node oder pnpm. Die Oberfläche kommt dabei
+vom Backend selbst, FamilyHub läuft also unter **http://localhost:8080**.
 
 **Voraussetzung:** [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-(muss laufen, Wal-Symbol in der Menüleiste bzw. Taskleiste) oder Podman. Unter
-Windows braucht Docker Desktop WSL 2 (`wsl --install` als Administrator, danach
-neu starten). Mit Podman überall `podman` statt `docker` schreiben.
+(Windows braucht dafür WSL 2: einmal `wsl --install` in einer
+Administrator-Eingabeaufforderung, danach neu starten) oder unter Linux Docker
+Engine mit Compose.
+Docker Desktop muss laufen (Wal-Symbol in der Menüleiste bzw. Taskleiste).
+Findet das Terminal unter macOS `docker` nicht („command not found“), liegt es
+in `~/.docker/bin`: einmal
+`echo 'export PATH="$HOME/.docker/bin:$PATH"' >> ~/.zshrc` und das Terminal neu
+öffnen. Prüfen mit `docker version` (zeigt Client und Server).
 
-1. Auf den Branch wechseln (im Projektordner `Family-Hub`):
+**Am einfachsten: per Doppelklick.** Im Ordner `deploy` liegen Startdateien,
+die alles Nötige selbst erledigen:
 
-   ```bash
-   git fetch
-   git switch feature/einfacher-start
-   git pull
-   ```
-2. Image bauen, ebenfalls im Projektordner. **Der Punkt am Ende gehört zum
-   Befehl** (er steht für „dieser Ordner“); fehlt er, meldet Docker
-   „requires 1 argument“:
+| System | Starten | Beenden |
+|---|---|---|
+| Windows | `FamilyHub starten.bat` | `FamilyHub beenden.bat` |
+| macOS | `FamilyHub starten.command` | `FamilyHub beenden.command` |
+| Linux (oder im Terminal) | `./familyhub.sh start` | `./familyhub.sh stop` |
+
+Beim Start prüfen sie, ob Docker bzw. Podman läuft (Docker Desktop starten sie
+bei Bedarf selbst). Beim ersten Mal legen sie `deploy/.env` mit einem
+zufälligen Datenbank-Passwort an und bauen das Image. Danach starten sie
+FamilyHub, warten, bis es bereit ist, und öffnen den Browser. Das Fenster
+zeigt, was passiert, und bleibt bei Fehlern mit einer verständlichen Meldung
+offen. Weitere Befehle: `./familyhub.sh update` baut bzw. lädt die neueste
+Version, `./familyhub.sh logs` zeigt das Protokoll (unter Windows
+`familyhub.ps1 update` bzw. `logs` in PowerShell).
+
+macOS fragt beim ersten Doppelklick eventuell nach, ob die Datei geöffnet
+werden darf: dann mit Rechtsklick › „Öffnen“ bestätigen. Die `.env` danach
+gut aufheben, sie gehört zur Sicherung: Ohne das Passwort darin kommt
+FamilyHub nicht mehr an die Daten. Deshalb legen die Startdateien keine neue
+`.env` an, solange es schon Daten gibt.
+
+**Von Hand** geht es so:
+
+1. Im Projektordner das Image bauen. **Der Punkt am Ende gehört zum Befehl**
+   (er steht für „dieser Ordner“); fehlt er, meldet Docker „requires 1
+   argument“. Mit Podman `podman build -t familyhub:lokal .`:
 
    ```bash
    docker build -t familyhub:lokal .
    ```
-3. Einstellungen anlegen und starten, jetzt im Ordner `deploy`:
+
+   Sobald eine Version mit Tag veröffentlicht ist, entfällt das: GitHub baut
+   das Image dann selbst (`ghcr.io/jneugaertner/family-hub`), und vom
+   Repository braucht man nur die beiden Dateien aus `deploy/`.
+2. Im Ordner `deploy` die Vorlage kopieren:
 
    ```bash
    cd deploy
-   cp .env.example .env        # Windows: copy .env.example .env
+   cp .env.example .env
    ```
 
-   In `.env` ein langes `MONGO_PASSWORD` aus Buchstaben und Ziffern eintragen
-   und die Zeile `FAMILYHUB_IMAGE=familyhub:lokal` einkommentieren (mit Podman:
-   `FAMILYHUB_IMAGE=localhost/familyhub:lokal`). Dann:
+   In `.env` mindestens `MONGO_PASSWORD` setzen und für das selbst gebaute
+   Image die Zeile `FAMILYHUB_IMAGE=familyhub:lokal` einkommentieren (mit
+   Podman: `FAMILYHUB_IMAGE=localhost/familyhub:lokal`). Unter Windows statt
+   `cp` den Befehl `copy` verwenden.
+3. Starten:
 
    ```bash
    docker compose up -d
-   docker compose ps           # beide Container laufen, mongodb "healthy"
    ```
-4. http://localhost:8080 öffnen und unter „Familie einrichten“ den ersten
-   Administrator anlegen (eine Beispielfamilie gibt es hier nicht).
 
-Beenden mit `docker compose down` im Ordner `deploy`; die Daten bleiben
-erhalten. `docker compose down -v` löscht sie. Zurück zur normalen Entwicklung
-mit `git switch develop`. Port 8080 muss frei sein, also das
-Entwicklungs-Backend vorher beenden; eine laufende Entwicklungs-MongoDB stört
-nicht.
+   Dann http://localhost:8080 öffnen und unter „Familie einrichten“ den ersten
+   Administrator anlegen. Eine Beispielfamilie gibt es hier bewusst nicht
+   (`FAMILYHUB_SAMPLEDATA_ENABLED` in `.env`).
+
+   Wichtig: im Ordner `deploy`. Im Projektordner selbst meldet `docker compose`
+   „no configuration file provided“. Die Datenbank des einfachen Starts hat
+   keinen Port nach außen; eine für die Entwicklung gestartete MongoDB auf
+   Port 27017 stört also nicht. Nur Port 8080 muss frei sein, das
+   Entwicklungs-Backend (`./mvnw spring-boot:run`) also vorher beenden.
+
+| Aufgabe | Befehl (im Ordner `deploy`) |
+|---|---|
+| Beenden | `docker compose down` |
+| Protokoll ansehen | `docker compose logs -f familyhub` |
+| Update (veröffentlichtes Image) | `docker compose pull`, danach `docker compose up -d` |
+| Update (selbst gebaut) | `docker build -t familyhub:lokal ..`, danach `docker compose up -d` |
+
+Die Daten liegen im Docker-Volume `familyhub_familyhub-data` und bleiben bei
+`down` und bei Updates erhalten; erst `docker compose down -v` löscht sie.
+
+Zugangsdaten für Wetter, Google, Telegram und WhatsApp stehen hier nicht in
+`local.properties`, sondern in `.env`. Die Namen folgen den Einstellungen:
+Punkte werden zu `_`, Bindestriche fallen weg, alles in Großbuchstaben, z. B.
+`familyhub.weather.api-key` → `FAMILYHUB_WEATHER_APIKEY`. So lässt sich auch
+jede Einstellung aus der Tabelle unten setzen. Uhrzeiten gelten in der Zeitzone
+Europe/Berlin.
+
+So eingerichtet ist FamilyHub nur vom eigenen Rechner aus erreichbar. Für Handys
+und andere Geräte braucht es eine Adresse mit HTTPS, siehe unten.
+
+### Sichern und Wiederherstellen
+
+`deploy/backup.sh` sichert die Datenbank, während FamilyHub läuft, als eine
+Datei nach `deploy/backups/` und löscht Sicherungen, die älter als 14 Tage sind
+(`BACKUP_KEEP_DAYS`). Läuft unter Linux und macOS; auf einem Server täglich per
+cron, z. B. um 03:30 Uhr:
+
+```bash
+30 3 * * * /pfad/zu/deploy/backup.sh >> /pfad/zu/deploy/backups/backup.log 2>&1
+```
+
+Eine Sicherung auf demselben Rechner hilft nicht bei einem Plattenschaden oder
+einem verlorenen Server: die Dateien regelmäßig woandershin kopieren.
+
+Zurückspielen (ersetzt alle Daten in FamilyHub durch den Stand der Sicherung):
+
+```bash
+cd deploy
+docker compose stop familyhub
+docker compose exec -T mongodb mongorestore --archive --gzip --drop \
+  --username familyhub --password '<MONGO_PASSWORD>' --authenticationDatabase admin \
+  < backups/familyhub-<Datum>.archive.gz
+docker compose start familyhub
+```
+
+`.env` gehört mit zur Sicherung: Ohne `MONGO_PASSWORD` kommt man nicht an die
+Daten, ohne `FAMILYHUB_GOOGLE_TOKENKEY` sind die gespeicherten Google-Zugänge
+nicht mehr lesbar. Sie enthält aber alle Zugangsdaten, also getrennt und sicher
+aufbewahren.
+
+### Auf einem Server mit HTTPS betreiben
+
+Damit Handys und andere Geräte FamilyHub erreichen (und die App sich dort
+installieren lässt), läuft es auf einem Server mit eigener Domain. Vor FamilyHub
+steht dann [Caddy](https://caddyserver.com): Caddy holt das HTTPS-Zertifikat
+selbst bei Let's Encrypt, erneuert es und leitet http auf https um.
+
+**Voraussetzungen:** ein Linux-Server mit Docker Engine und Compose (z. B. ein
+kleiner vServer in der EU), eine Domain oder Subdomain, deren DNS-Eintrag
+(A bzw. AAAA) auf den Server zeigt, und von außen offene Ports 80 und 443.
+
+1. Auf dem Server einen Ordner mit `compose.yaml`, `compose.server.yaml`,
+   `Caddyfile`, `backup.sh` und `.env.example` aus `deploy/` anlegen,
+   `.env.example` nach `.env` kopieren und ausfüllen. Zusätzlich zu oben:
+
+   ```properties
+   FAMILYHUB_DOMAIN=familyhub.example.de
+   FAMILYHUB_URL=https://familyhub.example.de
+   ```
+2. Starten:
+
+   ```bash
+   docker compose -f compose.yaml -f compose.server.yaml up -d
+   ```
+
+   Beim ersten Start holt Caddy das Zertifikat (einige Sekunden, Protokoll mit
+   `docker compose -f compose.yaml -f compose.server.yaml logs -f caddy`).
+   Danach https://familyhub.example.de öffnen und die Familie einrichten.
+3. Sicherung per cron einrichten (siehe oben).
+
+Hinter Caddy setzt FamilyHub Anmelde-Cookies nur noch für https
+(`SERVER_SERVLET_SESSION_COOKIE_SECURE`), deshalb klappt die Anmeldung dort nur
+über die Domain, nicht direkt über Port 8080. Für Google Kalender in der Google
+Cloud Console `https://<Domain>/api/google/callback` als Weiterleitungs-URI
+eintragen. Für WhatsApp ist dieselbe Adresse mit `/api/whatsapp` die Callback
+URL; ein Tunnel wie ngrok ist dann nicht mehr nötig.
 
 ## Wiederkehrende Aufgaben
 
@@ -552,8 +669,9 @@ openrouteservice; sie darf nicht entfernt werden.
 
 FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im
 Startmenü bzw. auf dem Startbildschirm). In Edge oder Chrome
-`http://localhost:5173` öffnen und in der Adressleiste auf „App installieren“
-klicken (Edge: Menü „Apps“ → „Diese Website als App installieren“).
+`http://localhost:5173` (mit Docker: `http://localhost:8080`) öffnen und in der
+Adressleiste auf „App installieren“ klicken (Edge: Menü „Apps“ → „Diese Website
+als App installieren“).
 
 Auf dem Handy funktioniert das erst, wenn FamilyHub dort über HTTPS erreichbar
 ist, also auf einem Server läuft; im lokalen Entwicklungsbetrieb ist die
@@ -566,7 +684,9 @@ Oberfläche nur auf dem eigenen Rechner erreichbar.
 ├── src/test/java/de/familyhub/   Backend-Tests, gleiche Pakete
 ├── frontend/                     Oberfläche (React, siehe frontend/README.md)
 ├── scripts/                      Hilfsskripte (z. B. MongoDB starten)
-└── docker-compose.yml            MongoDB alternativ per Docker
+├── deploy/                       FamilyHub komplett per Docker (compose.yaml, Vorlage für .env)
+├── Dockerfile                    Docker-Image: Oberfläche und Backend in einem
+└── compose.dev-mongodb.yaml      nur MongoDB für die Entwicklung, per Docker
 ```
 
 Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
