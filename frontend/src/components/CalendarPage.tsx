@@ -21,6 +21,8 @@ import { SoonBadge } from './Placeholder';
 import { PLACEHOLDER } from '../placeholders';
 import { getWasteCollection } from '../waste/api';
 import { useAutoRefresh } from '../api/useAutoRefresh';
+import { countdownText, type Holiday } from '../holidays/api';
+import { useHolidays, useUpcomingHolidays } from '../holidays/useHolidays';
 import { readable } from '../family/colors';
 
 type SelectEvent = (event: CalendarEvent) => void;
@@ -178,7 +180,23 @@ function EventPill({ event, compact = false, onSelect }: { event: CalendarEvent;
 // ─── month view ───────────────────────────────────────────────────────────────
 
 // Klick auf einen Tag (auch auf "+2 weitere") öffnet ihn in der Tagesansicht
-function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, onSelectDay }: { year: number; month: number; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; onSelect: SelectEvent; onSelectDay: SelectDay }) {
+// Feiertag als Kennzeichen am Tag; kein Termin, darum nicht anklickbar
+function HolidayBadge({ holiday, className = '' }: { holiday: Holiday; className?: string }) {
+  return (
+    <div title={`Feiertag: ${holiday.name}`}
+      className={`text-[9px] font-semibold px-1 py-0.5 rounded truncate bg-[#FFF7ED] text-[#C2410C] ${className}`}>
+      {holiday.emoji} {holiday.name}
+    </div>
+  );
+}
+
+const holidaysByDate = (holidays: Holiday[]) => {
+  const byDate: Record<string, Holiday[]> = {};
+  holidays.forEach(h => { (byDate[h.date] ??= []).push(h); });
+  return byDate;
+};
+
+function MonthView({ year, month, events: allEvents, garbagePickups, holidays, onSelect, onSelectDay }: { year: number; month: number; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; holidays: Holiday[]; onSelect: SelectEvent; onSelectDay: SelectDay }) {
   // Leere Tage vor dem Ersten: die Woche beginnt am Montag
   const firstDay    = weekdayIndex(new Date(year, month, 1));
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -187,6 +205,7 @@ function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, o
 
   const garbageByDate: Record<string, GarbagePickup[]> = {};
   garbagePickups.forEach(g => { (garbageByDate[g.date] ??= []).push(g); });
+  const holidayByDate = holidaysByDate(holidays);
 
   const cells: { day: number; type: 'prev' | 'curr' | 'next' }[] = [];
   for (let i = firstDay - 1; i >= 0; i--) cells.push({ day: daysInPrev - i, type: 'prev' });
@@ -214,6 +233,7 @@ function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, o
           const isWeekEnd   = i % 7 >= 5;
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`;
           const garbage = cell.type === 'curr' ? garbageByDate[dateStr] ?? [] : [];
+          const dayHolidays = cell.type === 'curr' ? holidayByDate[dateStr] ?? [] : [];
           // Tage des Vor- und Folgemonats liegen davor bzw. danach
           const cellDate = new Date(year, month, i - firstDay + 1);
           const openDay = (e: MouseEvent) => { e.stopPropagation(); onSelectDay(cellDate); };
@@ -234,6 +254,8 @@ function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, o
                 </button>
                 {hasConflict && <AlertTriangleIcon size={11} className="text-[#EF4444]" />}
               </div>
+
+              {dayHolidays.map(h => <HolidayBadge key={h.key} holiday={h} className="mb-0.5" />)}
 
               {/* Garbage badge */}
               {garbage.map(g => (
@@ -262,7 +284,7 @@ function MonthView({ year, month, events: allEvents, garbagePickups, onSelect, o
 
 // ─── week view (enhanced) ─────────────────────────────────────────────────────
 
-function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset: number; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; onSelect: SelectEvent }) {
+function WeekView({ weekOffset, events, garbagePickups, holidays, onSelect }: { weekOffset: number; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; holidays: Holiday[]; onSelect: SelectEvent }) {
   const { memberById } = useCalendarData();
   const todayKey = toDateKey(startOfToday());
   const startOfWeek = mondayOf(addDays(startOfToday(), weekOffset * 7));
@@ -283,6 +305,7 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
 
   const garbageByDate: Record<string, GarbagePickup[]> = {};
   garbagePickups.forEach(g => { (garbageByDate[g.date] ??= []).push(g); });
+  const holidayByDate = holidaysByDate(holidays);
 
   const getEventsForDay = (date: Date) => {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -328,6 +351,7 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
                 ))}
                 {hasConflict && <AlertTriangleIcon size={9} className="text-[#EF4444] ml-0.5" />}
               </div>
+              {(holidayByDate[dateStr] ?? []).map(h => <HolidayBadge key={h.key} holiday={h} className="mx-1 mt-1" />)}
               {/* Garbage reminder badge */}
               {garbage.map(g => (
                 <div key={g.id} title={`Müllabfuhr: ${g.type}`}
@@ -458,16 +482,22 @@ function WeekView({ weekOffset, events, garbagePickups, onSelect }: { weekOffset
 
 // ─── day view ─────────────────────────────────────────────────────────────────
 
-function DayView({ day, events, garbagePickups, onSelect }: { day: Date; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; onSelect: SelectEvent }) {
+function DayView({ day, events, garbagePickups, holidays, onSelect }: { day: Date; events: CalendarEvent[]; garbagePickups: GarbagePickup[]; holidays: Holiday[]; onSelect: SelectEvent }) {
   const dayKey = toDateKey(day);
   const isToday = dayKey === toDateKey(startOfToday());
   const dayEvents = events
     .filter(e => occursOn(e, dayKey))
     .sort((a, b) => a.time.localeCompare(b.time));
   const dayPickups = garbagePickups.filter(pickup => pickup.date === dayKey);
+  const dayHolidays = holidays.filter(h => h.date === dayKey);
 
   return (
     <div className="space-y-3">
+      {dayHolidays.map(h => (
+        <div key={h.key} className="rounded-xl border border-[#FED7AA] bg-[#FFF7ED] px-4 py-3 text-sm font-semibold text-[#C2410C]">
+          {h.emoji} Feiertag: {h.name}
+        </div>
+      ))}
       {dayPickups.map(pickup => (
         <div key={pickup.id} className="rounded-xl border px-4 py-3 text-sm font-semibold"
           style={{ backgroundColor: wasteStyle(pickup.type).bg, color: wasteStyle(pickup.type).dot, borderColor: `${wasteStyle(pickup.type).dot}40` }}>
@@ -475,7 +505,7 @@ function DayView({ day, events, garbagePickups, onSelect }: { day: Date; events:
         </div>
       ))}
       {dayEvents.length === 0 ? (
-        dayPickups.length === 0 && <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-500">
+        dayPickups.length === 0 && dayHolidays.length === 0 && <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-500">
           {isToday ? 'Heute keine Termine 🎉' : 'An diesem Tag keine Termine'}
         </div>
       ) : (
@@ -575,6 +605,13 @@ export default function CalendarPage({ onNavigate }: Props) {
   const endOfShownWeek = toDateKey(addDays(shownDay, (7 - shownDay.getDay()) % 7));
 
   const conflicts = visibleEvents.filter(e => e.conflict || e.travelConflict);
+
+  // Feiertage im sichtbaren Zeitraum (Monat samt angeschnittener Wochen) und der Countdown zum nächsten
+  const [holidayFrom, holidayTo] = view === 'month'
+    ? [toDateKey(addDays(new Date(year, month, 1), -7)), toDateKey(addDays(new Date(year, month + 1, 0), 14))]
+    : view === 'week' ? [toDateKey(weekStart), toDateKey(addDays(weekStart, 6))] : [toDateKey(shownDay), toDateKey(shownDay)];
+  const holidays = useHolidays(holidayFrom, holidayTo);
+  const nextHoliday = useUpcomingHolidays(1)[0];
 
   // Upcoming garbage pickups for sidebar
   const upcomingGarbage = garbagePickups
@@ -729,12 +766,21 @@ export default function CalendarPage({ onNavigate }: Props) {
         </div>
       )}
 
-      {/* Garbage reminder strip */}
-      {upcomingGarbage.length > 0 && (
+      {/* Countdown zum nächsten Feiertag und Müllabfuhr */}
+      {(nextHoliday || upcomingGarbage.length > 0) && (
         <div className="mb-5 flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            Müllabfuhr
-          </span>
+          {nextHoliday && (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-[#FED7AA] bg-[#FFF7ED] text-[#C2410C]"
+              title={`Countdown: ${nextHoliday.name} am ${formatLongDate(fromDateKey(nextHoliday.date))}`}>
+              {nextHoliday.emoji} {nextHoliday.name}
+              <span className="font-bold">· {countdownText(nextHoliday.daysLeft)}</span>
+            </span>
+          )}
+          {upcomingGarbage.length > 0 && (
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 sm:ml-2">
+              Müllabfuhr
+            </span>
+          )}
           {upcomingGarbage.map(g => {
             const ws  = WASTE_STYLES[g.type] ?? WASTE_STYLES['Restmüll'];
             const days  = Math.round((fromDateKey(g.date).getTime() - today.getTime()) / 86_400_000);
@@ -771,9 +817,9 @@ export default function CalendarPage({ onNavigate }: Props) {
       )}
 
       {/* Views */}
-      {view === 'month' && <MonthView year={year} month={month} events={visibleEvents} garbagePickups={garbagePickups} onSelect={openEditor} onSelectDay={showDay} />}
-      {view === 'week'  && <WeekView weekOffset={weekOffset} events={visibleEvents} garbagePickups={garbagePickups} onSelect={openEditor} />}
-      {view === 'day'   && <DayView day={shownDay} events={visibleEvents} garbagePickups={garbagePickups} onSelect={openEditor} />}
+      {view === 'month' && <MonthView year={year} month={month} events={visibleEvents} garbagePickups={garbagePickups} holidays={holidays} onSelect={openEditor} onSelectDay={showDay} />}
+      {view === 'week'  && <WeekView weekOffset={weekOffset} events={visibleEvents} garbagePickups={garbagePickups} holidays={holidays} onSelect={openEditor} />}
+      {view === 'day'   && <DayView day={shownDay} events={visibleEvents} garbagePickups={garbagePickups} holidays={holidays} onSelect={openEditor} />}
 
       {/* Upcoming events (day view only) */}
       {view === 'day' && (

@@ -85,11 +85,11 @@ Dokumentation und Optimierungen.
 
 **Countdowns für Feiertage und besondere Anlässe**
 
-- ⬜ Verbleibende Tage bis zu wichtigen Feiertagen
-- ⬜ Anzeige auf der Übersicht und im Kalender
-- ⬜ Neujahr, Ostern, Christi Himmelfahrt, Pfingsten, Tag der Deutschen
+- 🔄 Verbleibende Tage bis zu wichtigen Feiertagen
+- 🔄 Anzeige auf der Übersicht und im Kalender
+- 🔄 Neujahr, Ostern, Christi Himmelfahrt, Pfingsten, Tag der Deutschen
   Einheit, Weihnachten
-- ⬜ Jedes Jahr automatisch aktualisiert
+- 🔄 Jedes Jahr automatisch aktualisiert
 
 **Tests vor Version 1.0**
 
@@ -127,7 +127,7 @@ nutzbarer Open-Source-Familienplaner.
 - 🔄 Open Route Service (Fahrzeit)
 - ✅ Rollen und Rechte
 - ⬜ Geburtstage
-- ⬜ Feiertags-Countdowns
+- 🔄 Feiertags-Countdowns
 
 **Nach dem Release**
 

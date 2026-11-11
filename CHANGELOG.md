@@ -4,6 +4,16 @@ Alle Versionen von FamilyHub AI mit den wichtigsten Neuerungen. Jede Version ist
 auf `main` mit einem Tag markiert (`v0.1.0`, …). Ältere Einträge beschreiben den
 Stand ihrer Version; was sich später geändert hat, steht bei der neueren Version.
 
+## In Arbeit (v0.9.0)
+
+### Neu
+
+- **Countdown zu Feiertagen:** Die Übersicht zählt die Tage bis zum nächsten
+  Feiertag herunter, der Kalender zeigt den Countdown oben und markiert
+  Feiertage an ihrem Tag: Neujahr, Ostern, Christi Himmelfahrt, Pfingsten, Tag
+  der Deutschen Einheit und Weihnachten (Heiligabend). Neue Endpunkte
+  `/api/holidays` und `/api/holidays/upcoming`.
+
 ## v0.8.0 – 11.11.2026
 
 ### Neu
