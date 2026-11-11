@@ -27,7 +27,7 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | Fahrzeit | Ort eines Termins aus der Ortssuche, Fahrzeit vom Wohnort mit Auto, Fahrrad oder zu Fuß und Abfahrtszeit (OpenRouteService) |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
-| Sonstiges | Änderungen anderer erscheinen ohne Neuladen; als App installierbar; Konto-Sperre nach fünf falschen Passwörtern |
+| Sonstiges | „Rückgängig“ nach dem Löschen von Terminen, Aufgaben und Einkaufsartikeln; Änderungen anderer erscheinen ohne Neuladen; als App installierbar; Konto-Sperre nach fünf falschen Passwörtern |
 
 Noch nicht umgesetzt sind der KI-Assistent, die Glocke mit Benachrichtigungen
 in der App (Benachrichtigungen kommen bisher nur über Telegram), die
@@ -710,7 +710,8 @@ Oberfläche nur auf dem eigenen Rechner erreichbar.
 ├── src/test/java/de/familyhub/   Backend-Tests, gleiche Pakete
 ├── frontend/                     Oberfläche (React, siehe frontend/README.md)
 ├── scripts/                      Hilfsskripte (z. B. MongoDB starten)
-├── deploy/                       FamilyHub komplett per Docker (compose.yaml, Vorlage für .env)
+├── deploy/                       FamilyHub komplett per Docker (Startfenster, Startskripte, compose.yaml)
+├── regression/                   Regressionstests im Browser (Cucumber, Playwright, axe), Start mit regression.sh
 ├── Dockerfile                    Docker-Image: Oberfläche und Backend in einem
 └── compose.dev-mongodb.yaml      nur MongoDB für die Entwicklung, per Docker
 ```
@@ -720,7 +721,8 @@ Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
 `weather`, `whatsapp`, `telegram`, `family` und `settings`. Querschnittsthemen
 liegen in `security` (Anmeldung), `permission` (Rollen und Rechte), `inbox`
 (gemeinsamer Eingang für Nachrichten von WhatsApp und Telegram), `notifications`
-(Benachrichtigungen über Telegram), `live` (Live-Aktualisierung), `web`
+(Benachrichtigungen über Telegram), `live` (Live-Aktualisierung), `undo`
+(„Rückgängig“ nach Löschungen), `web`
 (Fehlerbehandlung, CORS, Swagger) und `sampledata` (Beispielfamilie).
 
 ## Dokumentation
@@ -733,6 +735,9 @@ Konzepte, Diagramme, User Stories, Personas und das Figma-UI liegen im
 Team-Ordner, nicht im Repository.
 
 ## Zusammenarbeit
+
+Wie du einsteigst, arbeitest und vor einem Merge prüfst, steht ausführlich in
+[CONTRIBUTING.md](CONTRIBUTING.md). Kurz:
 
 - **Branches:**
   - `main` enthält nur geprüfte, lauffähige Stände; jede Version hat einen Tag

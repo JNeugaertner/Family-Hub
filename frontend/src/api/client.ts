@@ -36,6 +36,22 @@ function csrfToken(): string | undefined {
 }
 
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return (await send<T>(path, init)).result;
+}
+
+// Löschungen, die sich rückgängig machen lassen: Das Backend schickt dazu eine Marke im Header X-Undo-Token
+// (null, wenn es nichts rückgängig zu machen gibt, z. B. bei Serienterminen).
+export interface Undoable<T> {
+  result: T;
+  undoToken: string | null;
+}
+
+export async function requestUndoable<T>(path: string, init: RequestInit = {}): Promise<Undoable<T>> {
+  const { result, response } = await send<T>(path, init);
+  return { result, undoToken: response.headers.get('X-Undo-Token') };
+}
+
+async function send<T>(path: string, init: RequestInit): Promise<{ result: T; response: Response }> {
   const method = (init.method ?? 'GET').toUpperCase();
   const headers = new Headers(init.headers);
   if (typeof init.body === 'string') headers.set('Content-Type', 'application/json');
@@ -56,7 +72,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     if (response.status === 401 && !path.startsWith('/api/auth/')) onUnauthorized();
     throw new ApiError(response.status, problem);
   }
-  return response.status === 204 ? (undefined as T) : response.json();
+  return { result: response.status === 204 ? (undefined as T) : await response.json(), response };
 }
 
 export const json = (body: unknown) => JSON.stringify(body);

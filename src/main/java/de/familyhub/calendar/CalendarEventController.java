@@ -25,10 +25,12 @@ import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
 import de.familyhub.notifications.EventNotifications;
 import de.familyhub.security.CurrentMember;
+import de.familyhub.undo.UndoService;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 @RestController
@@ -42,16 +44,18 @@ public class CalendarEventController {
     private final CalendarAccess access;
     private final EventNotifications notifications;
     private final EventSeriesService seriesService;
+    private final UndoService undo;
 
     public CalendarEventController(CalendarEventRepository events, FamilyMemberRepository members,
             CurrentMember currentMember, CalendarAccess access, EventNotifications notifications,
-            EventSeriesService seriesService) {
+            EventSeriesService seriesService, UndoService undo) {
         this.events = events;
         this.members = members;
         this.currentMember = currentMember;
         this.access = access;
         this.notifications = notifications;
         this.seriesService = seriesService;
+        this.undo = undo;
     }
 
     @GetMapping
@@ -167,12 +171,14 @@ public class CalendarEventController {
             + "also die ganze Serie). Ein Vorschlag für eine Serie wird immer ganz zurückgezogen.")
     public void delete(@PathVariable String id,
             @Parameter(description = "Nur bei Serienterminen: single (Standard) oder following")
-            @RequestParam(defaultValue = "single") SeriesScope scope) {
+            @RequestParam(defaultValue = "single") SeriesScope scope, HttpServletResponse response) {
         FamilyMember viewer = currentMember.get();
         CalendarEvent existing = findVisible(id, viewer);
         requireNotImported(existing);
         access.requireDelete(viewer, existing);
         if (!existing.isSeries()) {
+            // Rückgängig nur für Einzeltermine; Serien ändern beim Löschen auch ihre Regel
+            response.setHeader(UndoService.HEADER, undo.remember("events", viewer, List.of(existing)));
             events.deleteById(id);
         } else if (scope == SeriesScope.FOLLOWING) {
             seriesService.following(existing).forEach(event -> access.requireDelete(viewer, event));

@@ -10,12 +10,14 @@ import { ShoppingDataProvider } from './shopping/ShoppingDataContext'
 import { MealDataProvider } from './meals/MealDataContext'
 import { MessageDataProvider } from './messages/MessageDataContext'
 import { ProfileCardProvider } from './profiles/ProfileCard'
+import { UndoProvider } from './undo/UndoContext'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AuthProvider>
       <AuthGate>
+        <UndoProvider>
         <CalendarDataProvider>
           <TaskDataProvider>
             <RewardDataProvider>
@@ -31,6 +33,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             </RewardDataProvider>
           </TaskDataProvider>
         </CalendarDataProvider>
+        </UndoProvider>
       </AuthGate>
     </AuthProvider>
   </React.StrictMode>,

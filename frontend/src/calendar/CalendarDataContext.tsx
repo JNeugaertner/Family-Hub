@@ -3,6 +3,7 @@ import { useAutoRefresh } from '../api/useAutoRefresh';
 import type { CalendarEvent } from '../components/data';
 import { listMembers, type ApiMember } from '../family/api';
 import type { RoleId } from '../roles';
+import { useUndo } from '../undo/UndoContext';
 import * as api from './api';
 import type { SeriesScope } from './recurrence';
 
@@ -104,6 +105,9 @@ export function CalendarDataProvider({ children }: { children: ReactNode }) {
   // Mitglieder stehen hier mit, Google-Termine kommen auch aus dem automatischen Abgleich
   useAutoRefresh(reload, ['events', 'members', 'settings', 'google']);
 
+  const { offer } = useUndo();
+  const undoAndReload = useCallback(async (token: string) => { await api.undoEvents(token); await reload(); }, [reload]);
+
   const afterChange = useCallback(<A extends unknown[]>(action: (...args: A) => Promise<unknown>) =>
     async (...args: A) => {
       await action(...args);
@@ -116,10 +120,14 @@ export function CalendarDataProvider({ children }: { children: ReactNode }) {
     reload,
     saveEvent: afterChange((input: api.EventInput, id?: string, scope?: SeriesScope) =>
       id ? api.updateEvent(id, input, scope) : api.createEvent(input)),
-    removeEvent: afterChange(api.deleteEvent),
+    removeEvent: afterChange(async (id: string, scope?: SeriesScope) => {
+      const title = events.find(e => e.id === id)?.title;
+      const { undoToken } = await api.deleteEvent(id, scope);
+      offer(title ? `Termin „${title}“ gelöscht.` : 'Termin gelöscht.', undoToken, undoAndReload);
+    }),
     approveEvent: afterChange(api.approveEvent),
     rejectEvent: afterChange(api.rejectEvent),
-  }), [status, error, members, events, reload, afterChange]);
+  }), [status, error, members, events, reload, afterChange, offer, undoAndReload]);
 
   return <CalendarDataContext.Provider value={value}>{children}</CalendarDataContext.Provider>;
 }
