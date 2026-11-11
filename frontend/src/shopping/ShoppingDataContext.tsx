@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAutoRefresh } from '../api/useAutoRefresh';
 import { useAuth } from '../auth/AuthContext';
+import { useUndo } from '../undo/UndoContext';
 import * as api from './api';
 
 interface ShoppingData {
@@ -50,6 +51,10 @@ export function ShoppingDataProvider({ children }: { children: ReactNode }) {
   // Der Essensplan legt Zutaten auf die Einkaufsliste
   useAutoRefresh(reload, ['shopping', 'meals']);
 
+  const { offer } = useUndo();
+  // Nach dem Wiederherstellen gleich neu laden (die Live-Meldung kommt ohnehin, aber später)
+  const undoAndReload = useCallback(async (token: string) => { await api.undoShopping(token); await reload(); }, [reload]);
+
   const afterChange = useCallback(<A extends unknown[], R>(action: (...args: A) => Promise<R>) =>
     async (...args: A) => {
       const result = await action(...args);
@@ -62,11 +67,19 @@ export function ShoppingDataProvider({ children }: { children: ReactNode }) {
     add: afterChange(api.addShoppingItem),
     update: afterChange(async (id: string, input: api.ShoppingInput) => { await api.updateShoppingItem(id, input); }),
     setChecked: afterChange(async (id: string, checked: boolean) => { await api.checkShoppingItem(id, checked); }),
-    remove: afterChange(api.deleteShoppingItem),
-    removeChecked: afterChange(api.deleteCheckedShoppingItems),
+    remove: afterChange(async (id: string) => {
+      const name = items.find(i => i.id === id)?.name;
+      const { undoToken } = await api.deleteShoppingItem(id);
+      offer(name ? `„${name}“ entfernt.` : 'Artikel entfernt.', undoToken, undoAndReload);
+    }),
+    removeChecked: afterChange(async () => {
+      const { result, undoToken } = await api.deleteCheckedShoppingItems();
+      offer('Abgehakte Artikel entfernt.', undoToken, undoAndReload);
+      return result;
+    }),
     approve: afterChange(async (id: string) => { await api.approveShoppingItem(id); }),
     reject: afterChange(api.rejectShoppingItem),
-  }), [items, status, error, reload, afterChange]);
+  }), [items, status, error, reload, afterChange, offer, undoAndReload]);
 
   return <ShoppingDataContext.Provider value={value}>{children}</ShoppingDataContext.Provider>;
 }

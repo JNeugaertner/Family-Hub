@@ -20,6 +20,6 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedOrigins(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE")
                 .allowCredentials(true)
-                .exposedHeaders("Location");
+                .exposedHeaders("Location", "X-Undo-Token");
     }
 }

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useAutoRefresh } from '../api/useAutoRefresh';
 import { useAuth } from '../auth/AuthContext';
 import { listBalances } from '../points/api';
+import { useUndo } from '../undo/UndoContext';
 import * as api from './api';
 
 type Status = 'loading' | 'ready' | 'error';
@@ -57,6 +58,9 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
   // Einlösungen und Erfolge ändern Punktestände
   useAutoRefresh(reload, ['tasks', 'redemptions', 'achievements', 'members']);
 
+  const { offer } = useUndo();
+  const undoAndReload = useCallback(async (token: string) => { await api.undoTasks(token); await reload(); }, [reload]);
+
   const afterChange = useCallback(<A extends unknown[], R>(action: (...args: A) => Promise<R>) =>
     async (...args: A) => {
       const result = await action(...args);
@@ -72,13 +76,22 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     changeStatus: afterChange(async (id: string, s: Exclude<api.TaskStatus, 'confirmed'>) => {
       await api.changeTaskStatus(id, s);
     }),
-    removeTask: afterChange(api.deleteTask),
-    removeCompletedTasks: afterChange(api.deleteCompletedTasks),
+    removeTask: afterChange(async (id: string) => {
+      const title = tasks.find(t => t.id === id)?.title;
+      const { undoToken } = await api.deleteTask(id);
+      offer(title ? `„${title}“ gelöscht.` : 'Aufgabe gelöscht.', undoToken, undoAndReload);
+    }),
+    removeCompletedTasks: afterChange(async () => {
+      const { result, undoToken } = await api.deleteCompletedTasks();
+      offer(result.deleted === 1 ? '1 abgeschlossene Aufgabe gelöscht.' : `${result.deleted} abgeschlossene Aufgaben gelöscht.`,
+        undoToken, undoAndReload);
+      return result;
+    }),
     confirmTask: afterChange(api.confirmTask),
     reopenTask: afterChange(async (id: string) => { await api.reopenTask(id); }),
     claimTask: afterChange(async (id: string) => { await api.claimTask(id); }),
     releaseTask: afterChange(async (id: string) => { await api.releaseTask(id); }),
-  }), [status, error, tasks, balances, reload, afterChange]);
+  }), [status, error, tasks, balances, reload, afterChange, offer, undoAndReload]);
 
   return <TaskDataContext.Provider value={value}>{children}</TaskDataContext.Provider>;
 }

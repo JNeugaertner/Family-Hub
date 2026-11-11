@@ -23,10 +23,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.security.CurrentMember;
+import de.familyhub.undo.UndoService;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -39,13 +41,15 @@ public class ShoppingController {
     private final CurrentMember currentMember;
     private final ShoppingAccess access;
     private final Clock clock;
+    private final UndoService undo;
 
     public ShoppingController(ShoppingItemRepository items, CurrentMember currentMember, ShoppingAccess access,
-            Clock clock) {
+            Clock clock, UndoService undo) {
         this.items = items;
         this.currentMember = currentMember;
         this.access = access;
         this.clock = clock;
+        this.undo = undo;
     }
 
     public record CheckedChange(@NotNull(message = "checked ist Pflicht") Boolean checked) {
@@ -138,17 +142,18 @@ public class ShoppingController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Artikel löschen oder eigenen Vorschlag zurückziehen")
-    public void delete(@PathVariable String id) {
+    public void delete(@PathVariable String id, HttpServletResponse response) {
         FamilyMember viewer = currentMember.get();
         ShoppingItem existing = findVisible(id, viewer);
         access.requireDelete(viewer, existing);
+        response.setHeader(UndoService.HEADER, undo.remember("shopping", viewer, List.of(existing)));
         items.deleteById(id);
     }
 
     @DeleteMapping("/checked")
     @Operation(summary = "Abgehakte Artikel entfernen",
             description = "Wiederkehrende Artikel bleiben: wieder offen oder unter \"Kommt wieder\".")
-    public Deleted deleteChecked() {
+    public Deleted deleteChecked(HttpServletResponse response) {
         FamilyMember viewer = currentMember.get();
         access.requireView(viewer);
         access.requireDeleteChecked(viewer);
@@ -156,6 +161,11 @@ public class ShoppingController {
         List<ShoppingItem> checked = items.findByCheckedTrueAndStatus(ShoppingItemStatus.APPROVED).stream()
                 .filter(item -> !item.isWaiting())
                 .toList();
+        // Rückgängig: gelöschte Artikel zurück, wiederkehrende in ihren abgehakten Zustand
+        String token = undo.remember("shopping", viewer, checked);
+        if (token != null) {
+            response.setHeader(UndoService.HEADER, token);
+        }
         List<ShoppingItem> bought = checked.stream().filter(item -> item.repeat() == null).toList();
         List<ShoppingItem> repeating = checked.stream()
                 .filter(item -> item.repeat() != null)

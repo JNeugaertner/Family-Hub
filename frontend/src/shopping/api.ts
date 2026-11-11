@@ -1,4 +1,4 @@
-import { json, request } from '../api/client';
+import { json, request, requestUndoable } from '../api/client';
 
 export type ShoppingCategory =
   'milchprodukte' | 'backwaren' | 'fleisch' | 'gemuese' | 'obst' | 'getraenke' | 'vorrat' | 'tiefkuehl' | 'snacks' | 'haushalt' | 'zutaten_essensplanung';
@@ -57,10 +57,15 @@ export const updateShoppingItem = (id: string, input: ShoppingInput) =>
 export const checkShoppingItem = (id: string, checked: boolean) =>
   request<ShoppingItem>(`/api/shopping/${id}/checked`, { method: 'PATCH', body: json({ checked }) });
 
-export const deleteShoppingItem = (id: string) => request<void>(`/api/shopping/${id}`, { method: 'DELETE' });
+export const deleteShoppingItem = (id: string) =>
+  requestUndoable<void>(`/api/shopping/${id}`, { method: 'DELETE' });
 
 export const deleteCheckedShoppingItems = () =>
-  request<RemovedChecked>('/api/shopping/checked', { method: 'DELETE' });
+  requestUndoable<RemovedChecked>('/api/shopping/checked', { method: 'DELETE' });
+
+// Gelöschte Artikel (auch nach „Abgehakte entfernen“) wiederherstellen
+export const undoShopping = (token: string) =>
+  request<{ restored: number }>(`/api/shopping/undo/${token}`, { method: 'POST' });
 
 export const approveShoppingItem = (id: string) =>
   request<ShoppingItem>(`/api/shopping/${id}/approve`, { method: 'POST' });
