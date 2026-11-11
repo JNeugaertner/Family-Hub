@@ -13,6 +13,10 @@ Stand ihrer Version; was sich später geändert hat, steht bei der neueren Versi
   Feiertage an ihrem Tag: Neujahr, Ostern, Christi Himmelfahrt, Pfingsten, Tag
   der Deutschen Einheit und Weihnachten (Heiligabend). Neue Endpunkte
   `/api/holidays` und `/api/holidays/upcoming`.
+- **Meine Anzeige:** Unter „Familie“ blendet jede Person für sich den
+  Feiertags-Countdown und die Feiertage im Kalender aus. Neuer Endpunkt
+  `/api/preferences`, neue Sammlung `memberPreferences`; wird ein
+  Familienmitglied gelöscht, verschwinden seine Einstellungen mit.
 
 ## v0.8.0 – 11.11.2026
 

@@ -80,3 +80,33 @@ Then('die API lehnt einen Zeitraum über 400 Tage ab', async function () {
   expect(response.status()).toBe(400);
   expect((await response.json()).errors).toHaveProperty('to');
 });
+
+When('ich unter „Meine Anzeige“ {string} und {string} abwähle', async function (first, second) {
+  this.cleanupPaths.push('/api/preferences');
+  [this.nextHoliday] = await upcoming(this, 1);
+  const card = this.page.getByRole('region', { name: 'Meine Anzeige' });
+  for (const label of [first, second]) {
+    const box = card.getByRole('checkbox', { name: label });
+    await expect(box).toBeChecked();
+    await box.uncheck();
+    await expect(box).not.toBeChecked();
+  }
+  await expect.poll(async () => (await (await this.api('GET', '/api/preferences')).json()))
+    .toEqual({ holidayCountdown: false, holidaysInCalendar: false });
+});
+
+Then('zeigt die Übersicht keinen Feiertags-Countdown', async function () {
+  await expect(this.page.getByRole('heading', { name: 'Heute', exact: true })).toBeVisible();
+  await expect(this.page.getByRole('region', { name: 'Countdown bis zu den nächsten Feiertagen' })).toHaveCount(0);
+});
+
+Then('zeigt der Kalender weder Countdown noch Feiertage', async function () {
+  await expect(this.page.getByTitle('Countdown:', { exact: false })).toHaveCount(0);
+  await expect(this.page.getByTitle(`Feiertag: ${this.nextHoliday.name}`, { exact: true })).toHaveCount(0);
+});
+
+Then('für das Testmitglied sind Feiertage weiterhin eingeschaltet', async function () {
+  const response = await request(this.actor, 'GET', '/api/preferences');
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toEqual({ holidayCountdown: true, holidaysInCalendar: true });
+});

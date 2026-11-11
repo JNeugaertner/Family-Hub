@@ -13,6 +13,7 @@ import {
 import { FAMILY_COLORS, readable } from '../family/colors';
 import GoogleCalendarCard from '../google/GoogleCalendarCard';
 import WeatherLocationCard from '../weather/WeatherLocationCard';
+import DisplayCard from '../preferences/DisplayCard';
 import WasteCalendarCard from '../waste/WasteCalendarCard';
 import WhatsAppCard from '../whatsapp/WhatsAppCard';
 import TelegramCard from '../telegram/TelegramCard';
@@ -598,6 +599,7 @@ export default function Profiles({ onNavigate }: Props) {
         {mayManageRights && <WasteCalendarCard members={members} />}
         {mayManageRights && <OrsLocationCard/>}
         <PasswordCard />
+        <DisplayCard />
         <WhatsAppCard />
         {mayUseMessenger && <TelegramCard />}
         {mayConnectGoogle && <GoogleCalendarCard />}

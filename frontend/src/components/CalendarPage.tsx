@@ -23,6 +23,7 @@ import { getWasteCollection } from '../waste/api';
 import { useAutoRefresh } from '../api/useAutoRefresh';
 import { countdownText, type Holiday } from '../holidays/api';
 import { useHolidays, useUpcomingHolidays } from '../holidays/useHolidays';
+import { usePreferences } from '../preferences/PreferencesContext';
 import { readable } from '../family/colors';
 
 type SelectEvent = (event: CalendarEvent) => void;
@@ -610,8 +611,12 @@ export default function CalendarPage({ onNavigate }: Props) {
   const [holidayFrom, holidayTo] = view === 'month'
     ? [toDateKey(addDays(new Date(year, month, 1), -7)), toDateKey(addDays(new Date(year, month + 1, 0), 14))]
     : view === 'week' ? [toDateKey(weekStart), toDateKey(addDays(weekStart, 6))] : [toDateKey(shownDay), toDateKey(shownDay)];
-  const holidays = useHolidays(holidayFrom, holidayTo);
-  const nextHoliday = useUpcomingHolidays(1)[0];
+  // Jede Person kann beides für sich ausblenden („Meine Anzeige“ unter „Familie“)
+  const { preferences } = usePreferences();
+  const allHolidays = useHolidays(holidayFrom, holidayTo);
+  const holidays = preferences.holidaysInCalendar ? allHolidays : [];
+  const upcomingHoliday = useUpcomingHolidays(1)[0];
+  const nextHoliday = preferences.holidayCountdown ? upcomingHoliday : undefined;
 
   // Upcoming garbage pickups for sidebar
   const upcomingGarbage = garbagePickups

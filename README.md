@@ -503,7 +503,13 @@ Deutschen Einheit und Weihnachten; Weihnachten zählt bis Heiligabend.
 Feiertage sind keine Termine: Sie stehen nicht in der Datenbank, gehen nicht
 nach Google und lösen keine Benachrichtigungen aus. FamilyHub berechnet sie
 jedes Jahr neu, auch das wandernde Osterdatum. Sehen dürfen sie alle, auch Gäste.
-Schnittstelle: `GET /api/holidays?from=…&to=…` und `GET /api/holidays/upcoming`.
+
+**Ausblenden:** Jede Person entscheidet selbst unter „Familie“ → „Meine Anzeige“,
+ob sie den Countdown (Übersicht und Kalender) und die Feiertage im Kalender
+sieht. Das gilt nur für sie; ohne Einstellung ist beides an.
+
+Schnittstelle: `GET /api/holidays?from=…&to=…`, `GET /api/holidays/upcoming` und
+für die eigene Anzeige `GET`, `PUT` und `DELETE` (zurücksetzen) auf `/api/preferences`.
 
 ## Serientermine
 
@@ -762,7 +768,8 @@ Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
 `weather`, `whatsapp`, `telegram`, `holidays`, `family` und `settings`. Querschnittsthemen
 liegen in `security` (Anmeldung), `permission` (Rollen und Rechte), `inbox`
 (gemeinsamer Eingang für Nachrichten von WhatsApp und Telegram), `notifications`
-(Benachrichtigungen über Telegram), `live` (Live-Aktualisierung), `undo`
+(Benachrichtigungen über Telegram), `preferences` (eigene
+Anzeige-Einstellungen), `live` (Live-Aktualisierung), `undo`
 („Rückgängig“ nach Löschungen), `web`
 (Fehlerbehandlung, CORS, Swagger) und `sampledata` (Beispielfamilie).
 

@@ -33,3 +33,14 @@ Funktionalität: Countdown zu Feiertagen
     Dann sieht das Testmitglied die nächsten Feiertage
     Und ohne Anmeldung liefert die API keine Feiertage
     Und die API lehnt einen Zeitraum über 400 Tage ab
+
+  Szenario: Jede Person blendet Feiertage für sich aus
+    Angenommen ein Testmitglied mit Rolle "kind" existiert
+    Wenn ich den Bereich "Familie" öffne
+    Und ich unter „Meine Anzeige“ "Countdown bis zum nächsten Feiertag" und "Feiertage im Kalender" abwähle
+    Und ich den Bereich "Übersicht" öffne
+    Dann zeigt die Übersicht keinen Feiertags-Countdown
+    Wenn ich den Bereich "Kalender" öffne
+    Und ich im Monatskalender zum Monat des nächsten Feiertags blättere
+    Dann zeigt der Kalender weder Countdown noch Feiertage
+    Und für das Testmitglied sind Feiertage weiterhin eingeschaltet
