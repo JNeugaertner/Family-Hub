@@ -2,3 +2,7 @@ node_modules/
 !reports/.gitkeep
 source/
 *.env
+# Testergebnisse nicht einchecken (Beispielbericht cucumber.html bleibt)
+reports/*
+!reports/.gitkeep
+!reports/cucumber.html

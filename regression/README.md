@@ -1,5 +1,42 @@
 # Installation der FamilyHub-Regressionstests
 
+## Schnellstart: Tests auf Knopfdruck (Docker)
+
+Ein Befehl baut FamilyHub aus dem **aktuellen Checkout** und startet es mit einer leeren
+Wegwerf-Datenbank auf `http://127.0.0.1:8081`. Danach laufen die Tests, und am Ende wird
+alles wieder entfernt. Ein laufendes FamilyHub (Port 8080, eigene Datenbank) bleibt
+unberührt; jeder Lauf beginnt mit „Familie einrichten“.
+
+Voraussetzung: Docker Desktop (oder Podman) läuft. Node.js ist optional: Ohne Node.js
+laufen die Tests im Playwright-Container, dann ohne sichtbaren Browser.
+
+```bash
+cd regression
+./regression.sh                      # macOS/Linux: alle Tests, Browser sichtbar
+./regression.sh --headless           # ohne Browserfenster
+./regression.sh --tags @smoke        # nur bestimmte Tests (auch @calendar, @tasks, @security …)
+./regression.sh --container          # Tests im Container (ohne Node.js)
+./regression.sh --keep               # Testumgebung danach weiterlaufen lassen
+./regression.sh down                 # weiterlaufende Testumgebung beenden
+```
+
+Unter Windows gleich, nur mit `.\regression.ps1` statt `./regression.sh` (bei einer
+Sperre: `powershell -ExecutionPolicy Bypass -File .\regression.ps1`). Belegt etwas
+Port 8081, wählt `REGRESSION_PORT` einen anderen.
+
+Der Bericht liegt danach in `regression/reports/cucumber.html`. Ein voller Lauf dauert
+etwa sechs Minuten, der erste wegen des Bauens etwas länger.
+
+Abgedeckt sind Anmeldung, Rechte, Sicherheit und Barrierefreiheit, Einkaufsliste mit
+wiederkehrenden Artikeln, Kalender (Formular, ganztägige Termine, Vorlagen, Serien,
+Vorschläge, private Termine) und Aufgaben (Abhaken, wiederkehrende Runden, Punkte und
+Bestätigung, Bonus-Aufgaben).
+
+Das Podman-Testlabor unten bleibt für Uwes Aufbau mit sichtbarem Linux-Desktop und den
+Backend-Tests.
+
+---
+
 Diese Anleitung beschreibt das Podman-Testlabor mit Cucumber, Playwright,
 axe und nativen JUnit-Backendtests. Der sichtbare Testbrowser läuft auf einem
 Linux-Desktop, der über den Webbrowser erreichbar ist.
