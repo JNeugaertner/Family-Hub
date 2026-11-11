@@ -6,8 +6,9 @@ FamilyHub AI bündelt Kalender, Aufgaben, Einkauf, Essensplanung, Nachrichten,
 Wetter und Müllabfuhr in einer gemeinsamen Oberfläche für die ganze Familie.
 Leitprinzip: **Der Agent informiert und bereitet vor, die Eltern entscheiden.**
 
-**Status:** Proof of Concept, Version 0.7.0 vom 09.11.2026. Was sich in welcher
-Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
+**Status:** Proof of Concept, Version 0.8.0 vom 11.11.2026. Was sich in welcher
+Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md), was als Nächstes
+kommt, in der [Roadmap](ROADMAP.md).
 
 ## Funktionen
 
@@ -34,7 +35,8 @@ in der App (Benachrichtigungen kommen bisher nur über Telegram), die
 Sprachsteuerung sowie Warnungen, wenn sich Fahrzeit und andere Termine
 überschneiden. Die Oberfläche
 kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
-(`frontend/src/placeholders.ts`).
+(`frontend/src/placeholders.ts`). Geplant sind als Nächstes Geburtstage und
+Countdowns zu Feiertagen (Version 0.9, siehe [Roadmap](ROADMAP.md)).
 
 ## Tech-Stack
 
@@ -43,7 +45,7 @@ kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 | Backend | Java 25, Spring Boot 4.1, Spring Security (Sitzungs-Cookie, CSRF), Maven Wrapper |
 | Datenbank | MongoDB 8.0 (lokal) |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS 4 (ursprünglich aus Figma Make) |
-| Tests | JUnit 5, MockMvc, eingebettete MongoDB (Flapdoodle) |
+| Tests | JUnit 5, MockMvc, eingebettete MongoDB (Flapdoodle); Regressionstests im Browser mit Cucumber, Playwright und axe |
 
 ## FamilyHub starten
 
@@ -176,11 +178,15 @@ Datenbank.
 ### Für Entwickler
 
 ```bash
-./mvnw test        # Backend-Tests (Windows: .\mvnw.cmd test), braucht keine laufende MongoDB
+./mvnw test                     # Backend-Tests (Windows: .\mvnw.cmd test), braucht keine laufende MongoDB
+regression/regression.sh        # Regressionstests im Browser (Windows: regression\regression.ps1), braucht Docker
 ```
 
 Der erste Testlauf lädt einmalig eine Test-MongoDB herunter (ca. 840 MB, einige
-Minuten). Die REST-Schnittstelle lässt sich bei laufendem Backend unter
+Minuten). Die Regressionstests bauen FamilyHub aus dem aktuellen Stand und
+starten es mit einer leeren Wegwerf-Datenbank auf Port 8081; die laufende
+Instanz und ihre Daten bleiben unberührt. Details in
+[regression/README.md](regression/README.md). Die REST-Schnittstelle lässt sich bei laufendem Backend unter
 http://localhost:8080/swagger-ui.html ausprobieren. Statt `scripts/start-mongodb…`
 geht die Datenbank auch per Docker: `docker compose -f compose.dev-mongodb.yaml up -d`
 im Projektordner (beenden mit `docker compose -f compose.dev-mongodb.yaml down`).
@@ -464,6 +470,28 @@ Vorlagen haben alle, die Termine anlegen oder vorschlagen dürfen (in den
 Standardrollen Eltern und Jugendliche, nicht Kinder und Gäste). Private
 Vorlagen sieht nur, wer sie angelegt hat. Schnittstelle: `/api/event-templates`.
 
+## Rückgängig
+
+Wer einen Termin, eine Aufgabe oder einen Einkaufsartikel löscht, „Abgehakte
+entfernen“ oder „Erledigte löschen“ wählt, sieht unten acht Sekunden lang einen
+Hinweis mit **„Rückgängig“**. Ein Klick holt alles so zurück, wie es war: mit
+Ersteller, Beteiligten, Status und Punkten. Wiederkehrende Artikel bekommen
+ihren alten Stand zurück, auch wenn „Abgehakte entfernen“ sie schon wieder auf
+die Liste gesetzt oder unter „Kommt wieder“ geschoben hatte.
+
+- Rückgängig machen kann nur, wer gelöscht hat, und nur einmal. Über die
+  Schnittstelle geht das noch fünf Minuten lang, in der Oberfläche solange der
+  Hinweis zu sehen ist.
+- Serientermine sind ausgenommen, weil beim Löschen auch die Serie selbst
+  geändert wird.
+- Andere offene Browser zeigen den wiederhergestellten Eintrag ohne Neuladen;
+  ein Google-Export trägt ihn wieder ein.
+
+Schnittstelle: Die Löschung liefert im Header `X-Undo-Token` eine Marke,
+`POST /api/{events,tasks,shopping}/undo/{token}` stellt wieder her. FamilyHub
+merkt sich den alten Stand in der Sammlung `undoSnapshots`, die MongoDB nach
+15 Minuten selbst aufräumt.
+
 ## Serientermine
 
 Im Termin-Formular unter „Wiederholen“ wird aus einem Termin eine Serie:
@@ -726,6 +754,10 @@ liegen in `security` (Anmeldung), `permission` (Rollen und Rechte), `inbox`
 (Fehlerbehandlung, CORS, Swagger) und `sampledata` (Beispielfamilie).
 
 ## Dokumentation
+
+- [CHANGELOG.md](CHANGELOG.md): was sich in welcher Version geändert hat
+- [ROADMAP.md](ROADMAP.md): was für die nächsten Versionen geplant ist
+- [CONTRIBUTING.md](CONTRIBUTING.md): wie man mitarbeitet
 
 Die REST-Schnittstelle ist bei laufendem Backend in der Swagger UI beschrieben
 und lässt sich dort ausprobieren: **http://localhost:8080/swagger-ui.html**

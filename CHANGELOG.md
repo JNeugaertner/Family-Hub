@@ -4,6 +4,68 @@ Alle Versionen von FamilyHub AI mit den wichtigsten Neuerungen. Jede Version ist
 auf `main` mit einem Tag markiert (`v0.1.0`, …). Ältere Einträge beschreiben den
 Stand ihrer Version; was sich später geändert hat, steht bei der neueren Version.
 
+## v0.8.0 – 11.11.2026
+
+### Neu
+
+- **Einfacher Start mit Docker:** FamilyHub läuft jetzt ohne Java, Node.js und
+  MongoDB auf dem Rechner, nur mit Docker Desktop (oder Podman). Der Ordner
+  `deploy/` enthält alles; beim ersten Start legt FamilyHub die Einstellungen
+  mit einem zufälligen Datenbank-Passwort selbst an. Dazu gibt es Sicherung und
+  Wiederherstellung (`backup.sh`) und eine Vorlage für den Betrieb auf einem
+  Server mit HTTPS (Caddy).
+- **Startfenster:** Ein Doppelklick auf `deploy/FamilyHub.bat` (Windows) oder
+  `deploy/FamilyHub.app` (macOS) öffnet ein kleines Fenster mit „Starten“ und
+  „Beenden“. Es zeigt, ob FamilyHub läuft, öffnet den Browser und erklärt
+  Fehler in Klartext; „Details“ zeigt das Protokoll.
+- **Rückgängig:** Nach dem Löschen eines Termins, einer Aufgabe oder eines
+  Einkaufsartikels, nach „Abgehakte entfernen“ und nach „Erledigte löschen“
+  erscheint unten kurz „Rückgängig“. Ein Klick holt alles mit allen Angaben
+  zurück. Serientermine sind ausgenommen.
+- **Vorlagen für Termine:** Termine, die immer am gleichen Ort und zur gleichen
+  Uhrzeit sind (Zahnarzt, Friseur), einmal mit „☆ Als Vorlage speichern“
+  merken und beim nächsten Termin oben unter „Vorlage“ auswählen. Private
+  Vorlagen sieht nur, wer sie angelegt hat; „☆ Vorlagen“ im Kalender verwaltet
+  sie.
+- **Ganztägige Termine:** Ein Haken „Ganztägig“ im Termin-Formular, auch über
+  mehrere Tage (z. B. Urlaub). Im Kalender stehen sie über den Uhrzeiten, mit
+  Google werden sie als ganztägig abgeglichen, Telegram schreibt „(ganztägig)“.
+- **Regressionstests auf Knopfdruck:** `regression/regression.sh` (Windows:
+  `regression.ps1`) baut FamilyHub aus dem aktuellen Stand, startet es mit
+  einer leeren Wegwerf-Datenbank und klickt sich im Browser durch alle
+  Szenarien. Neu abgedeckt sind Kalender, Aufgaben, wiederkehrende
+  Einkaufsartikel und Rückgängig.
+
+### Geändert
+
+- **README** mit einer Schritt-für-Schritt-Anleitung zum Starten für alle
+  Betriebssysteme, einer Fehlertabelle und einem Abschnitt zu „Rückgängig“;
+  neu ist `CONTRIBUTING.md` für alle, die mitarbeiten wollen.
+- **Roadmap:** `ROADMAP.md` zeigt, was von Version 0.9 bis 2.x geplant ist und
+  was davon schon umgesetzt ist.
+- Die MongoDB für die Entwicklung heißt jetzt `compose.dev-mongodb.yaml`
+  (vorher `docker-compose.yml`), damit ein `docker compose up` im
+  Projektordner nicht versehentlich nur die Datenbank startet.
+
+### Hinweise zum Update
+
+- **Entwicklung:** Die Datenbank startet jetzt mit
+  `docker compose -f compose.dev-mongodb.yaml up -d`. Die Daten bleiben
+  erhalten (gleicher Projekt- und Volumename).
+- **Docker:** `deploy/.env` enthält das Datenbank-Passwort und wird nie
+  eingecheckt (`.gitignore`). Ohne sie startet FamilyHub nicht an vorhandene
+  Daten; also bei Umzügen die `.env` mitnehmen.
+- Neue Endpunkte: `/api/event-templates` (Vorlagen) und
+  `POST /api/{events,tasks,shopping}/undo/{token}`. Löschungen liefern die
+  Marke dafür im Header `X-Undo-Token`; sie gilt fünf Minuten und nur für die
+  Person, die gelöscht hat.
+- Neue Sammlungen `event_templates` und `undoSnapshots` (räumt sich nach
+  15 Minuten selbst auf). Bestehende Daten werden nicht umgestellt.
+- 432 automatisierte Backend-Tests, dazu 236 Szenarien in den
+  Regressionstests.
+- Die geplante Überarbeitung von Open Route Service (Ortssuche und Fahrzeit)
+  ist noch nicht dabei und folgt mit einer späteren Version.
+
 ## v0.7.0 – 09.11.2026
 
 ### Neu
