@@ -208,8 +208,14 @@ in `~/.docker/bin`: einmal
 `echo 'export PATH="$HOME/.docker/bin:$PATH"' >> ~/.zshrc` und das Terminal neu
 öffnen. Prüfen mit `docker version` (zeigt Client und Server).
 
-**Am einfachsten: per Doppelklick.** Im Ordner `deploy` liegen Startdateien,
-die alles Nötige selbst erledigen:
+**Am einfachsten: das FamilyHub-Fenster.** Im Ordner `deploy` per Doppelklick
+öffnen: unter Windows `FamilyHub.bat`, unter macOS `FamilyHub.app`. Das Fenster
+zeigt, ob FamilyHub läuft, und hat zwei Knöpfe, **Starten** und **Beenden**,
+dazu „Im Browser öffnen“ und ein ausklappbares Protokoll. Es folgt dem hellen
+bzw. dunklen Design des Systems. Die Quellen liegen in `deploy/fenster/`; nach
+Änderungen an der Mac-Fassung `deploy/fenster/app-bauen.sh` ausführen.
+
+Ohne Fenster gehen dieselben Schritte auch mit diesen Startdateien:
 
 | System | Starten | Beenden |
 |---|---|---|
@@ -226,8 +232,8 @@ offen. Weitere Befehle: `./familyhub.sh update` baut bzw. lädt die neueste
 Version, `./familyhub.sh logs` zeigt das Protokoll (unter Windows
 `familyhub.ps1 update` bzw. `logs` in PowerShell).
 
-macOS fragt beim ersten Doppelklick eventuell nach, ob die Datei geöffnet
-werden darf: dann mit Rechtsklick › „Öffnen“ bestätigen. Die `.env` danach
+macOS fragt beim ersten Doppelklick (auch auf `FamilyHub.app`) eventuell nach, ob
+die Datei geöffnet werden darf: dann mit Rechtsklick › „Öffnen“ bestätigen. Die `.env` danach
 gut aufheben, sie gehört zur Sicherung: Ohne das Passwort darin kommt
 FamilyHub nicht mehr an die Daten. Deshalb legen die Startdateien keine neue
 `.env` an, solange es schon Daten gibt.
