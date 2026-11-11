@@ -184,10 +184,17 @@ try {
         $ui.DetailsLink.Content = if ($open) { 'Details ausblenden' } else { 'Details anzeigen' }
     }
 
+    # Windows sperrt die Protokolle, solange der Startvorgang hineinschreibt; ReadAllText scheitert dann. Deshalb
+    # mit "andere dürfen weiter schreiben" öffnen und bei einem kurzen Konflikt einfach beim nächsten Mal lesen.
     function Read-Log {
         $text = ''
         foreach ($f in $logFile, $errFile) {
-            if (Test-Path $f) { $text += [IO.File]::ReadAllText($f) }
+            if (-not (Test-Path $f)) { continue }
+            try {
+                $stream = New-Object IO.FileStream($f, [IO.FileMode]::Open, [IO.FileAccess]::Read,
+                    ([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+                try { $text += (New-Object IO.StreamReader($stream)).ReadToEnd() } finally { $stream.Dispose() }
+            } catch { }
         }
         return $text
     }
@@ -250,15 +257,20 @@ try {
     $timer = New-Object Windows.Threading.DispatcherTimer
     $timer.Interval = [TimeSpan]::FromMilliseconds(500)
     $timer.Add_Tick({
-        $state.Ticks++
-        if ($state.Job) {
-            $ui.LogBox.Text = Read-Log
-            $ui.LogBox.ScrollToEnd()
-            if ($state.Job.HasExited) { Complete-Job }
-        } elseif ($state.Ticks % 6 -eq 1) {
-            $up = Test-Health
-            if ($state.Name -ne 'error' -or $up) { $state.Name = if ($up) { 'running' } else { 'stopped' } }
-            Update-View
+        # Ein Fehler hier darf das Fenster nicht schließen: im Fenster anzeigen, der nächste Takt versucht es neu
+        try {
+            $state.Ticks++
+            if ($state.Job) {
+                $ui.LogBox.Text = Read-Log
+                $ui.LogBox.ScrollToEnd()
+                if ($state.Job.HasExited) { Complete-Job }
+            } elseif ($state.Ticks % 6 -eq 1) {
+                $up = Test-Health
+                if ($state.Name -ne 'error' -or $up) { $state.Name = if ($up) { 'running' } else { 'stopped' } }
+                Update-View
+            }
+        } catch {
+            $ui.LogBox.Text += "`r`n[Fenster] $($_.Exception.Message) (Zeile $($_.InvocationInfo.ScriptLineNumber))"
         }
     })
 
