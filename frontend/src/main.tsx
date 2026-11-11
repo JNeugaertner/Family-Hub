@@ -11,6 +11,7 @@ import { MealDataProvider } from './meals/MealDataContext'
 import { MessageDataProvider } from './messages/MessageDataContext'
 import { ProfileCardProvider } from './profiles/ProfileCard'
 import { UndoProvider } from './undo/UndoContext'
+import { PreferencesProvider } from './preferences/PreferencesContext'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -18,6 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <AuthProvider>
       <AuthGate>
         <UndoProvider>
+        <PreferencesProvider>
         <CalendarDataProvider>
           <TaskDataProvider>
             <RewardDataProvider>
@@ -33,6 +35,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             </RewardDataProvider>
           </TaskDataProvider>
         </CalendarDataProvider>
+        </PreferencesProvider>
         </UndoProvider>
       </AuthGate>
     </AuthProvider>

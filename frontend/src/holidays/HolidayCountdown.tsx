@@ -1,14 +1,17 @@
 import { fromDateKey } from '../calendar/dates';
 import { countdownText } from './api';
+import { usePreferences } from '../preferences/PreferencesContext';
 import { useUpcomingHolidays } from './useHolidays';
 
 const dateText = (key: string) =>
   fromDateKey(key).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long' });
 
-// Countdown zu den nächsten Feiertagen (Übersicht): der nächste groß, die zwei danach klein
+// Countdown zu den nächsten Feiertagen (Übersicht): der nächste groß, die zwei danach klein. Ausblenden kann jede
+// Person für sich unter „Familie“ → „Meine Anzeige“.
 export default function HolidayCountdown() {
+  const { preferences } = usePreferences();
   const holidays = useUpcomingHolidays(3);
-  if (holidays.length === 0) return null;
+  if (!preferences.holidayCountdown || holidays.length === 0) return null;
   const [next, ...later] = holidays;
   return (
     <section aria-label="Countdown bis zu den nächsten Feiertagen" className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
