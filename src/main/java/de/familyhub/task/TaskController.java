@@ -36,10 +36,12 @@ import de.familyhub.notifications.TaskNotifications;
 import de.familyhub.permission.RoleResolver;
 import de.familyhub.points.PointsService;
 import de.familyhub.security.CurrentMember;
+import de.familyhub.undo.UndoService;
 import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -58,10 +60,11 @@ public class TaskController {
     private final MongoTemplate mongo;
     private final TaskNotifications notifications;
     private final Clock clock;
+    private final UndoService undo;
 
     public TaskController(TaskRepository tasks, FamilyMemberRepository members, CurrentMember currentMember,
             TaskAccess access, PointsService points, AchievementService achievements, RoleResolver roles,
-            MongoTemplate mongo, TaskNotifications notifications, Clock clock) {
+            MongoTemplate mongo, TaskNotifications notifications, Clock clock, UndoService undo) {
         this.tasks = tasks;
         this.members = members;
         this.currentMember = currentMember;
@@ -72,6 +75,7 @@ public class TaskController {
         this.mongo = mongo;
         this.notifications = notifications;
         this.clock = clock;
+        this.undo = undo;
     }
 
     public record StatusChange(
@@ -242,10 +246,11 @@ public class TaskController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Aufgabe löschen", description = "Gutgeschriebene Punkte bleiben in der Historie erhalten.")
-    public void delete(@PathVariable String id) {
+    public void delete(@PathVariable String id, HttpServletResponse response) {
         FamilyMember viewer = currentMember.get();
         Task existing = findVisible(id, viewer);
         access.requireDelete(viewer, existing);
+        response.setHeader(UndoService.HEADER, undo.remember("tasks", viewer, List.of(existing)));
         tasks.deleteById(id);
     }
 
@@ -256,9 +261,14 @@ public class TaskController {
     @Operation(summary = "Abgeschlossene Aufgaben löschen",
             description = "Nur für Administratoren. Löscht bestätigte Aufgaben und erledigte ohne Punkte. Erledigte "
                     + "Aufgaben, die noch auf Bestätigung warten, bleiben stehen. Die Punkte-Historie bleibt erhalten.")
-    public DeletedTasks deleteCompleted() {
-        access.requireDeleteAll(currentMember.get());
+    public DeletedTasks deleteCompleted(HttpServletResponse response) {
+        FamilyMember viewer = currentMember.get();
+        access.requireDeleteAll(viewer);
         List<Task> completed = tasks.findAll().stream().filter(Task::isCompleted).toList();
+        String token = undo.remember("tasks", viewer, completed);
+        if (token != null) {
+            response.setHeader(UndoService.HEADER, token);
+        }
         tasks.deleteAll(completed);
         return new DeletedTasks(completed.size());
     }

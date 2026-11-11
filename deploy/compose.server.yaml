@@ -1,0 +1,35 @@
+# Ergänzung zu compose.yaml für den Betrieb auf einem Server mit eigener Domain und HTTPS (Caddy).
+# Voraussetzungen und Anleitung: README, „Auf einem Server mit HTTPS betreiben“. In .env zusätzlich
+# FAMILYHUB_DOMAIN setzen und FAMILYHUB_URL auf https://<Domain> ändern.
+#   Starten:  docker compose -f compose.yaml -f compose.server.yaml up -d
+#   Beenden:  docker compose -f compose.yaml -f compose.server.yaml down
+services:
+  caddy:
+    image: docker.io/library/caddy:2
+    restart: unless-stopped
+    depends_on:
+      - familyhub
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      FAMILYHUB_DOMAIN: ${FAMILYHUB_DOMAIN:?In .env fehlt FAMILYHUB_DOMAIN (siehe .env.example)}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Zertifikate; ohne dieses Volume holte Caddy sie bei jedem Start neu und liefe in die Limits von Let's Encrypt
+      - caddy-data:/data
+      - caddy-config:/config
+
+  familyhub:
+    environment:
+      # Hinter Caddy: Die Verbindung zum Browser ist verschlüsselt, auch wenn Caddy FamilyHub über http erreicht.
+      # So setzt FamilyHub Anmelde-Cookies nur noch für https (Secure).
+      SERVER_FORWARDHEADERSSTRATEGY: native
+      SERVER_SERVLET_SESSION_COOKIE_SECURE: "true"
+    # Der Port aus compose.yaml (127.0.0.1:8080) bleibt nur auf dem Server selbst erreichbar; von außen geht es
+    # ausschließlich über Caddy.
+
+volumes:
+  caddy-data:
+  caddy-config:

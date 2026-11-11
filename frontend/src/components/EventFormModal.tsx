@@ -9,6 +9,10 @@ import { eventColor, memberColors } from '../calendar/eventStyle';
 import {findPlaces, OrsLocation, getTravelTime, getSettings} from './OrsApi';
 import { readable } from '../family/colors';
 import OrsAttribution from './OrsAttribution';
+import { addDays, fromDateKey, toDateKey } from '../calendar/dates';
+import {
+  createTemplate, listTemplates, minutesBetween, timesFor, type EventTemplate,
+} from '../calendar/templates';
 import {
   FREQUENCY_OPTIONS, WEEKDAYS, describeRecurrence, sameRecurrence, weekdayOf,
   type Frequency, type Recurrence, type SeriesScope, type Weekday,
@@ -31,6 +35,8 @@ type EndMode = 'never' | 'until' | 'count';
 
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 const formatDate = (dateKey: string) => dateKey.split('-').reverse().join('.');
+// Tag davor/danach als "JJJJ-MM-TT"
+const shiftDay = (dateKey: string, days: number) => toDateKey(addDays(fromDateKey(dateKey), days));
 
 const INPUT = 'w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-600';
 const inputClass = (hasError: boolean) =>
@@ -76,6 +82,8 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   const [departure, setDeparture] = useState(event?.departure ?? null);
   const [start, setStart] = useState(event?.start.slice(0, 16) ?? `${defaultDate}T09:00`);
   const [end, setEnd] = useState(event?.end.slice(0, 16) ?? `${defaultDate}T10:00`);
+  // Ganztägig: gespeichert wie bei Google von 00:00 bis 00:00 des Tages nach dem letzten Tag
+  const [allDay, setAllDay] = useState(event?.allDay ?? false);
   const [memberIds, setMemberIds] = useState<string[]>(initialMembers);
   const [category, setCategory] = useState<EventCategory>(event?.category ?? 'family');
   const [location, setLocation] = useState(event?.location ?? '');
@@ -105,6 +113,20 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Serientermin: Bevor gespeichert oder gelöscht wird, fragt das Formular nach dem Umfang
   const [askScope, setAskScope] = useState<'save' | 'delete' | null>(null);
+
+  // Vorlagen: Auswahl beim Anlegen, "Als Vorlage speichern" in jedem bearbeitbaren Termin
+  const usesTemplates = permissions.canAdd && !readOnly;
+  const [templates, setTemplates] = useState<EventTemplate[]>([]);
+  const [templateId, setTemplateId] = useState('');
+  const [templateName, setTemplateName] = useState<string | null>(null);
+  const [templateBusy, setTemplateBusy] = useState(false);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+  const [templateSaved, setTemplateSaved] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!usesTemplates) return;
+    listTemplates().then(setTemplates).catch(() => setTemplates([]));
+  }, [usesTemplates]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) onClose(); };
@@ -158,6 +180,27 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   };
 
   const startDay = start.slice(0, 10);
+  // Letzter Tag eines ganztägigen Termins (das gespeicherte Ende ist der Folgetag 00:00)
+  const lastDay = end.slice(0, 10) ? shiftDay(end.slice(0, 10), -1) : '';
+
+  const toggleAllDay = (on: boolean) => {
+    setAllDay(on);
+    if (!startDay) return;
+    if (on) {
+      const endDay = end.slice(0, 10);
+      setStart(`${startDay}T00:00`);
+      setEnd(`${shiftDay(endDay && endDay > startDay ? endDay : startDay, 1)}T00:00`);
+    } else {
+      setStart(`${startDay}T09:00`);
+      setEnd(`${startDay}T10:00`);
+    }
+  };
+  const changeFirstDay = (day: string) => {
+    setStart(day ? `${day}T00:00` : '');
+    // Rutscht der erste Tag hinter den letzten, wird es ein eintägiger Termin
+    if (day && (!lastDay || lastDay < day)) setEnd(`${shiftDay(day, 1)}T00:00`);
+  };
+  const changeLastDay = (day: string) => setEnd(day ? `${shiftDay(day, 1)}T00:00` : '');
   const isSeries = !!event?.series;
   // Vorschläge betreffen immer die ganze Serie, dort fragt das Formular nicht nach
   const asksScope = isSeries && !isProposal;
@@ -183,7 +226,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
 
   const save = (scope?: SeriesScope) => run(() => saveEvent({
     title,
-    departure: departure || null,
+    departure: allDay ? null : departure || null,
     start: start || null,
     end: end || null,
     memberIds,
@@ -192,7 +235,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     lat,
     lon,
     transportMode,
-    travelTime,
+    travelTime: allDay ? null : travelTime,
     description: description.trim() || null,
     private: privateEvent,
     recurrence,
@@ -201,6 +244,10 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (readOnly) return;
+    if (allDay && startDay && lastDay && lastDay < startDay) {
+      setFieldErrors({ end: 'Der letzte Tag darf nicht vor dem ersten liegen' });
+      return;
+    }
     if (frequency !== 'none' && endMode === 'until' && !until) {
       setFieldErrors({ recurrenceEnd: 'Bitte den letzten Tag der Wiederholung wählen' });
       return;
@@ -295,6 +342,73 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
     else save(scope);
   };
 
+  // Vorlage übernehmen: Datum bleibt, alles andere kommt aus der Vorlage. Beteiligte nur, soweit ich sie eintragen
+  // darf; bleibt niemand übrig, bleibt die bisherige Auswahl.
+  const applyTemplate = (id: string) => {
+    setTemplateId(id);
+    const template = templates.find(t => t.id === id);
+    if (!template) return;
+    const day = start.slice(0, 10) || defaultDate;
+    // Ganztägige Vorlage (00:00, 1440 Minuten): bis 00:00 des Folgetags, auch an Tagen mit Zeitumstellung
+    const templateAllDay = template.startTime === '00:00' && template.durationMinutes === 1440;
+    const times = templateAllDay ? { start: `${day}T00:00`, end: `${shiftDay(day, 1)}T00:00` } : timesFor(template, day);
+    const allowed = template.memberIds.filter(m => assignable.some(a => a.id === m));
+    setTitle(template.title);
+    setAllDay(templateAllDay);
+    setStart(times.start);
+    setEnd(times.end);
+    if (allowed.length) setMemberIds(members.map(m => m.id).filter(m => allowed.includes(m)));
+    setCategory(template.category);
+    setLocation(template.location ?? '');
+    setLat(template.lat);
+    setLon(template.lon);
+    setTransportMode(template.transportMode ?? 'driving-car');
+    setTravelTime(templateAllDay ? null : template.travelTime);
+    setDescription(template.description ?? '');
+    setPrivateEvent(template.private);
+    setQuery('');
+    setResults(null);
+    setFieldErrors({});
+  };
+
+  const saveAsTemplate = async () => {
+    const name = templateName?.trim() ?? '';
+    // Ganztägig zählt als ein Tag zu 1440 Minuten, auch wenn der Tag wegen der Zeitumstellung 23 oder 25 Stunden hat
+    const duration = allDay ? (lastDay === startDay ? 1440 : -1) : start && end ? minutesBetween(start, end) : 0;
+    if (!name) { setTemplateError('Bitte einen Namen für die Vorlage eingeben.'); return; }
+    if (duration === -1) { setTemplateError('Vorlagen für ganztägige Termine gehen nur über einen Tag.'); return; }
+    if (!title.trim()) { setTemplateError('Für eine Vorlage braucht der Termin einen Titel.'); return; }
+    if (duration <= 0) { setTemplateError('Das Ende muss nach dem Beginn liegen.'); return; }
+    if (duration > 1440) { setTemplateError('Vorlagen gehen höchstens über 24 Stunden.'); return; }
+    setTemplateBusy(true);
+    setTemplateError(null);
+    try {
+      const saved = await createTemplate({
+        name,
+        title: title.trim(),
+        startTime: start.slice(11, 16),
+        durationMinutes: duration,
+        memberIds,
+        category,
+        location: location.trim() || null,
+        lat,
+        lon,
+        transportMode,
+        travelTime: allDay ? null : travelTime,
+        description: description.trim() || null,
+        private: privateEvent,
+      });
+      setTemplates(list => [...list, saved].sort((a, b) => a.name.localeCompare(b.name, 'de')));
+      setTemplateSaved(saved.name);
+      setTemplateName(null);
+    } catch (err) {
+      const errors = err instanceof ApiError ? err.problem.errors : undefined;
+      setTemplateError(errors ? Object.values(errors).join(' ') : err instanceof Error ? err.message : String(err));
+    } finally {
+      setTemplateBusy(false);
+    }
+  };
+
   const heading = readOnly ? 'Termin' : isProposal ? 'Vorschlag bearbeiten' : isEdit ? 'Termin bearbeiten'
     : willBeProposal ? 'Neuer Vorschlag' : 'Neuer Termin';
 
@@ -353,21 +467,53 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             <div role="alert" className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl p-3">{formError}</div>
           )}
 
+          {usesTemplates && !isEdit && templates.length > 0 && (
+            <Field id="event-template" label="Vorlage (optional)">
+              <select id="event-template" className={inputClass(false)} disabled={busy} value={templateId}
+                onChange={e => applyTemplate(e.target.value)}>
+                <option value="">Ohne Vorlage</option>
+                {templates.map(t => <option key={t.id} value={t.id}>{t.private ? '🔒 ' : ''}{t.name}</option>)}
+              </select>
+            </Field>
+          )}
+
           <Field id="event-title" label="Titel" error={fieldErrors.title}>
             <input {...fieldProps('title')} value={title} onChange={e => setTitle(e.target.value)} autoFocus={!readOnly} />
           </Field>
 
+        {!allDay && (
         <Field id="event-departure" label="Abfahrt" error={fieldErrors.departure}>
           {getDeparture}
         </Field>
+        )}
+
+          <label className="flex items-center gap-2.5 text-sm text-slate-700">
+            <input type="checkbox" className="w-4 h-4 accent-[#2563EB]" checked={allDay}
+              disabled={readOnly || busy} onChange={e => toggleAllDay(e.target.checked)} />
+            Ganztägig
+          </label>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field id="event-start" label="Beginn" error={fieldErrors.start}>
-              <input type="datetime-local" {...fieldProps('start')} value={start} onChange={e => setStart(e.target.value)} />
-            </Field>
-            <Field id="event-end" label="Ende" error={fieldErrors.end}>
-              <input type="datetime-local" {...fieldProps('end')} value={end} onChange={e => setEnd(e.target.value)} />
-            </Field>
+            {allDay ? (
+              <>
+                <Field id="event-start" label="Erster Tag" error={fieldErrors.start}>
+                  <input type="date" {...fieldProps('start')} value={startDay} onChange={e => changeFirstDay(e.target.value)} />
+                </Field>
+                <Field id="event-end" label="Letzter Tag" error={fieldErrors.end}>
+                  <input type="date" {...fieldProps('end')} min={startDay || undefined} value={lastDay}
+                    onChange={e => changeLastDay(e.target.value)} />
+                </Field>
+              </>
+            ) : (
+              <>
+                <Field id="event-start" label="Beginn" error={fieldErrors.start}>
+                  <input type="datetime-local" {...fieldProps('start')} value={start} onChange={e => setStart(e.target.value)} />
+                </Field>
+                <Field id="event-end" label="Ende" error={fieldErrors.end}>
+                  <input type="datetime-local" {...fieldProps('end')} value={end} onChange={e => setEnd(e.target.value)} />
+                </Field>
+              </>
+            )}
           </div>
 
           {!readOnly && (
@@ -531,6 +677,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
             </div>
           </Field>
                     
+          {!allDay && (<>
           <Field id="event-transportMode" label="Verkehrsmittel" error={fieldErrors.transportMode}>
             <select {...fieldProps('transportMode')} value={transportMode} onChange={e => {setTransportMode(e.target.value as TransportMode);
                 gettravelTime(e.target.value as TransportMode, { label: location, lat: lat ?? 0, lon: lon ?? 0 })}}>
@@ -543,6 +690,7 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
         <Field id="event-travel-time" label="Fahrzeit" error={fieldErrors.travelTime}>
           {getTimeLayout( travelTime ?? 0)}
         </Field>
+          </>)}
         <OrsAttribution className="-mt-2" />
 
           <Field id="event-description" label="Beschreibung (optional)" error={fieldErrors.description}>
@@ -562,6 +710,50 @@ export default function EventFormModal({ event, defaultDate, defaultTitle, onClo
               <span className="block text-xs text-slate-500">Nur für die Beteiligten, wer den Termin anlegt, und Administratoren sichtbar.</span>
             </span>
           </label>
+
+          {usesTemplates && (
+            <div className="border-t border-slate-100 pt-3">
+              {templateName === null ? (
+                <button type="button" disabled={busy} className="text-sm font-semibold text-[#1D4ED8] hover:underline disabled:opacity-50"
+                  onClick={() => { setTemplateName(title.trim()); setTemplateSaved(null); setTemplateError(null); }}>
+                  ☆ Als Vorlage speichern
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <label htmlFor="event-template-name" className="text-xs font-semibold text-slate-600 block">
+                    Name der Vorlage
+                  </label>
+                  <div className="flex gap-2">
+                    <input id="event-template-name" className={inputClass(!!templateError)} value={templateName}
+                      maxLength={60} autoFocus disabled={templateBusy}
+                      aria-invalid={templateError ? true : undefined}
+                      aria-describedby={templateError ? 'event-template-name-error' : 'event-template-name-hint'}
+                      onChange={e => setTemplateName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveAsTemplate(); } }} />
+                    <button type="button" disabled={templateBusy} onClick={saveAsTemplate}
+                      className="px-4 rounded-xl bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] disabled:opacity-50 whitespace-nowrap">
+                      Speichern
+                    </button>
+                    <button type="button" disabled={templateBusy} onClick={() => { setTemplateName(null); setTemplateError(null); }}
+                      className="px-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50">
+                      Abbrechen
+                    </button>
+                  </div>
+                  {templateError
+                    ? <p id="event-template-name-error" role="alert" className="text-xs text-[#DC2626]">{templateError}</p>
+                    : <p id="event-template-name-hint" className="text-xs text-slate-500">
+                        Merkt sich Titel, Uhrzeit, Dauer, Beteiligte, Kategorie, Ort mit Fahrzeit, Beschreibung und
+                        „Privat“, nicht das Datum{privateEvent ? '. Private Vorlagen siehst nur du' : ''}.
+                      </p>}
+                </div>
+              )}
+              {templateSaved && (
+                <p role="status" className="text-xs text-[#15803D] mt-1">
+                  Vorlage „{templateSaved}“ gespeichert. Du findest sie beim nächsten neuen Termin oben unter „Vorlage“.
+                </p>
+              )}
+            </div>
+          )}
 
           {askScope ? (
             <div role="group" aria-labelledby="event-scope-title" className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-3">

@@ -1,4 +1,4 @@
-import { json, request } from '../api/client';
+import { json, request, requestUndoable } from '../api/client';
 import type { EventCategory, EventStatus, TransportMode } from '../components/data';
 import type { Recurrence, SeriesRef, SeriesScope } from './recurrence';
 
@@ -56,7 +56,11 @@ export const updateEvent = (id: string, input: EventInput, scope?: SeriesScope) 
   request<ApiEvent>(withScope(`/api/events/${id}`, scope), { method: 'PUT', body: json(input) });
 
 export const deleteEvent = (id: string, scope?: SeriesScope) =>
-  request<void>(withScope(`/api/events/${id}`, scope), { method: 'DELETE' });
+  requestUndoable<void>(withScope(`/api/events/${id}`, scope), { method: 'DELETE' });
+
+// Gelöschten Einzeltermin wiederherstellen (Serientermine bekommen keine Marke)
+export const undoEvents = (token: string) =>
+  request<{ restored: number }>(`/api/events/undo/${token}`, { method: 'POST' });
 
 export const approveEvent = (id: string) => request<ApiEvent>(`/api/events/${id}/approve`, { method: 'POST' });
 

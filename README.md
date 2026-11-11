@@ -6,14 +6,15 @@ FamilyHub AI bündelt Kalender, Aufgaben, Einkauf, Essensplanung, Nachrichten,
 Wetter und Müllabfuhr in einer gemeinsamen Oberfläche für die ganze Familie.
 Leitprinzip: **Der Agent informiert und bereitet vor, die Eltern entscheiden.**
 
-**Status:** Proof of Concept, Version 0.7.0 vom 09.11.2026. Was sich in welcher
-Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
+**Status:** Proof of Concept, Version 0.8.0 vom 11.11.2026. Was sich in welcher
+Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md), was als Nächstes
+kommt, in der [Roadmap](ROADMAP.md).
 
 ## Funktionen
 
 | Bereich | Was FamilyHub kann |
 |---|---|
-| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private Termine, Serientermine (z. B. jeden Dienstag Training), Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
+| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private und ganztägige Termine (auch über mehrere Tage), Serientermine (z. B. jeden Dienstag Training), Vorlagen für Termine mit gleichem Ort und gleicher Uhrzeit (z. B. Zahnarzt), Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
 | Google Kalender | Termine aus dem eigenen Google Kalender übernehmen (schreibgeschützt); auf Wunsch die eigenen FamilyHub-Termine in einen Google-Kalender „FamilyHub“ eintragen |
 | Aufgaben und Punkte | Eltern vergeben Aufgaben mit Punkten, Kinder haken ab, nach der Bestätigung gibt es Punkte; Bonus-Aufgaben für alle Kinder; Aufgaben, die sich nach Erledigung wiederholen (z. B. Blumen gießen alle 3 Tage); Erwachsene erledigen Aufgaben ohne Punkte |
 | Belohnungen | Shop, in dem Kinder und Jugendliche Punkte einlösen; die Eltern genehmigen oder lehnen ab |
@@ -27,14 +28,15 @@ Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md).
 | Fahrzeit | Ort eines Termins aus der Ortssuche, Fahrzeit vom Wohnort mit Auto, Fahrrad oder zu Fuß und Abfahrtszeit (OpenRouteService) |
 | Wetter | Wetter am Wohnort mit Kleidungsempfehlung (OpenWeather) |
 | Rollen und Rechte | Administrator, Jugendliche, Kind, Gast und KI-Agent, dazu Einzelrechte je Person |
-| Sonstiges | Änderungen anderer erscheinen ohne Neuladen; als App installierbar; Konto-Sperre nach fünf falschen Passwörtern |
+| Sonstiges | „Rückgängig“ nach dem Löschen von Terminen, Aufgaben und Einkaufsartikeln; Änderungen anderer erscheinen ohne Neuladen; als App installierbar; Konto-Sperre nach fünf falschen Passwörtern |
 
 Noch nicht umgesetzt sind der KI-Assistent, die Glocke mit Benachrichtigungen
 in der App (Benachrichtigungen kommen bisher nur über Telegram), die
 Sprachsteuerung sowie Warnungen, wenn sich Fahrzeit und andere Termine
 überschneiden. Die Oberfläche
 kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
-(`frontend/src/placeholders.ts`).
+(`frontend/src/placeholders.ts`). Geplant sind als Nächstes Geburtstage und
+Countdowns zu Feiertagen (Version 0.9, siehe [Roadmap](ROADMAP.md)).
 
 ## Tech-Stack
 
@@ -43,49 +45,110 @@ kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
 | Backend | Java 25, Spring Boot 4.1, Spring Security (Sitzungs-Cookie, CSRF), Maven Wrapper |
 | Datenbank | MongoDB 8.0 (lokal) |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS 4 (ursprünglich aus Figma Make) |
-| Tests | JUnit 5, MockMvc, eingebettete MongoDB (Flapdoodle) |
+| Tests | JUnit 5, MockMvc, eingebettete MongoDB (Flapdoodle); Regressionstests im Browser mit Cucumber, Playwright und axe |
 
-## Schnellstart
+## FamilyHub starten
 
-**Voraussetzungen:** JDK 25, MongoDB 8.0 (oder Docker) und für die Oberfläche
-Node.js 24 mit pnpm 10. Maven muss nicht installiert sein, der Maven Wrapper lädt
-es beim ersten Aufruf selbst. Unter Windows lässt sich MongoDB ohne
-Admin-Rechte als ZIP nach `%LOCALAPPDATA%\Programs\mongodb` entpacken, unter
-macOS mit Homebrew installieren: `brew tap mongodb/brew && brew install
-mongodb-community@8.0`.
+Es gibt zwei Wege:
 
-```bash
-# 1. MongoDB starten (lauscht nur auf 127.0.0.1:27017, beenden mit Strg+C)
-#    Windows:
-powershell -ExecutionPolicy Bypass -File scripts/start-mongodb.ps1
-#    macOS und Linux:
-scripts/start-mongodb.sh
-#    oder mit Docker (läuft im Hintergrund, beenden mit: docker compose down)
-docker compose up -d
+- **Nur benutzen:** mit Docker, ein Befehl, außer Docker ist nichts zu
+  installieren. Siehe [Mit Docker betreiben](#mit-docker-betreiben).
+- **Entwickeln oder ohne Docker:** wie hier beschrieben. FamilyHub besteht dann
+  aus drei Teilen, die gleichzeitig laufen, jeder in einem **eigenen
+  Terminal-Fenster**:
 
-# 2. Backend starten (Windows-Eingabeaufforderung: mvnw.cmd statt ./mvnw)
-./mvnw spring-boot:run
-# Prüfen: http://localhost:8080/api/health
-# API im Browser ausprobieren: http://localhost:8080/swagger-ui.html
-
-# 3. Oberfläche starten (eigenes Terminal)
-cd frontend
-pnpm install
-pnpm dev
-# Öffnen: http://localhost:5173
-
-# 4. Backend-Tests ausführen (braucht keine laufende MongoDB)
-./mvnw test
+```
+ Browser  →  Oberfläche (Port 5173)  →  Backend (Port 8080)  →  Datenbank MongoDB (Port 27017)
 ```
 
-Backend und Oberfläche beendet man jeweils mit Strg+C im eigenen Terminal.
+Die Anleitung unten gilt für Windows, macOS und Linux. Wo sich die Befehle
+unterscheiden, steht es dabei. Mit „Terminal“ ist unter Windows die
+**PowerShell** gemeint, unter macOS die App **Terminal**.
 
-Beim ersten Start mit leerer Datenbank legt das Backend eine Beispielfamilie an.
-Der erste Testlauf lädt einmalig eine Test-MongoDB herunter (ca. 840 MB, einige
-Minuten).
+### Schritt 1: Programme einmal installieren
 
-**Anmeldung:** Die API ist nur nach Login nutzbar. Beispielkonten (nur für die
-Entwicklung, alle mit dem Passwort `familyhub`):
+| Programm | Wofür | Windows | macOS | Linux |
+|---|---|---|---|---|
+| **JDK 25** (Java) | Backend | [Temurin 25](https://adoptium.net/temurin/releases/?version=25), Installer (.msi) | [Temurin 25](https://adoptium.net/temurin/releases/?version=25) (.pkg) oder `brew install --cask temurin@25` | Paket `temurin-25-jdk` oder Archiv von Adoptium |
+| **Node.js 24** | Oberfläche | [nodejs.org](https://nodejs.org), Installer | [nodejs.org](https://nodejs.org) oder `brew install node@24` | Paketquelle von nodejs.org |
+| **pnpm 10** | Oberfläche | nach Node: `npm install -g pnpm@10` | wie Windows | wie Windows |
+| **MongoDB 8.0** | Datenbank | [ZIP herunterladen](https://www.mongodb.com/try/download/community) und nach `%LOCALAPPDATA%\Programs\mongodb` entpacken (keine Admin-Rechte nötig) | `brew tap mongodb/brew && brew install mongodb-community@8.0` | Paket `mongodb-org` (Anleitung auf mongodb.com) |
+| **Git** | Projekt holen | [git-scm.com](https://git-scm.com) | ist meist schon da (`git --version`) | Paket `git` |
+
+Maven muss nicht installiert werden, das Projekt bringt es mit (Maven Wrapper).
+
+Ohne Homebrew unter macOS: Die Programme lassen sich auch als Archiv in einen
+eigenen Ordner entpacken, z. B. `~/.local/opt/jdk`, `~/.local/opt/node` und
+`~/.local/opt/mongodb`. Dann diese Zeilen ans Ende von `~/.zshrc` schreiben und
+das Terminal neu öffnen:
+
+```bash
+export JAVA_HOME="$HOME/.local/opt/jdk"
+export PATH="$JAVA_HOME/bin:$HOME/.local/opt/node/bin:$HOME/.local/opt/mongodb/bin:$PATH"
+```
+
+**Prüfen** (in einem neuen Terminal), ob alles gefunden wird:
+
+```bash
+java -version      # muss 25 zeigen
+node -v            # muss v24 zeigen
+pnpm -v            # muss 10 zeigen
+mongod --version   # muss 8.0 zeigen (unter Windows mit ZIP: nicht nötig, das Startskript findet es)
+```
+
+### Schritt 2: Projekt holen
+
+```bash
+git clone https://github.com/JNeugaertner/Family-Hub.git
+cd Family-Hub
+```
+
+Unter Windows den Ordner nicht in OneDrive legen (z. B. nicht auf den Desktop,
+wenn der synchronisiert wird), sondern etwa nach `C:\Users\<Name>\Projekte`.
+
+### Schritt 3: Die drei Teile starten
+
+Jedes Mal, wenn du FamilyHub benutzen willst. Alle Befehle im Projektordner
+`Family-Hub`, jeweils in einem eigenen Terminal-Fenster:
+
+**Terminal 1, Datenbank:**
+
+```bash
+# Windows (PowerShell)
+powershell -ExecutionPolicy Bypass -File scripts\start-mongodb.ps1
+# macOS und Linux
+scripts/start-mongodb.sh
+```
+
+Fertig, wenn viele Zeilen durchlaufen und das Fenster offen bleibt. Die Daten
+bleiben zwischen den Starts erhalten.
+
+**Terminal 2, Backend:**
+
+```bash
+# Windows (PowerShell)
+.\mvnw.cmd spring-boot:run
+# macOS und Linux
+./mvnw spring-boot:run
+```
+
+Fertig, wenn `Started Main` erscheint. Beim allerersten Mal lädt Maven einige
+Minuten lang alles Nötige herunter. Zur Kontrolle im Browser
+http://localhost:8080/api/health öffnen: Dort muss `"status":"UP"` stehen.
+
+**Terminal 3, Oberfläche:**
+
+```bash
+cd frontend
+pnpm install      # nur beim ersten Mal und nach Updates nötig
+pnpm dev
+```
+
+Fertig, wenn `Local: http://localhost:5173/` erscheint.
+
+**Öffnen:** http://localhost:5173 im Browser. Beim ersten Start legt FamilyHub
+eine Beispielfamilie an; anmelden mit einem dieser Konten, alle mit dem
+Passwort `familyhub` (nur zum Ausprobieren):
 
 | Benutzername | Rolle |
 |---|---|
@@ -94,9 +157,219 @@ Entwicklung, alle mit dem Passwort `familyhub`):
 | `lucas`, `lily` | Kind |
 | `oma` | Gast |
 
+**Beenden:** in jedem der drei Fenster **Strg+C** drücken (auch unter macOS
+Strg, nicht Cmd). Am besten in umgekehrter Reihenfolge: Oberfläche, Backend,
+Datenbank.
+
+### Wenn etwas nicht klappt
+
+| Meldung | Ursache und Lösung |
+|---|---|
+| `java`, `node`, `pnpm` oder `mongod` „nicht gefunden“ / „command not found“, unter macOS „Unable to locate a Java Runtime“ | Programm fehlt oder steht nicht im Suchpfad. Installation prüfen; ohne Installer die `PATH`-Zeilen von oben eintragen und das Terminal **neu öffnen**. |
+| `permission denied: ./mvnw` (macOS, Linux) | Einmal `chmod +x mvnw scripts/*.sh` ausführen. |
+| PowerShell: „Ausführung von Skripts ist auf diesem System deaktiviert“ | Den Befehl genau wie oben mit `powershell -ExecutionPolicy Bypass -File …` aufrufen. |
+| Datenbank: `address already in use` (Port 27017) | Es läuft schon eine MongoDB, z. B. aus einem früheren Start. Dann ist Schritt „Terminal 1“ schon erledigt. |
+| Backend: `Port 8080 was already in use` | FamilyHub läuft schon in einem anderen Fenster (oder ein anderes Programm nutzt den Port). Das andere Fenster suchen und mit Strg+C beenden. |
+| Backend: Fehler mit `MongoSocketOpenException` / `Connection refused` | Die Datenbank läuft nicht: Terminal 1 starten. |
+| Oberfläche zeigt „Failed to fetch“, „HTTP 500“ oder lädt nichts | Das Backend läuft nicht oder ist noch nicht fertig: Terminal 2 prüfen (`Started Main`). |
+| Anmeldung schlägt mit „HTTP 403“ fehl | Die Oberfläche über **http://localhost:5173** öffnen, nicht über `127.0.0.1` oder eine andere Adresse. |
+| „Zu viele falsche Passwörter für dieses Konto“ | Fünfmal falsches Passwort: so lange warten wie angegeben (höchstens fünf Minuten). |
+
+### Für Entwickler
+
+```bash
+./mvnw test                     # Backend-Tests (Windows: .\mvnw.cmd test), braucht keine laufende MongoDB
+regression/regression.sh        # Regressionstests im Browser (Windows: regression\regression.ps1), braucht Docker
+```
+
+Der erste Testlauf lädt einmalig eine Test-MongoDB herunter (ca. 840 MB, einige
+Minuten). Die Regressionstests bauen FamilyHub aus dem aktuellen Stand und
+starten es mit einer leeren Wegwerf-Datenbank auf Port 8081; die laufende
+Instanz und ihre Daten bleiben unberührt. Details in
+[regression/README.md](regression/README.md). Die REST-Schnittstelle lässt sich bei laufendem Backend unter
+http://localhost:8080/swagger-ui.html ausprobieren. Statt `scripts/start-mongodb…`
+geht die Datenbank auch per Docker: `docker compose -f compose.dev-mongodb.yaml up -d`
+im Projektordner (beenden mit `docker compose -f compose.dev-mongodb.yaml down`).
+
 Ohne Beispieldaten (`familyhub.sample-data.enabled=false`) legt man beim ersten
 Start in der Oberfläche („Familie einrichten“) oder über `POST /api/auth/setup`
-den ersten Administrator an.
+den ersten Administrator an. Zugangsdaten für Google, Wetter, Fahrzeit, Telegram
+und WhatsApp kommen in eine Datei `local.properties` (siehe „Einstellungen“ und
+die Abschnitte „… einrichten“ weiter unten); ohne sie läuft FamilyHub, die
+jeweilige Funktion meldet dann „nicht eingerichtet“.
+
+## Mit Docker betreiben
+
+Für alle, die FamilyHub nur benutzen wollen: Oberfläche, Backend und MongoDB
+laufen zusammen in Docker, ohne JDK, Node oder pnpm. Die Oberfläche kommt dabei
+vom Backend selbst, FamilyHub läuft also unter **http://localhost:8080**.
+
+**Voraussetzung:** [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+(Windows braucht dafür WSL 2: einmal `wsl --install` in einer
+Administrator-Eingabeaufforderung, danach neu starten) oder unter Linux Docker
+Engine mit Compose.
+Docker Desktop muss laufen (Wal-Symbol in der Menüleiste bzw. Taskleiste).
+Findet das Terminal unter macOS `docker` nicht („command not found“), liegt es
+in `~/.docker/bin`: einmal
+`echo 'export PATH="$HOME/.docker/bin:$PATH"' >> ~/.zshrc` und das Terminal neu
+öffnen. Prüfen mit `docker version` (zeigt Client und Server).
+
+**Am einfachsten: das FamilyHub-Fenster.** Im Ordner `deploy` per Doppelklick
+öffnen: unter Windows `FamilyHub.bat`, unter macOS `FamilyHub.app`. Das Fenster
+zeigt, ob FamilyHub läuft, und hat zwei Knöpfe, **Starten** und **Beenden**,
+dazu „Im Browser öffnen“ und ein ausklappbares Protokoll. Es folgt dem hellen
+bzw. dunklen Design des Systems. Die Quellen liegen in `deploy/fenster/`; nach
+Änderungen an der Mac-Fassung `deploy/fenster/app-bauen.sh` ausführen.
+
+Ohne Fenster gehen dieselben Schritte auch mit diesen Startdateien:
+
+| System | Starten | Beenden |
+|---|---|---|
+| Windows | `FamilyHub starten.bat` | `FamilyHub beenden.bat` |
+| macOS | `FamilyHub starten.command` | `FamilyHub beenden.command` |
+| Linux (oder im Terminal) | `./familyhub.sh start` | `./familyhub.sh stop` |
+
+Beim Start prüfen sie, ob Docker bzw. Podman läuft (Docker Desktop starten sie
+bei Bedarf selbst). Beim ersten Mal legen sie `deploy/.env` mit einem
+zufälligen Datenbank-Passwort an und bauen das Image. Danach starten sie
+FamilyHub, warten, bis es bereit ist, und öffnen den Browser. Das Fenster
+zeigt, was passiert, und bleibt bei Fehlern mit einer verständlichen Meldung
+offen. Weitere Befehle: `./familyhub.sh update` baut bzw. lädt die neueste
+Version, `./familyhub.sh logs` zeigt das Protokoll (unter Windows
+`familyhub.ps1 update` bzw. `logs` in PowerShell).
+
+macOS fragt beim ersten Doppelklick (auch auf `FamilyHub.app`) eventuell nach, ob
+die Datei geöffnet werden darf: dann mit Rechtsklick › „Öffnen“ bestätigen. Die `.env` danach
+gut aufheben, sie gehört zur Sicherung: Ohne das Passwort darin kommt
+FamilyHub nicht mehr an die Daten. Deshalb legen die Startdateien keine neue
+`.env` an, solange es schon Daten gibt.
+
+**Von Hand** geht es so:
+
+1. Im Projektordner das Image bauen. **Der Punkt am Ende gehört zum Befehl**
+   (er steht für „dieser Ordner“); fehlt er, meldet Docker „requires 1
+   argument“. Mit Podman `podman build -t familyhub:lokal .`:
+
+   ```bash
+   docker build -t familyhub:lokal .
+   ```
+
+   Sobald eine Version mit Tag veröffentlicht ist, entfällt das: GitHub baut
+   das Image dann selbst (`ghcr.io/jneugaertner/family-hub`), und vom
+   Repository braucht man nur die beiden Dateien aus `deploy/`.
+2. Im Ordner `deploy` die Vorlage kopieren:
+
+   ```bash
+   cd deploy
+   cp .env.example .env
+   ```
+
+   In `.env` mindestens `MONGO_PASSWORD` setzen und für das selbst gebaute
+   Image die Zeile `FAMILYHUB_IMAGE=familyhub:lokal` einkommentieren (mit
+   Podman: `FAMILYHUB_IMAGE=localhost/familyhub:lokal`). Unter Windows statt
+   `cp` den Befehl `copy` verwenden.
+3. Starten:
+
+   ```bash
+   docker compose up -d
+   ```
+
+   Dann http://localhost:8080 öffnen und unter „Familie einrichten“ den ersten
+   Administrator anlegen. Eine Beispielfamilie gibt es hier bewusst nicht
+   (`FAMILYHUB_SAMPLEDATA_ENABLED` in `.env`).
+
+   Wichtig: im Ordner `deploy`. Im Projektordner selbst meldet `docker compose`
+   „no configuration file provided“. Die Datenbank des einfachen Starts hat
+   keinen Port nach außen; eine für die Entwicklung gestartete MongoDB auf
+   Port 27017 stört also nicht. Nur Port 8080 muss frei sein, das
+   Entwicklungs-Backend (`./mvnw spring-boot:run`) also vorher beenden.
+
+| Aufgabe | Befehl (im Ordner `deploy`) |
+|---|---|
+| Beenden | `docker compose down` |
+| Protokoll ansehen | `docker compose logs -f familyhub` |
+| Update (veröffentlichtes Image) | `docker compose pull`, danach `docker compose up -d` |
+| Update (selbst gebaut) | `docker build -t familyhub:lokal ..`, danach `docker compose up -d` |
+
+Die Daten liegen im Docker-Volume `familyhub_familyhub-data` und bleiben bei
+`down` und bei Updates erhalten; erst `docker compose down -v` löscht sie.
+
+Zugangsdaten für Wetter, Google, Telegram und WhatsApp stehen hier nicht in
+`local.properties`, sondern in `.env`. Die Namen folgen den Einstellungen:
+Punkte werden zu `_`, Bindestriche fallen weg, alles in Großbuchstaben, z. B.
+`familyhub.weather.api-key` → `FAMILYHUB_WEATHER_APIKEY`. So lässt sich auch
+jede Einstellung aus der Tabelle unten setzen. Uhrzeiten gelten in der Zeitzone
+Europe/Berlin.
+
+So eingerichtet ist FamilyHub nur vom eigenen Rechner aus erreichbar. Für Handys
+und andere Geräte braucht es eine Adresse mit HTTPS, siehe unten.
+
+### Sichern und Wiederherstellen
+
+`deploy/backup.sh` sichert die Datenbank, während FamilyHub läuft, als eine
+Datei nach `deploy/backups/` und löscht Sicherungen, die älter als 14 Tage sind
+(`BACKUP_KEEP_DAYS`). Läuft unter Linux und macOS; auf einem Server täglich per
+cron, z. B. um 03:30 Uhr:
+
+```bash
+30 3 * * * /pfad/zu/deploy/backup.sh >> /pfad/zu/deploy/backups/backup.log 2>&1
+```
+
+Eine Sicherung auf demselben Rechner hilft nicht bei einem Plattenschaden oder
+einem verlorenen Server: die Dateien regelmäßig woandershin kopieren.
+
+Zurückspielen (ersetzt alle Daten in FamilyHub durch den Stand der Sicherung):
+
+```bash
+cd deploy
+docker compose stop familyhub
+docker compose exec -T mongodb mongorestore --archive --gzip --drop \
+  --username familyhub --password '<MONGO_PASSWORD>' --authenticationDatabase admin \
+  < backups/familyhub-<Datum>.archive.gz
+docker compose start familyhub
+```
+
+`.env` gehört mit zur Sicherung: Ohne `MONGO_PASSWORD` kommt man nicht an die
+Daten, ohne `FAMILYHUB_GOOGLE_TOKENKEY` sind die gespeicherten Google-Zugänge
+nicht mehr lesbar. Sie enthält aber alle Zugangsdaten, also getrennt und sicher
+aufbewahren.
+
+### Auf einem Server mit HTTPS betreiben
+
+Damit Handys und andere Geräte FamilyHub erreichen (und die App sich dort
+installieren lässt), läuft es auf einem Server mit eigener Domain. Vor FamilyHub
+steht dann [Caddy](https://caddyserver.com): Caddy holt das HTTPS-Zertifikat
+selbst bei Let's Encrypt, erneuert es und leitet http auf https um.
+
+**Voraussetzungen:** ein Linux-Server mit Docker Engine und Compose (z. B. ein
+kleiner vServer in der EU), eine Domain oder Subdomain, deren DNS-Eintrag
+(A bzw. AAAA) auf den Server zeigt, und von außen offene Ports 80 und 443.
+
+1. Auf dem Server einen Ordner mit `compose.yaml`, `compose.server.yaml`,
+   `Caddyfile`, `backup.sh` und `.env.example` aus `deploy/` anlegen,
+   `.env.example` nach `.env` kopieren und ausfüllen. Zusätzlich zu oben:
+
+   ```properties
+   FAMILYHUB_DOMAIN=familyhub.example.de
+   FAMILYHUB_URL=https://familyhub.example.de
+   ```
+2. Starten:
+
+   ```bash
+   docker compose -f compose.yaml -f compose.server.yaml up -d
+   ```
+
+   Beim ersten Start holt Caddy das Zertifikat (einige Sekunden, Protokoll mit
+   `docker compose -f compose.yaml -f compose.server.yaml logs -f caddy`).
+   Danach https://familyhub.example.de öffnen und die Familie einrichten.
+3. Sicherung per cron einrichten (siehe oben).
+
+Hinter Caddy setzt FamilyHub Anmelde-Cookies nur noch für https
+(`SERVER_SERVLET_SESSION_COOKIE_SECURE`), deshalb klappt die Anmeldung dort nur
+über die Domain, nicht direkt über Port 8080. Für Google Kalender in der Google
+Cloud Console `https://<Domain>/api/google/callback` als Weiterleitungs-URI
+eintragen. Für WhatsApp ist dieselbe Adresse mit `/api/whatsapp` die Callback
+URL; ein Tunnel wie ngrok ist dann nicht mehr nötig.
 
 ## Wiederkehrende Aufgaben
 
@@ -176,6 +449,48 @@ Kauf. „Dringend“ gilt nur bis zum nächsten Einkauf. Wiederkehrende Artikel 
 an, wer direkt auf die Liste schreibt (Eltern und Jugendliche); Kinder schlagen
 nur einzelne Artikel vor. Zutaten aus dem Essensplan wiederholen sich nicht,
 die setzt der Essensplan selbst wieder auf die Liste.
+
+## Vorlagen für Termine
+
+Für Termine, die immer am gleichen Ort und zur gleichen Uhrzeit sind, aber nicht
+regelmäßig (z. B. Zahnarzt, Kinderarzt, Friseur):
+
+- **Anlegen:** einen Termin ausfüllen (neu oder bestehend) und unten auf
+  „☆ Als Vorlage speichern“ klicken. Die Vorlage merkt sich Titel, Uhrzeit,
+  Dauer, Beteiligte, Kategorie, Ort mit Fahrzeit, Beschreibung und „Privat“,
+  nicht das Datum.
+- **Nutzen:** Bei einem neuen Termin oben unter „Vorlage“ auswählen. Das Datum
+  bleibt, alles andere füllt die Vorlage aus und lässt sich vor dem Speichern
+  noch ändern. Beteiligte übernimmt sie nur, soweit man sie eintragen darf.
+- **Verwalten:** Im Kalender „☆ Vorlagen“ zeigt alle Vorlagen; umbenennen und
+  löschen darf, wer eine Vorlage angelegt hat, und Administratoren. Termine aus
+  einer Vorlage bleiben davon unberührt.
+
+Vorlagen haben alle, die Termine anlegen oder vorschlagen dürfen (in den
+Standardrollen Eltern und Jugendliche, nicht Kinder und Gäste). Private
+Vorlagen sieht nur, wer sie angelegt hat. Schnittstelle: `/api/event-templates`.
+
+## Rückgängig
+
+Wer einen Termin, eine Aufgabe oder einen Einkaufsartikel löscht, „Abgehakte
+entfernen“ oder „Erledigte löschen“ wählt, sieht unten acht Sekunden lang einen
+Hinweis mit **„Rückgängig“**. Ein Klick holt alles so zurück, wie es war: mit
+Ersteller, Beteiligten, Status und Punkten. Wiederkehrende Artikel bekommen
+ihren alten Stand zurück, auch wenn „Abgehakte entfernen“ sie schon wieder auf
+die Liste gesetzt oder unter „Kommt wieder“ geschoben hatte.
+
+- Rückgängig machen kann nur, wer gelöscht hat, und nur einmal. Über die
+  Schnittstelle geht das noch fünf Minuten lang, in der Oberfläche solange der
+  Hinweis zu sehen ist.
+- Serientermine sind ausgenommen, weil beim Löschen auch die Serie selbst
+  geändert wird.
+- Andere offene Browser zeigen den wiederhergestellten Eintrag ohne Neuladen;
+  ein Google-Export trägt ihn wieder ein.
+
+Schnittstelle: Die Löschung liefert im Header `X-Undo-Token` eine Marke,
+`POST /api/{events,tasks,shopping}/undo/{token}` stellt wieder her. FamilyHub
+merkt sich den alten Stand in der Sammlung `undoSnapshots`, die MongoDB nach
+15 Minuten selbst aufräumt.
 
 ## Serientermine
 
@@ -408,8 +723,9 @@ openrouteservice; sie darf nicht entfernt werden.
 
 FamilyHub lässt sich wie eine App installieren (eigenes Fenster, Symbol im
 Startmenü bzw. auf dem Startbildschirm). In Edge oder Chrome
-`http://localhost:5173` öffnen und in der Adressleiste auf „App installieren“
-klicken (Edge: Menü „Apps“ → „Diese Website als App installieren“).
+`http://localhost:5173` (mit Docker: `http://localhost:8080`) öffnen und in der
+Adressleiste auf „App installieren“ klicken (Edge: Menü „Apps“ → „Diese Website
+als App installieren“).
 
 Auf dem Handy funktioniert das erst, wenn FamilyHub dort über HTTPS erreichbar
 ist, also auf einem Server läuft; im lokalen Entwicklungsbetrieb ist die
@@ -422,7 +738,10 @@ Oberfläche nur auf dem eigenen Rechner erreichbar.
 ├── src/test/java/de/familyhub/   Backend-Tests, gleiche Pakete
 ├── frontend/                     Oberfläche (React, siehe frontend/README.md)
 ├── scripts/                      Hilfsskripte (z. B. MongoDB starten)
-└── docker-compose.yml            MongoDB alternativ per Docker
+├── deploy/                       FamilyHub komplett per Docker (Startfenster, Startskripte, compose.yaml)
+├── regression/                   Regressionstests im Browser (Cucumber, Playwright, axe), Start mit regression.sh
+├── Dockerfile                    Docker-Image: Oberfläche und Backend in einem
+└── compose.dev-mongodb.yaml      nur MongoDB für die Entwicklung, per Docker
 ```
 
 Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
@@ -430,10 +749,15 @@ Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
 `weather`, `whatsapp`, `telegram`, `family` und `settings`. Querschnittsthemen
 liegen in `security` (Anmeldung), `permission` (Rollen und Rechte), `inbox`
 (gemeinsamer Eingang für Nachrichten von WhatsApp und Telegram), `notifications`
-(Benachrichtigungen über Telegram), `live` (Live-Aktualisierung), `web`
+(Benachrichtigungen über Telegram), `live` (Live-Aktualisierung), `undo`
+(„Rückgängig“ nach Löschungen), `web`
 (Fehlerbehandlung, CORS, Swagger) und `sampledata` (Beispielfamilie).
 
 ## Dokumentation
+
+- [CHANGELOG.md](CHANGELOG.md): was sich in welcher Version geändert hat
+- [ROADMAP.md](ROADMAP.md): was für die nächsten Versionen geplant ist
+- [CONTRIBUTING.md](CONTRIBUTING.md): wie man mitarbeitet
 
 Die REST-Schnittstelle ist bei laufendem Backend in der Swagger UI beschrieben
 und lässt sich dort ausprobieren: **http://localhost:8080/swagger-ui.html**
@@ -443,6 +767,9 @@ Konzepte, Diagramme, User Stories, Personas und das Figma-UI liegen im
 Team-Ordner, nicht im Repository.
 
 ## Zusammenarbeit
+
+Wie du einsteigst, arbeitest und vor einem Merge prüfst, steht ausführlich in
+[CONTRIBUTING.md](CONTRIBUTING.md). Kurz:
 
 - **Branches:**
   - `main` enthält nur geprüfte, lauffähige Stände; jede Version hat einen Tag

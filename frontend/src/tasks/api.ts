@@ -1,4 +1,4 @@
-import { json, request } from '../api/client';
+import { json, request, requestUndoable } from '../api/client';
 
 // done: erledigt (mit Punkten wartet sie auf Bestätigung), confirmed: bestätigt, Punkte gutgeschrieben
 export type TaskStatus = 'todo' | 'inprogress' | 'done' | 'confirmed';
@@ -68,11 +68,15 @@ export const updateTask = (id: string, input: TaskInput) =>
 export const changeTaskStatus = (id: string, status: Exclude<TaskStatus, 'confirmed'>) =>
   request<ApiTask>(`/api/tasks/${id}/status`, { method: 'PATCH', body: json({ status }) });
 
-export const deleteTask = (id: string) => request<void>(`/api/tasks/${id}`, { method: 'DELETE' });
+export const deleteTask = (id: string) => requestUndoable<void>(`/api/tasks/${id}`, { method: 'DELETE' });
+
+// Gelöschte Aufgaben (auch nach „Erledigte löschen“) wiederherstellen
+export const undoTasks = (token: string) =>
+  request<{ restored: number }>(`/api/tasks/undo/${token}`, { method: 'POST' });
 
 // Nur Administratoren: bestätigte und erledigte Aufgaben ohne Punkte löschen (wartende Bestätigungen bleiben)
 export const deleteCompletedTasks = () =>
-  request<{ deleted: number }>('/api/tasks/completed', { method: 'DELETE' });
+  requestUndoable<{ deleted: number }>('/api/tasks/completed', { method: 'DELETE' });
 
 export const confirmTask =(id: string) => request<ApiTask>(`/api/tasks/${id}/confirm`, { method: 'POST' });
 

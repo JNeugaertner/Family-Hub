@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import de.familyhub.calendar.CalendarEvent;
+
 // Bausteine für die Texte der Benachrichtigungen (reiner Text, Telegram formatiert nichts)
 final class NotificationTexts {
 
@@ -30,6 +32,16 @@ final class NotificationTexts {
     // "heute um 15:30"
     static String dayAndTime(LocalDateTime at, LocalDate today) {
         return day(at.toLocalDate(), today) + " um " + at.format(TIME);
+    }
+
+    // Wann ein Termin ist: "heute um 15:30", ganztägig "morgen (ganztägig)" oder "am 26.10. bis 30.10. (ganztägig)"
+    static String when(CalendarEvent event, LocalDate today) {
+        if (!event.isAllDay()) {
+            return dayAndTime(event.start(), today);
+        }
+        LocalDate first = event.start().toLocalDate();
+        LocalDate last = event.end().toLocalDate().minusDays(1);
+        return day(first, today) + (last.equals(first) ? "" : " bis " + last.format(DATE)) + " (ganztägig)";
     }
 
     // "24 Stunden", "einer Stunde" oder "30 Minuten", passend zu "seit über …"

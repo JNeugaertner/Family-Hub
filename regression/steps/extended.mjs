@@ -4,9 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { baseURL } from '../support/world.mjs';
 const secret = 'E2E-password-2026!';
 const permission = (module, action) => ({ module, action, scope: 'familie' });
-const memberInput = (role = 'gast') => ({ name: 'E2E Member', username: 'e2e-' + randomUUID().slice(0, 12), password: secret, color: '#2563EB', role, birthDate: null, roleFixed: true });
+export const memberInput = (role = 'gast') => ({ name: 'E2E Member', username: 'e2e-' + randomUUID().slice(0, 12), password: secret, color: '#2563EB', role, birthDate: null, roleFixed: true });
 const itemInput = () => ({ name: 'E2E-' + randomUUID(), quantity: '1', category: 'vorrat', urgent: false });
-async function request(context, method, path, data, headers = {}) {
+export async function request(context, method, path, data, headers = {}) {
   const token = (await context.cookies()).find(c => c.name === 'XSRF-TOKEN');
   return context.request.fetch(baseURL + path, { method, data, headers: { ...(token ? { 'X-XSRF-TOKEN': decodeURIComponent(token.value) } : {}), ...headers } });
 }
@@ -17,12 +17,12 @@ async function track(world, response, type) {
   }
   return response;
 }
-async function createMember(world, input = memberInput()) {
+export async function createMember(world, input = memberInput()) {
   const response = await track(world, await world.api('POST', '/api/members', input), 'member');
   expect(response.status(), await response.text()).toBe(201);
   return { ...(await response.json()), input };
 }
-async function session(world, member, pass = member.input.password) {
+export async function session(world, member, pass = member.input.password) {
   const context = await world.context.browser().newContext({ viewport: { width: 1440, height: 900 } });
   world.contexts.push(context);
   await context.request.get(baseURL + '/api/auth/status');

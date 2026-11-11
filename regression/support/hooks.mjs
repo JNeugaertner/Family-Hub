@@ -37,7 +37,8 @@ Before(async function () {
   await this.context.tracing.start({ screenshots: true, snapshots: true, sources: true });
   this.page = await this.context.newPage();
 });
-After(async function ({ result, pickle }) {
+// Eigene Zeitgrenze: Aufräumen mit Anmeldung und mehreren Löschungen dauerte mit 30 s manchmal zu lange
+After({ timeout: 90000 }, async function ({ result, pickle }) {
   const slug = pickle.name.replace(/[^a-zA-Z0-9]/g, '_') + '-' + Date.now();
   const failures = [];
   try {
@@ -61,13 +62,18 @@ After(async function ({ result, pickle }) {
     }
   } catch (error) { failures.push(error); }
   try {
-    if (this.createdItemIds.length || this.memberIds.length) {
+    if (this.createdItemIds.length || this.memberIds.length || this.cleanupPaths.length) {
       // Eigener Admin-Kontext: unabhängig von der im Szenario geprüften Rolle.
       const cleanup = await browser.newContext();
       try {
         const page = await cleanup.newPage(); await login(page);
         const token = (await cleanup.cookies()).find(c => c.name === 'XSRF-TOKEN');
         const headers = { 'X-XSRF-TOKEN': decodeURIComponent(token.value) };
+        // Termine, Serien, Aufgaben und Vorlagen der Szenarien (vor den Mitgliedern, die daran beteiligt sind)
+        for (const path of [...this.cleanupPaths].reverse()) {
+          const response = await cleanup.request.delete(baseURL + path, { headers });
+          expect([204, 404]).toContain(response.status());
+        }
         for (const id of this.createdItemIds) {
           const response = await cleanup.request.delete(baseURL + '/api/shopping/' + id, { headers });
           expect([204, 404]).toContain(response.status());

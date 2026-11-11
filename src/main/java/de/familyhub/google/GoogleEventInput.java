@@ -1,5 +1,6 @@
 package de.familyhub.google;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -18,8 +19,18 @@ public record GoogleEventInput(
         Time end,
         ExtendedProperties extendedProperties) {
 
-    // dateTime mit Versatz, z. B. 2026-10-01T10:00:00+02:00; timeZone z. B. Europe/Berlin
-    public record Time(String dateTime, String timeZone) {
+    // dateTime mit Versatz, z. B. 2026-10-01T10:00:00+02:00, und timeZone z. B. Europe/Berlin; bei ganztägigen
+    // Terminen stattdessen nur date (yyyy-MM-dd), das Ende ist dann exklusiv (Folgetag)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record Time(String dateTime, String date, String timeZone) {
+
+        public Time(String dateTime, String timeZone) {
+            this(dateTime, null, timeZone);
+        }
+
+        public static Time allDay(LocalDate date) {
+            return new Time(null, date.toString(), null);
+        }
     }
 
     public record ExtendedProperties(@JsonProperty("private") Map<String, String> privateProperties) {

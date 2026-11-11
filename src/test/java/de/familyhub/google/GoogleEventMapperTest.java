@@ -147,4 +147,34 @@ class GoogleEventMapperTest {
         assertThat(mapper.isUpToDate(new GoogleEvent("g1", "confirmed", "Arzt", "Impfpass mitbringen", "Praxis", null,
                 day("2026-10-01"), day("2026-10-02")), event)).isFalse();
     }
+
+    private static CalendarEvent allDayEvent() {
+        return new CalendarEvent("ferien", "Herbstferien", null, LocalDateTime.of(2026, 10, 26, 0, 0),
+                LocalDateTime.of(2026, 10, 31, 0, 0), List.of("m"), EventCategory.FAMILY, null, null, null,
+                null, null, null, false, EventStatus.APPROVED, "m", null);
+    }
+
+    @Test
+    void allDayEventsBecomeAllDayGoogleEntries() {
+        GoogleEventInput input = mapper.toGoogle(allDayEvent());
+
+        assertThat(input.start()).isEqualTo(GoogleEventInput.Time.allDay(LocalDate.of(2026, 10, 26)));
+        // Ende exklusiv wie in FamilyHub: letzter Ferientag ist der 30.10.
+        assertThat(input.end()).isEqualTo(new GoogleEventInput.Time(null, "2026-10-31", null));
+    }
+
+    @Test
+    void allDayEntryIsUpToDateOnlyAsAllDayEntry() {
+        CalendarEvent event = allDayEvent();
+        GoogleEvent asAllDay = new GoogleEvent("g1", "confirmed", "Herbstferien", null, null, null,
+                day("2026-10-26"), day("2026-10-31"));
+        // So stand der Termin vor ganztägigen Einträgen in Google: 00:00 bis 00:00 mit Uhrzeit
+        GoogleEvent withTimes = new GoogleEvent("g1", "confirmed", "Herbstferien", null, null, null,
+                at("2026-10-26T00:00:00+02:00"), at("2026-10-31T00:00:00+01:00"));
+
+        assertThat(mapper.isUpToDate(asAllDay, event)).isTrue();
+        assertThat(mapper.isUpToDate(withTimes, event)).isFalse();
+        assertThat(mapper.isUpToDate(new GoogleEvent("g1", "confirmed", "Herbstferien", null, null, null,
+                day("2026-10-26"), day("2026-10-30")), event)).isFalse();
+    }
 }

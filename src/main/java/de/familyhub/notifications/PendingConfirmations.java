@@ -1,7 +1,7 @@
 package de.familyhub.notifications;
 
 import static de.familyhub.notifications.NotificationTexts.day;
-import static de.familyhub.notifications.NotificationTexts.dayAndTime;
+import static de.familyhub.notifications.NotificationTexts.when;
 import static de.familyhub.notifications.NotificationTexts.quoted;
 
 import java.time.Clock;
@@ -136,7 +136,7 @@ public class PendingConfirmations {
                         taskAccess::mayConfirm)));
         events.findByStatus(EventStatus.PROPOSED)
                 .forEach(event -> open.add(new Open("event:" + event.id(),
-                        "Terminvorschlag " + quoted(event.title()) + " " + dayAndTime(event.start(), today)
+                        "Terminvorschlag " + quoted(event.title()) + " " + when(event, today)
                                 + by(event.createdBy(), names),
                         calendarAccess::mayDecide)));
         shopping.findByStatus(ShoppingItemStatus.PROPOSED)
