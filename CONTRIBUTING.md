@@ -2,7 +2,8 @@
 
 Schön, dass du mitarbeiten willst. Diese Seite fasst zusammen, wie du FamilyHub
 zum Laufen bringst, wie wir arbeiten und was vor einem Merge geprüft wird.
-Was FamilyHub kann und wie man es betreibt, steht im [README](README.md).
+Was FamilyHub kann und wie man es betreibt, steht im [README](README.md), was
+als Nächstes geplant ist, in der [Roadmap](ROADMAP.md).
 
 ## 1. Einrichten
 

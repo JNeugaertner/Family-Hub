@@ -39,8 +39,10 @@ Stand ihrer Version; was sich später geändert hat, steht bei der neueren Versi
 ### Geändert
 
 - **README** mit einer Schritt-für-Schritt-Anleitung zum Starten für alle
-  Betriebssysteme und einer Fehlertabelle; neu ist `CONTRIBUTING.md` für alle,
-  die mitarbeiten wollen.
+  Betriebssysteme, einer Fehlertabelle und einem Abschnitt zu „Rückgängig“;
+  neu ist `CONTRIBUTING.md` für alle, die mitarbeiten wollen.
+- **Roadmap:** `ROADMAP.md` zeigt, was von Version 0.9 bis 2.x geplant ist und
+  was davon schon umgesetzt ist.
 - Die MongoDB für die Entwicklung heißt jetzt `compose.dev-mongodb.yaml`
   (vorher `docker-compose.yml`), damit ein `docker compose up` im
   Projektordner nicht versehentlich nur die Datenbank startet.
@@ -61,6 +63,8 @@ Stand ihrer Version; was sich später geändert hat, steht bei der neueren Versi
   15 Minuten selbst auf). Bestehende Daten werden nicht umgestellt.
 - 432 automatisierte Backend-Tests, dazu 236 Szenarien in den
   Regressionstests.
+- Die geplante Überarbeitung von Open Route Service (Ortssuche und Fahrzeit)
+  ist noch nicht dabei und folgt mit einer späteren Version.
 
 ## v0.7.0 – 09.11.2026
 
