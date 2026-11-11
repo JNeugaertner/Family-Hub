@@ -6,3 +6,5 @@
 *.ps1 text eol=crlf
 # Vorlage für .env: LF, sonst hinge an jedem Wert ein unsichtbares \r
 deploy/.env.example text eol=lf
+# Regressionstests: run-tests.sh und Desktop-Dateien laufen im Linux-Container
+/regression/desktop/** text eol=lf

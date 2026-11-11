@@ -1,0 +1,51 @@
+# Testumgebung für die Regressionstests: FamilyHub aus dem aktuellen Checkout mit einer leeren Wegwerf-Datenbank.
+# Starten und Testen übernimmt ./regression.sh bzw. regression.ps1 (Anleitung im README, Abschnitt „Schnellstart“).
+# Eigener Projektname, eigener Port, keine Volumes: Ein laufendes FamilyHub und seine Daten bleiben unberührt.
+name: familyhub-regression
+
+services:
+  mongodb:
+    image: docker.io/library/mongo:8.0
+    # Daten nur im Arbeitsspeicher: Jeder Testlauf beginnt mit „Familie einrichten“, nichts bleibt liegen
+    tmpfs:
+      - /data/db
+      - /data/configdb
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+
+  familyhub:
+    build:
+      context: ..
+    image: familyhub:regression
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${REGRESSION_PORT:-8081}:8080"
+    environment:
+      SPRING_MONGODB_URI: mongodb://mongodb:27017/familyhub
+      FAMILYHUB_SAMPLEDATA_ENABLED: "false"
+      FAMILYHUB_CORS_ALLOWEDORIGINS: http://127.0.0.1:${REGRESSION_PORT:-8081},http://familyhub:8080
+
+  # Nur für Rechner ohne Node.js (./regression.sh --container): die Tests im Playwright-Container, ohne Fenster
+  tests:
+    profiles: [container]
+    image: mcr.microsoft.com/playwright:v1.56.1-noble
+    depends_on: [familyhub]
+    working_dir: /tests
+    environment:
+      BASE_URL: http://familyhub:8080
+      HEADLESS: "true"
+      SLOW_MO: "0"
+      NPM_CONFIG_UPDATE_NOTIFIER: "false"
+    volumes:
+      - .:/tests
+      # node_modules des Rechners (anderes Betriebssystem) nicht verwenden
+      - test-node-modules:/tests/node_modules
+    entrypoint: ["sh", "-c", "npm ci --no-audit --no-fund --loglevel=error && node scripts/run.mjs \"$$@\"", "--"]
+
+volumes:
+  test-node-modules:
