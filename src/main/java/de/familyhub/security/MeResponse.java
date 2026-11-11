@@ -2,6 +2,7 @@ package de.familyhub.security;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import de.familyhub.permission.Permission;
 import de.familyhub.permission.Role;
@@ -15,6 +16,7 @@ public record MeResponse(
         Role role,
         Role effectiveRole,
         LocalDate birthDate,
+        Set<String> hiddenBirthdays, 
         @Schema(description = "Alle geltenden Rechte (Rolle plus Einzelrechte); Grundlage für die Anzeige im Frontend")
         List<Permission> permissions) {
 }

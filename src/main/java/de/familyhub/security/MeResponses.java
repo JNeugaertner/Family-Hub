@@ -19,6 +19,6 @@ public class MeResponses {
 
     public MeResponse of(FamilyMember member) {
         return new MeResponse(member.id(), member.name(), member.color(), member.username(), member.role(),
-                roleResolver.effectiveRole(member), member.birthDate(), permissions.effectiveSorted(member));
+                roleResolver.effectiveRole(member), member.birthDate(), member.hiddenBirthdays(), permissions.effectiveSorted(member));
     }
 }

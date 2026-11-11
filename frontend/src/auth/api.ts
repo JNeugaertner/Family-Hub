@@ -9,6 +9,7 @@ export interface Me {
   role: RoleId;
   effectiveRole: RoleId;
   birthDate: string | null;
+  hiddenBirthdays: string[];
   permissions: Permission[];
 }
 

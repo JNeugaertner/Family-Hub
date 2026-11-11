@@ -164,7 +164,7 @@ class WhatsAppWebhookControllerTest {
     }
 
     private static FamilyMember withPhone(FamilyMember m, String phone) {
-        return new FamilyMember(m.id(), m.name(), m.color(), m.username(), m.passwordHash(), m.role(), m.birthDate(),
+        return new FamilyMember(m.id(), m.name(), m.color(), m.username(), m.passwordHash(), m.role(), m.birthDate(), null,
                 m.roleFixed(), m.extraPermissions(), m.revokedPermissions(), phone);
     }
 

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
@@ -17,6 +18,8 @@ import de.familyhub.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.Set;
+import java.util.HashSet;
 
 // Login (POST /api/auth/login, Formularfelder username und password) und Logout (POST /api/auth/logout)
 // stellt Spring Security bereit, siehe SecurityConfig.
@@ -62,6 +65,23 @@ public class AuthController {
     public MeResponse me() {
         return meResponses.of(currentMember.get());
     }
+
+    @PutMapping ("/hiddenBirthdays/{memberId}")
+    @Operation(summary = "Geburtstag eines anderen Familienmitgliedes ausblenden")
+    public MeResponse toggleHiddenBirthdays (@PathVariable String memberId){
+        FamilyMember me = currentMember.get();
+        Set<String> hiddenBirthdays = me.hiddenBirthdays() == null ? new HashSet<>(): new HashSet<>(me.hiddenBirthdays());
+        if (hiddenBirthdays.contains(memberId)){
+            hiddenBirthdays.remove(memberId);
+        }else{
+            hiddenBirthdays.add(memberId);
+        }
+        FamilyMember updated = new FamilyMember(me.id(), me.name(), me.passwordHash(), me.color(), me.username(), me.role(), me.birthDate(), 
+        hiddenBirthdays, me.roleFixed(), me.extraPermissions(), me.revokedPermissions(), me.phone());
+        members.save(updated);
+        return meResponses.of(updated);
+    }
+
 
     @PutMapping("/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)

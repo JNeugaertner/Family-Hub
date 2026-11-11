@@ -22,6 +22,7 @@ import { getWasteCollection } from '../waste/api';
 import { useAutoRefresh } from '../api/useAutoRefresh';
 import { readable } from '../family/colors';
 import {getMember} from '../family/api';
+import {useMe} from '../auth/AuthContext';
 
 type SelectEvent = (event: CalendarEvent) => void;
 type SelectDay = (date: Date) => void;
@@ -584,7 +585,13 @@ export default function CalendarPage({ onNavigate }: Props) {
   const proposals = events.filter(e => e.status === 'proposed');
   const openEditor = (event?: CalendarEvent) => setEditor({ event });
 
-  const birthdays = members.filter(m=> m.birthDate).map(m=> ({id: m.id, name: m.name, date: m.birthDate!}))
+//Geburtstage
+  const me = useMe()
+
+  const birthdays = members.filter(m=> m.birthDate)
+        .filter(m => !me.hiddenBirthdays?.includes(m.id))
+        .map(m=> ({id: m.id, name: m.name, date: m.birthDate!}))
+
 
   const decide = async (action: (id: string) => Promise<void>, id: string) => {
     setDecisionError(null);

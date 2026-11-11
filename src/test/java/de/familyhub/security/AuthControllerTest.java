@@ -136,4 +136,18 @@ class AuthControllerTest {
 
         mvc.perform(post("/api/auth/logout").with(as(emma))).andExpect(status().isNoContent());
     }
+
+    @Test 
+    void hiddenBirthdaysCanBeToggled() throws Exception {
+        FamilyMember emma = members.save(TestUsers.member("Emma", Role.KIND));
+        FamilyMember lucas = members.save(TestUsers.member("Lucas", Role.KIND));
+        mvc.perform(put("/api/auth/hiddenBirthdays/"+lucas.name()).with(as(emma)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hiddenBirthdays[0]").value(lucas.name()));
+
+        mvc.perform(put("/api/auth/hiddenBirthdays/"+lucas.name()).with(as(emma)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hiddenBirthdays").isEmpty());
+
+    }
 }

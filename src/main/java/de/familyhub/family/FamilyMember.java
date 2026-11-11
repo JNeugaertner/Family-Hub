@@ -22,6 +22,7 @@ public record FamilyMember(
         String passwordHash,
         Role role,
         LocalDate birthDate,
+        Set<String> hiddenBirthdays,
         boolean roleFixed,
         // Einzelrechte, die ein Administrator zusätzlich vergibt bzw. entzieht (Rollenkonzept)
         Set<Permission> extraPermissions,
@@ -44,12 +45,12 @@ public record FamilyMember(
     public FamilyMember(String id, String name, String color, String username, String passwordHash, Role role,
             LocalDate birthDate, boolean roleFixed, Set<Permission> extraPermissions,
             Set<Permission> revokedPermissions) {
-        this(id, name, color, username, passwordHash, role, birthDate, roleFixed, extraPermissions,
+        this(id, name, color, username, passwordHash, role, birthDate, null, roleFixed, extraPermissions,
                 revokedPermissions, null);
     }
 
     public FamilyMember withPasswordHash(String newPasswordHash) {
-        return new FamilyMember(id, name, color, username, newPasswordHash, role, birthDate, roleFixed,
+        return new FamilyMember(id, name, color, username, newPasswordHash, role, birthDate, null, roleFixed,
                 extraPermissions, revokedPermissions, phone);
     }
 }

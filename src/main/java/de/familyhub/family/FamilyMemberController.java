@@ -123,7 +123,7 @@ public class FamilyMemberController {
         rules.checkLimits(request.role(), null);
 
         FamilyMember saved = members.save(new FamilyMember(null, request.name(), request.color(), request.username(),
-                passwordEncoder.encode(request.password()), request.role(), request.birthDate(), request.isRoleFixed(),
+                passwordEncoder.encode(request.password()), request.role(), request.birthDate(), null, request.isRoleFixed(),
                 orEmpty(request.extraPermissions()), orEmpty(request.revokedPermissions()), phone));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.id()).toUri();
         return ResponseEntity.created(location).body(responses.of(saved, admin));
@@ -142,7 +142,7 @@ public class FamilyMemberController {
                 ? existing.revokedPermissions() : request.revokedPermissions();
         String phone = MemberRules.normalizePhone(request.phone());
         FamilyMember updated = new FamilyMember(id, request.name(), request.color(), request.username(),
-                existing.passwordHash(), request.role(), request.birthDate(), request.isRoleFixed(), extra, revoked,
+                existing.passwordHash(), request.role(), request.birthDate(), null, request.isRoleFixed(), extra, revoked,
                 phone);
         requireAllowedChange(admin, existing, updated, request.password() != null);
         checkRoleAssignable(request.role());
