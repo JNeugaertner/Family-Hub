@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import { PlusIcon, CheckIcon, SettingsIcon } from './Icons';
 import { ApiError } from '../api/client';
 import { useAuth, useMe } from '../auth/AuthContext';
-import { changePassword, type Me } from '../auth/api';
+import { changePassword, type Me, toggleHiddenBirthday} from '../auth/api';
 import { useCalendarData } from '../calendar/CalendarDataContext';
 import { CATEGORY_OPTIONS } from '../calendar/categories';
 import type { EventCategory } from './data';
@@ -111,15 +111,31 @@ function MemberCard({ member, roles, teenAge, onEdit }: {
   member: ApiMember; roles: RoleInfo[]; teenAge: number; onEdit?: () => void;
 }) {
   const me = useMe();
+  const {refresh} = useAuth();
   const isSelf = member.id === me.id;
   const { permissions, exact } = effectivePermissions(member, roles, me);
   const age = ageOf(member.birthDate);
   const autoRole = member.role !== member.effectiveRole;
 
+  const birthdayIsHidden = me.hiddenBirthdays?.includes(member.id);
+  const setBirthdayToggled = async() =>{ 
+    try{
+      await(toggleHiddenBirthday(member.id))
+      await refresh();
+    }catch(error) {
+      console.error(error)
+    }};
+
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <div className="h-20 relative" style={{ background: `linear-gradient(135deg, ${member.color}, ${member.color}AA)` }}>
         <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-white to-transparent" />
+        <div className="absolute top-3 left-3 flex items-center gap-2 bg-white/30 backdrop-blur-sm text-white text-[10px] font-medium px-3 py-1 rounded-full" >
+          <span>Geburtstag anzeigen</span>
+          <button onClick={setBirthdayToggled} className={`relative w-10 h-5 rounded-full transition-all duration-300 ${!birthdayIsHidden? 'bg-emerald-400': 'bg-white/40'}`}>
+            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-300 ${!birthdayIsHidden? 'left-5': 'left-0.5'}`}/>
+          </button>
+        </div>
         {member.effectiveRole === 'administrator' && (
           <div className="absolute top-3 right-3 bg-white/30 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
             <ShieldLock size={10} /> Admin

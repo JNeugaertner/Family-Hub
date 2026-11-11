@@ -35,3 +35,6 @@ export const setup = (input: SetupInput) =>
 
 export const changePassword = (currentPassword: string, newPassword: string) =>
   request<void>('/api/auth/password', { method: 'PUT', body: json({ currentPassword, newPassword }) });
+
+export const toggleHiddenBirthday = (memberId: string) => 
+  request<Me>(`/api/auth/hiddenBirthdays/${memberId}`,{method: 'PUT'});
