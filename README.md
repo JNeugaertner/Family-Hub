@@ -14,7 +14,7 @@ kommt, in der [Roadmap](ROADMAP.md).
 
 | Bereich | Was FamilyHub kann |
 |---|---|
-| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private und ganztägige Termine (auch über mehrere Tage), Serientermine (z. B. jeden Dienstag Training), Vorlagen für Termine mit gleichem Ort und gleicher Uhrzeit (z. B. Zahnarzt), Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
+| Kalender | Monats-, Wochen- und Tagesansicht; Termine für eine oder mehrere Personen („Ganze Familie“), private und ganztägige Termine (auch über mehrere Tage), Serientermine (z. B. jeden Dienstag Training), Vorlagen für Termine mit gleichem Ort und gleicher Uhrzeit (z. B. Zahnarzt), Feiertage mit Countdown, Vorschläge von Jugendlichen mit Freigabe durch die Eltern |
 | Google Kalender | Termine aus dem eigenen Google Kalender übernehmen (schreibgeschützt); auf Wunsch die eigenen FamilyHub-Termine in einen Google-Kalender „FamilyHub“ eintragen |
 | Aufgaben und Punkte | Eltern vergeben Aufgaben mit Punkten, Kinder haken ab, nach der Bestätigung gibt es Punkte; Bonus-Aufgaben für alle Kinder; Aufgaben, die sich nach Erledigung wiederholen (z. B. Blumen gießen alle 3 Tage); Erwachsene erledigen Aufgaben ohne Punkte |
 | Belohnungen | Shop, in dem Kinder und Jugendliche Punkte einlösen; die Eltern genehmigen oder lehnen ab |
@@ -35,8 +35,8 @@ in der App (Benachrichtigungen kommen bisher nur über Telegram), die
 Sprachsteuerung sowie Warnungen, wenn sich Fahrzeit und andere Termine
 überschneiden. Die Oberfläche
 kennzeichnet sie als „Vorschau“ oder „Demnächst“ oder blendet sie aus
-(`frontend/src/placeholders.ts`). Geplant sind als Nächstes Geburtstage und
-Countdowns zu Feiertagen (Version 0.9, siehe [Roadmap](ROADMAP.md)).
+(`frontend/src/placeholders.ts`). Geplant sind als Nächstes Geburtstage
+(Version 0.9, siehe [Roadmap](ROADMAP.md)).
 
 ## Tech-Stack
 
@@ -492,6 +492,19 @@ Schnittstelle: Die Löschung liefert im Header `X-Undo-Token` eine Marke,
 merkt sich den alten Stand in der Sammlung `undoSnapshots`, die MongoDB nach
 15 Minuten selbst aufräumt.
 
+## Feiertage und Countdown
+
+Die Übersicht zählt unter „Countdown“ die Tage bis zum nächsten Feiertag herunter
+und nennt die zwei danach; der Kalender zeigt den nächsten oben neben der
+Müllabfuhr und markiert Feiertage an ihrem Tag. Dabei sind Neujahr, Ostern
+(Ostersonntag), Christi Himmelfahrt, Pfingsten (Pfingstsonntag), der Tag der
+Deutschen Einheit und Weihnachten; Weihnachten zählt bis Heiligabend.
+
+Feiertage sind keine Termine: Sie stehen nicht in der Datenbank, gehen nicht
+nach Google und lösen keine Benachrichtigungen aus. FamilyHub berechnet sie
+jedes Jahr neu, auch das wandernde Osterdatum. Sehen dürfen sie alle, auch Gäste.
+Schnittstelle: `GET /api/holidays?from=…&to=…` und `GET /api/holidays/upcoming`.
+
 ## Serientermine
 
 Im Termin-Formular unter „Wiederholen“ wird aus einem Termin eine Serie:
@@ -746,7 +759,7 @@ Oberfläche nur auf dem eigenen Rechner erreichbar.
 
 Die Backend-Pakete heißen wie die Bereiche: `calendar`, `google`, `task`,
 `points`, `rewards`, `achievements`, `shopping`, `meals`, `messages`, `waste`,
-`weather`, `whatsapp`, `telegram`, `family` und `settings`. Querschnittsthemen
+`weather`, `whatsapp`, `telegram`, `holidays`, `family` und `settings`. Querschnittsthemen
 liegen in `security` (Anmeldung), `permission` (Rollen und Rechte), `inbox`
 (gemeinsamer Eingang für Nachrichten von WhatsApp und Telegram), `notifications`
 (Benachrichtigungen über Telegram), `live` (Live-Aktualisierung), `undo`

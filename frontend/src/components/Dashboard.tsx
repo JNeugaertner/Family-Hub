@@ -14,6 +14,7 @@ import { readable } from '../family/colors';
 import { useTaskData } from '../tasks/TaskDataContext';
 import { usePointHolders } from '../points/usePointHolders';
 import WeatherWidget from '../weather/WeatherWidget';
+import HolidayCountdown from '../holidays/HolidayCountdown';
 import type { Focus } from '../navigation/focus';
 import { SoonBadge } from './Placeholder';
 import { PLACEHOLDER } from '../placeholders';
@@ -402,6 +403,7 @@ export default function Dashboard({ onNavigate }: Props) {
         <div className="space-y-5">
           <MiniCalendar onNavigate={onNavigate} />
           <WeatherWidget onNavigate={onNavigate} />
+          <HolidayCountdown />
           <PointsWidget onNavigate={onNavigate} />
         </div>
 
