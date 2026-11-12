@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.server.ResponseStatusException;
 
 import de.familyhub.family.FamilyMember;
 import de.familyhub.family.FamilyMemberRepository;
@@ -69,6 +70,9 @@ public class AuthController {
     @PutMapping ("/hiddenBirthdays/{memberId}")
     @Operation(summary = "Geburtstag eines anderen Familienmitgliedes ausblenden")
     public MeResponse toggleHiddenBirthdays (@PathVariable String memberId){
+        if(members.findById(memberId).isEmpty()){
+            throw ApiException.notFound("Familienmitglied nicht gefunden");
+        }
         FamilyMember me = currentMember.get();
         Set<String> hiddenBirthdays = me.hiddenBirthdays() == null ? new HashSet<>(): new HashSet<>(me.hiddenBirthdays());
         if (hiddenBirthdays.contains(memberId)){

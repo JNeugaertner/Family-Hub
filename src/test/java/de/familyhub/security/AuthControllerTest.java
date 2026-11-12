@@ -141,13 +141,22 @@ class AuthControllerTest {
     void hiddenBirthdaysCanBeToggled() throws Exception {
         FamilyMember emma = members.save(TestUsers.member("Emma", Role.KIND));
         FamilyMember lucas = members.save(TestUsers.member("Lucas", Role.KIND));
-        mvc.perform(put("/api/auth/hiddenBirthdays/"+lucas.name()).with(as(emma)).with(csrf()))
+        mvc.perform(put("/api/auth/hiddenBirthdays/"+lucas.id()).with(as(emma)).with(csrf()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hiddenBirthdays[0]").value(lucas.name()));
+                .andExpect(jsonPath("$.hiddenBirthdays[0]").value(lucas.id()));
 
-        mvc.perform(put("/api/auth/hiddenBirthdays/"+lucas.name()).with(as(emma)).with(csrf()))
+        mvc.perform(put("/api/auth/hiddenBirthdays/"+lucas.id()).with(as(emma)).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.hiddenBirthdays").isEmpty());
 
+    }
+
+    @Test 
+    void hiddenBirthdayThrowsError() throws Exception {
+        FamilyMember emma = members.save(TestUsers.member("Emma", Role.KIND));
+        mvc.perform(put("/api/auth/hiddenBirthdays/lucas").with(as(emma)).with(csrf()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Nicht gefunden"))
+                .andExpect(jsonPath("$.detail").value("Familienmitglied nicht gefunden"));
     }
 }
